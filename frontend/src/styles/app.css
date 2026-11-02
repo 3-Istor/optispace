@@ -73,6 +73,10 @@ dialog.drawer::backdrop{background:rgba(14,23,38,.28)}
 .note{padding:10px 12px;border-radius:8px;background:#F3F6FD;border:1px solid #DCE6FA;font-size:13px;color:#1747B3;line-height:1.5}
 @keyframes drawer{from{transform:translateX(100%)}to{transform:none}}
 
+/* Confirmation dialog (native <dialog>, centered by the browser) */
+dialog.modal{width:min(420px,calc(100% - 32px));box-sizing:border-box;border:1px solid #E4E8EE;border-radius:12px;padding:24px;color:inherit;box-shadow:0 24px 60px rgba(14,23,38,.25)}
+dialog.modal::backdrop{background:rgba(14,23,38,.35)}
+
 /* Loader (Chargement.dc.html) */
 .loader{position:relative;flex:none}
 .loader svg{position:absolute;inset:0}

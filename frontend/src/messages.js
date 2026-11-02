@@ -7,8 +7,11 @@ const ERRORS = {
   NOT_OWNER: 'Seule la personne qui a réservé peut modifier ou annuler cette réservation.',
   RESERVATION_ENDED: 'Cette réservation est terminée ou libérée : elle ne peut plus être modifiée.',
   FORBIDDEN: 'Vous n’avez pas accès à cette page.',
-  REAUTH_REQUIRED: 'Confirmez votre mot de passe pour continuer.',
+  CONFIRMATION_REQUIRED: 'Confirmez le descellement pour continuer.',
   DEVICE_UNASSIGNED: 'Affectez d’abord ce boîtier à un espace.',
+  DEVICE_NOT_FOUND: 'Ce boîtier n’existe plus. Actualisez la page.',
+  SPACE_NOT_FOUND: 'Cet espace n’existe plus. Actualisez la page.',
+  SPACE_HAS_DEVICE: 'Cet espace a déjà un boîtier.',
   INVALID_SETTINGS: 'Chaque durée minimale doit être inférieure ou égale à la durée maximale.',
   NETWORK: 'Pas de connexion. Réessayez dans quelques instants.',
 }
@@ -47,8 +50,17 @@ export const SPACE_STATES = {
   awaiting_presence: ['Réservée, en attente de présence', '#D9771F'],
   occupied_reserved: ['Occupée', '#D63F45'],
   occupied_unreserved: ['Occupée sans réservation', '#A8323A'],
-  unknown: ['Occupation inconnue', '#2F6FE0'],
+  unknown: ['Présence à vérifier', '#2F6FE0'],
   sealed: ['Détection désactivée', '#8A94A3'],
+}
+
+// GET /devices item -> key of DEVICE_STATES; offline wins so a dead box is never shown as fine.
+export const deviceState = (d) => (!d.online ? 'offline' : d.seal === 'unsealed' ? 'active' : d.space ? 'sealed' : 'new')
+export const DEVICE_STATES = {
+  new: ['Scellé, non affecté', '#2F6FE0'],
+  sealed: ['Scellé', '#2F6FE0'],
+  active: ['Actif', '#1A8F4E'],
+  offline: ['Hors ligne', '#D63F45'],
 }
 
 export const SPACE_TYPES = { meeting_room: 'Salle de réunion', individual_booth: 'Bulle individuelle' }
