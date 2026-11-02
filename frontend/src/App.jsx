@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { api } from './api.js'
 import { useRoute } from './router.jsx'
+import { Dashboard } from './pages/admin/Dashboard.jsx'
+import { Devices } from './pages/admin/Devices.jsx'
+import { Profile } from './pages/admin/Profile.jsx'
+import { Settings } from './pages/admin/Settings.jsx'
+import { Spaces } from './pages/admin/Spaces.jsx'
 import { ErrorPage } from './pages/Errors.jsx'
 import { Login } from './pages/Login.jsx'
 import { MyReservations } from './pages/MyReservations.jsx'
@@ -12,7 +17,9 @@ import { Toaster } from './ui/Toast.jsx'
 // path -> page component, rendered as <Page me={me} setMe={setMe} />.
 const ROUTES = { '/': Reserve, '/reservations': MyReservations }
 // Served to role facility_manager only (the backend enforces it anyway); /admin/* for others is a 403 page.
-const FM_ROUTES = {}
+const FM_ROUTES = {
+  '/admin': Dashboard, '/admin/spaces': Spaces, '/admin/devices': Devices, '/admin/settings': Settings, '/admin/profile': Profile,
+}
 
 // GET /me failure -> what to show; 401 means the gateway let us through without a session.
 const FAILURE = { 0: 'offline', 401: 'login', 403: 'forbidden' }
