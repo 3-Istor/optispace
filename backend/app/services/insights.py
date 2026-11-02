@@ -23,15 +23,15 @@ MINUTE = timedelta(minutes=1)
 RULES_VERSION = "1.0"
 
 
-def _pct(part: int, whole: int) -> float | None:
-    """One decimal, half up (56.25 -> 56.3); None when there is nothing to divide by."""
-    if not whole:
-        return None
-    return float((Decimal(100 * part) / Decimal(whole)).quantize(Decimal("0.1"), ROUND_HALF_UP))
+def _rate(part: int, whole: int) -> float | None:
+    """0-100, not rounded (the client rounds for display); None when there is nothing to divide by."""
+    return 100 * part / whole if whole else None
 
 
-def _fr(value: float) -> str:
-    return f"{value:g}".replace(".", ",")
+def _pct(part: int, whole: int) -> str:
+    """French text, one decimal, half up from the exact ratio (56.25 -> "56,3")."""
+    value = (Decimal(100 * part) / Decimal(whole)).quantize(Decimal("0.1"), ROUND_HALF_UP)
+    return f"{value:f}".removesuffix(".0").replace(".", ",")
 
 
 def _s(n: int) -> str:
@@ -80,32 +80,18 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     effective = union((r.start_at, booking.effective_end(r)) for r in reservations)
     released = union((r.released_at, r.end_at) for r in reservations if r.released_at)  # L
 
-    sources = {o.source.value for o in observations}
-    source_mode = (sources.pop() if len(sources) == 1 else "mixed") if sources else None
+    # K-05 population: reservations starting in the period. A no-show is a no_show episode that released;
+    # a presence in the first D minutes is evaluated too; anything else is not evaluated.
     delay = timedelta(minutes=db.get(AppSettings, 1).absence_delay_min)
-    no_shows = []
-    for r in reservations:
-        if not frm <= r.start_at < to:
-            continue
-        window_end = min(r.start_at + delay, r.end_at)
-        window = span(r.start_at, window_end)
-        if any(e.kind == EpisodeKind.NO_SHOW and e.outcome == EpisodeOutcome.RELEASED for e in episodes[r.id]):
-            status, reason = "no_show_detected", "EMPTY_WINDOW"
-        elif window & occupied:
-            status, reason = "presence_detected", "PRESENCE_IN_WINDOW"
-        elif now < window_end:
-            status, reason = "pending", "WINDOW_IN_PROGRESS"
-        else:
-            status, reason = "undetermined", "MISSING_OBSERVATIONS"
-        no_shows.append({
-            "reservation_id": str(r.id), "room_id": str(space.id), "status": status, "reason_code": reason,
-            "window_start": iso(r.start_at), "window_end": iso(window_end), "evaluated_at": iso(now),
-            "observed_minutes": len(window & observed), "unknown_minutes": len(window - observed),
-            "source_mode": source_mode, "rules_version": RULES_VERSION,
-        })
-
-    evaluated = sum(n["status"] in ("no_show_detected", "presence_detected") for n in no_shows)
-    no_show_count = sum(n["status"] == "no_show_detected" for n in no_shows)
+    population = [r for r in reservations if frm <= r.start_at < to]
+    no_show_list = [r for r in population if any(
+        e.kind == EpisodeKind.NO_SHOW and e.outcome == EpisodeOutcome.RELEASED for e in episodes[r.id])]
+    evaluated = len(no_show_list) + sum(
+        r not in no_show_list and bool(span(r.start_at, min(r.start_at + delay, r.end_at)) & occupied)
+        for r in population
+    )
+    no_shows = [{"reservation_id": str(r.id), "start_at": iso(r.start_at), "end_at": iso(r.end_at),
+                 "released_at": iso(r.released_at)} for r in no_show_list]
     succeeded = sum(r.status == ReservationStatus.RELEASED for r in reservations)
     failed = sum(
         r.status != ReservationStatus.RELEASED and any(e.outcome == EpisodeOutcome.RELEASE_BLOCKED for e in episodes[r.id])
@@ -113,21 +99,22 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     )
     occupied_reserved = len(occupied & effective)
     kpis = {
-        "scheduled_minutes": total, "observed_minutes": len(observed), "occupied_minutes": len(occupied),
-        "empty_minutes": len(observed) - len(occupied), "unknown_minutes": total - len(observed),
-        "occupancy_pct": _pct(len(occupied), len(observed)), "coverage_pct": _pct(len(observed), total),
-        "reserved_minutes": len(booked), "reserved_pct": _pct(len(booked), total),
-        "reserved_occupied_minutes": occupied_reserved, "unreserved_occupied_minutes": len(occupied) - occupied_reserved,
-        "no_show_count": no_show_count, "evaluated_count": evaluated, "not_evaluated_count": len(no_shows) - evaluated,
-        "no_show_pct": _pct(no_show_count, evaluated),
-        "released_minutes": len(released), "releases_succeeded": succeeded, "releases_failed": failed,
+        "period_min": total, "observed_min": len(observed), "unknown_min": total - len(observed),
+        "occupied_min": len(occupied), "occupied_reserved_min": occupied_reserved,
+        "occupied_unreserved_min": len(occupied) - occupied_reserved, "occupancy_pct": _rate(len(occupied), len(observed)),
+        "reserved_initial_min": len(booked), "reserved_initial_pct": _rate(len(booked), total),
+        "no_show_count": len(no_shows), "evaluated_count": evaluated, "not_evaluated_count": len(population) - evaluated,
+        "no_show_pct": _rate(len(no_shows), evaluated),
+        "released_min": len(released), "releases_succeeded": succeeded, "releases_failed": failed,
+        "coverage_pct": _rate(len(observed), total),
     }
-    revision = hashlib.sha256(json.dumps([kpis, [(n["reservation_id"], n["status"]) for n in no_shows]]).encode()).hexdigest()[:12]
+    sources = {o.source.value for o in observations}
+    revision = hashlib.sha256(json.dumps([kpis, no_shows]).encode()).hexdigest()[:12]
     facts = _summary(space.name, frm, to, kpis)
     return {
         "schema_version": "1.0", "room_id": str(space.id), "period": {"from": iso(frm), "to": iso(to)},
         "generated_at": iso(now), "as_of": iso(now), "data_revision": revision, "rules_version": RULES_VERSION,
-        "source_mode": source_mode,
+        "source_mode": (sources.pop() if len(sources) == 1 else "mixed") if sources else None,
         "status": "no_data" if not observed else "ok" if len(observed) == total else "partial",
         "kpis": kpis,
         "summary": {
@@ -142,13 +129,13 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
 
 def _summary(name: str, frm: datetime, to: datetime, k: dict) -> list[tuple[str, str]]:
     """Template of exigences POC §6.2, one (fact id, sentence) per fact."""
-    o, v, u = k["occupied_minutes"], k["observed_minutes"], k["unknown_minutes"]
+    o, v, u, total = k["occupied_min"], k["observed_min"], k["unknown_min"], k["period_min"]
+    reserved, unreserved = k["occupied_reserved_min"], k["occupied_unreserved_min"]
     where = f"Pour {name}, de {hhmm(frm)} à {hhmm(to)}, "
     if v:
         occupancy = (
-            f"{where}l'occupation observée est de {o} minute{_s(o)} sur {v} ({_fr(k['occupancy_pct'])} %), "
-            f"dont {k['reserved_occupied_minutes']} minute{_s(k['reserved_occupied_minutes'])} pendant une réservation "
-            f"et {k['unreserved_occupied_minutes']} minute{_s(k['unreserved_occupied_minutes'])} sans réservation."
+            f"{where}l'occupation observée est de {o} minute{_s(o)} sur {v} ({_pct(o, v)} %), "
+            f"dont {reserved} minute{_s(reserved)} pendant une réservation et {unreserved} minute{_s(unreserved)} sans réservation."
         )
     else:
         occupancy = f"{where}l'occupation ne peut pas être évaluée faute d'observations."
@@ -156,11 +143,10 @@ def _summary(name: str, frm: datetime, to: datetime, k: dict) -> list[tuple[str,
     n, ev = k["no_show_count"], k["evaluated_count"]
     facts.append(("NO_SHOW", f"{n} no-show{_s(n)} sur {ev} réservation{_s(ev)} évaluée{_s(ev)}." if ev
                   else "Aucune réservation n'a pu être évaluée pour les no-shows."))
-    freed, ok, failed = k["released_minutes"], k["releases_succeeded"], k["releases_failed"]
+    freed, ok, failed = k["released_min"], k["releases_succeeded"], k["releases_failed"]
     if ok or failed:
         facts.append(("RELEASE", f"{freed} minute{_s(freed)} libérée{_s(freed)} "
                                  f"({ok} libération{_s(ok)} réussie{_s(ok)}, {failed} échouée{_s(failed)})."))
     facts.append(("COVERAGE", "Les observations couvrent toute la période." if not u
-                  else f"Les observations couvrent {_fr(k['coverage_pct'])} % de la période "
-                       f"({u} minute{_s(u)} inconnue{_s(u)})."))
+                  else f"Les observations couvrent {_pct(v, total)} % de la période ({u} minute{_s(u)} inconnue{_s(u)})."))
     return facts

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.enums import EpisodeKind, EpisodeOutcome, ObservationKind, Presence, ReservationStatus, Source, SpaceState, SpaceType
+from app.models.enums import EpisodeKind, EpisodeOutcome, Presence, ReservationStatus, SpaceState, SpaceType
 
 
 class CurrentReservation(BaseModel):
@@ -81,9 +81,6 @@ class ObservationOut(BaseModel):
 
     observed_at: dt.datetime
     presence: Presence
-    kind: ObservationKind
-    source: Source
-    device_id: str
 
 
 class HistoryReservation(BaseModel):
@@ -92,7 +89,6 @@ class HistoryReservation(BaseModel):
     end_at: dt.datetime
     status: ReservationStatus
     released_at: dt.datetime | None
-    cancelled_at: dt.datetime | None
     booker_name: str | None
 
 

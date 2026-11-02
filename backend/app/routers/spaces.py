@@ -176,7 +176,7 @@ def history(
         observations=[ObservationOut.model_validate(o) for o in observations],
         reservations=[HistoryReservation(
             id=r.id, start_at=r.start_at, end_at=r.end_at, status=r.status, released_at=r.released_at,
-            cancelled_at=r.cancelled_at, booker_name=_name(db, r.user_id),
+            booker_name=_name(db, r.user_id),
         ) for r in reservations],
         episodes=[EpisodeOut.model_validate(e) for e in episodes],
     )

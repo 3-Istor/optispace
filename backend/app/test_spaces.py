@@ -172,13 +172,10 @@ def test_history_fm(client, db, claims):
     body = client.get(f"{URL}/{space.id}/history", params=params).json()
 
     assert [o["observed_at"] for o in body["observations"]] == [iso(at("10:00")), iso(at("10:00:10"))]
-    assert body["observations"][0] == {
-        "observed_at": iso(at("10:00")), "presence": "absent", "kind": "heartbeat", "source": "simulated",
-        "device_id": ANY,
-    }
+    assert body["observations"][0] == {"observed_at": iso(at("10:00")), "presence": "absent"}
     assert body["reservations"] == [{
         "id": str(reservation.id), "start_at": iso(at("10:00")), "end_at": iso(at("11:00")), "status": "active",
-        "released_at": None, "cancelled_at": None, "booker_name": "Alice",
+        "released_at": None, "booker_name": "Alice",
     }]
     episode = db.scalar(select(AbsenceEpisode))
     assert body["episodes"] == [{

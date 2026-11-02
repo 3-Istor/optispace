@@ -1,4 +1,6 @@
 """Exigences POC §6.2, data set J-01 and its variants (Salle A, 09:00-12:00 Paris)."""
+from unittest.mock import ANY
+
 import pytest
 
 from app.models import AbsenceEpisode, Observation
@@ -49,11 +51,11 @@ def test_j01(client, db, claims, frozen_clock, salle):
     assert response.status_code == 200
     body = response.json()
     assert body["kpis"] == {
-        "scheduled_minutes": 180, "observed_minutes": 180, "occupied_minutes": 90, "empty_minutes": 90,
-        "unknown_minutes": 0, "occupancy_pct": 50.0, "coverage_pct": 100.0,
-        "reserved_minutes": 120, "reserved_pct": 66.7, "reserved_occupied_minutes": 60, "unreserved_occupied_minutes": 30,
+        "period_min": 180, "observed_min": 180, "unknown_min": 0, "occupied_min": 90,
+        "occupied_reserved_min": 60, "occupied_unreserved_min": 30, "occupancy_pct": 50.0,
+        "reserved_initial_min": 120, "reserved_initial_pct": pytest.approx(200 / 3),  # rates are not rounded
         "no_show_count": 1, "evaluated_count": 2, "not_evaluated_count": 0, "no_show_pct": 50.0,
-        "released_minutes": 50, "releases_succeeded": 1, "releases_failed": 0,
+        "released_min": 50, "releases_succeeded": 1, "releases_failed": 0, "coverage_pct": 100.0,
     }
     assert body["summary"]["text"] == (
         "Pour Salle A, de 09:00 à 12:00, l'occupation observée est de 90 minutes sur 180 (50 %), "
@@ -62,10 +64,9 @@ def test_j01(client, db, claims, frozen_clock, salle):
         "Les observations couvrent toute la période."
     )
     assert (body["summary"]["mode"], body["summary"]["model_version"]) == ("template_fallback", None)
-    assert [(n["status"], n["reason_code"], n["window_start"], n["window_end"]) for n in body["no_shows"]] == [
-        ("presence_detected", "PRESENCE_IN_WINDOW", iso(at("09:00")), iso(at("09:10"))),
-        ("no_show_detected", "EMPTY_WINDOW", iso(at("11:00")), iso(at("11:10"))),
-    ]
+    assert body["no_shows"] == [{
+        "reservation_id": ANY, "start_at": iso(at("11:00")), "end_at": iso(at("12:00")), "released_at": iso(at("11:10")),
+    }]
     assert {k: body[k] for k in ("schema_version", "room_id", "period", "generated_at", "as_of", "rules_version",
                                  "source_mode", "status", "warnings", "recommendations")} == {
         "schema_version": "1.0", "room_id": str(salle.id), "period": {"from": iso(at("09:00")), "to": iso(at("12:00"))},
@@ -83,12 +84,11 @@ def test_j02_partial_coverage(db, salle):
     result = insights.compute(db, salle.id, at("09:00"), at("12:00"), at("12:01"))
 
     k = result["kpis"]
-    assert (k["observed_minutes"], k["occupied_minutes"], k["occupancy_pct"], k["coverage_pct"], k["unknown_minutes"]) == (
-        160, 90, 56.3, 88.9, 20)
-    assert (k["no_show_count"], k["evaluated_count"], k["not_evaluated_count"], k["no_show_pct"], k["released_minutes"]) == (
+    assert (k["observed_min"], k["occupied_min"], k["occupancy_pct"], k["coverage_pct"], k["unknown_min"]) == (
+        160, 90, 56.25, pytest.approx(800 / 9), 20)
+    assert (k["no_show_count"], k["evaluated_count"], k["not_evaluated_count"], k["no_show_pct"], k["released_min"]) == (
         0, 1, 1, 0.0, 0)
-    assert (result["status"], result["warnings"]) == ("partial", ["MISSING_SENSOR_DATA"])
-    assert result["no_shows"][1]["status"] == "undetermined"
+    assert (result["status"], result["warnings"], result["no_shows"]) == ("partial", ["MISSING_SENSOR_DATA"], [])
     assert result["summary"]["text"].endswith(
         "0 no-show sur 1 réservation évaluée. Les observations couvrent 88,9 % de la période (20 minutes inconnues).")
 
@@ -97,7 +97,7 @@ def test_j04_no_data(db, salle):
     result = insights.compute(db, salle.id, at("09:00"), at("10:00"), at("12:00"))
 
     k = result["kpis"]
-    assert (k["observed_minutes"], k["occupancy_pct"], k["coverage_pct"], k["no_show_pct"], k["reserved_minutes"]) == (
+    assert (k["observed_min"], k["occupancy_pct"], k["coverage_pct"], k["no_show_pct"], k["reserved_initial_min"]) == (
         0, None, 0.0, None, 0)
     assert (result["status"], result["source_mode"]) == ("no_data", None)
     assert result["summary"]["text"] == (
