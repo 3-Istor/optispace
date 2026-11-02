@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-const backendHost = process.env.BACKEND_HOST || 'http://localhost:8000';
+// Dev proxy target: the backend published by docker compose on 8081.
+const backendHost = process.env.BACKEND_HOST || 'http://localhost:8081';
 
 export default defineConfig({
   plugins: [react()],

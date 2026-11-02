@@ -1,0 +1,113 @@
+/* App layer over design-system.css, which stays a verbatim copy of docs/maquettes/design-system.css. */
+body{font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#0E1726}
+.field{display:flex;flex-direction:column;gap:6px}
+.link{border:0;background:none;padding:0;font:inherit;font-size:12px;color:#1E56D6;cursor:pointer}
+.link:hover{color:#1747B3}
+.btn-s .spin,.btn-g .spin,.btn-d .spin{border-color:rgba(14,23,38,.18);border-top-color:#1E56D6}
+.icon-btn{width:30px;height:30px;padding:0}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Employee top bar */
+.topbar{position:sticky;top:0;z-index:10;background:rgba(251,251,252,.86);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid #E4E8EE}
+.topbar-in{max-width:1240px;margin:0 auto;padding:0 32px;min-height:58px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px}
+.brand{display:flex;align-items:center;gap:10px;color:#0E1726}
+.brand:hover{color:#0E1726}
+.brand img{height:28px;width:auto;display:block}
+.brand-name{font-family:'Sora',sans-serif;font-size:15px;font-weight:500}
+.topnav{display:flex;gap:4px}
+.user{margin-left:auto;display:flex;align-items:center;gap:10px}
+.user-name{font-size:13px;font-weight:500}
+.avatar{width:30px;height:30px;border-radius:50%;background:#E7ECF4;color:#1747B3;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none}
+.page{max-width:1240px;margin:0 auto;padding:28px 32px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+
+/* Facility manager sidebar (.shell/.side collapse at 960px in design-system.css) */
+.shell{display:flex;min-height:100vh}
+.side{width:244px;flex:none;align-self:stretch;background:#FBFBFC;border-right:1px solid #E4E8EE}
+.side-in{position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;gap:22px;padding:18px 12px}
+.side-group{display:flex;flex-direction:column;gap:2px}
+.side-title{font-size:11px;color:#8A94A3;padding:0 10px 4px;letter-spacing:.02em}
+.side-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 6px 0;border-top:1px solid #E4E8EE}
+.shell-main{flex:1;min-width:0;padding:26px 36px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
+
+/* Page header */
+.page-h{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px}
+.page-h-t{display:flex;flex-direction:column;gap:6px}
+.page-h h1{font-size:24px}
+.crumb{font-size:12px;color:#8A94A3}
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+
+/* Bell menu */
+.bell .menu{max-width:calc(100vw - 32px)}
+.ntf-list{max-height:min(420px,60vh);overflow:auto}
+button.ntf{width:100%;border:0;border-top:1px solid #EEF1F5;background:#FFFFFF;font:inherit;color:inherit;text-align:left;cursor:pointer}
+button.ntf.unread{background:#F3F6FD}
+button.ntf:hover{background:#F8F9FB}
+.ntf-empty{margin:0;padding:12px 16px 16px;font-size:13px;color:#5B6676}
+.push-card{margin:0 12px 12px;padding:12px;border-radius:10px;background:#F3F6FD;border:1px solid #DCE6FA;display:flex;flex-direction:column;gap:8px}
+
+/* Lists of cards */
+.cols-2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.stack{display:flex;flex-direction:column;gap:10px}
+.item{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:14px 16px}
+.item-main{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 16px;background:#FDF4EA;color:#8A4A0E;font-size:13px;border-bottom:1px solid #F2D3B0}
+.side-card{padding:16px 18px;display:flex;flex-direction:column;gap:4px}
+.side-card h2{font-size:15px;margin-bottom:4px}
+.line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #EEF1F5}
+.line:last-child{border-bottom:0}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);display:flex;align-items:center;gap:10px;width:max-content;max-width:min(560px,calc(100% - 32px));padding:12px 16px;border-radius:10px;background:#0E1726;color:#FFFFFF;font-size:14px;box-shadow:0 10px 30px rgba(14,23,38,.25);transition:opacity .2s ease,transform .2s ease;z-index:60;opacity:0;pointer-events:none;box-sizing:border-box}
+.toast.on{opacity:1;transform:translateX(-50%)}
+.toast i{width:8px;height:8px;border-radius:50%;flex:none;background:#7FD3A4}
+.toast-err i{background:#F08A8E}
+
+/* Drawer (native <dialog>) */
+dialog.drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);max-width:100%;height:100%;max-height:none;border:0;padding:0;background:#FFFFFF;color:inherit;box-shadow:-20px 0 50px rgba(14,23,38,.15)}
+dialog.drawer[open]{animation:drawer .25s cubic-bezier(.2,.8,.2,1)}
+dialog.drawer::backdrop{background:rgba(14,23,38,.28)}
+.drawer-form{display:flex;flex-direction:column;height:100%}
+.drawer-h{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #E4E8EE}
+.drawer-b{padding:18px 22px;display:flex;flex-direction:column;gap:16px;flex:1;overflow:auto}
+.drawer-f{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid #E4E8EE}
+.note{padding:10px 12px;border-radius:8px;background:#F3F6FD;border:1px solid #DCE6FA;font-size:13px;color:#1747B3;line-height:1.5}
+@keyframes drawer{from{transform:translateX(100%)}to{transform:none}}
+
+/* Loader (Chargement.dc.html) */
+.loader{position:relative;flex:none}
+.loader svg{position:absolute;inset:0}
+.loader-full{position:fixed;inset:0;background:#0A1B33;color:#FFFFFF;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;text-align:center;padding:24px}
+.loader-core{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:8px;background:#1E56D6;display:flex;align-items:center;justify-content:center;animation:osCore 1.4s ease-in-out infinite}
+.loader-core span{width:10px;height:10px;border-radius:50%;border:2.5px solid #FFFFFF;box-sizing:border-box}
+.loader-inline{display:flex;align-items:center;justify-content:center;gap:14px;padding:32px;color:#5B6676}
+.dots span{animation:osType 1.2s infinite}.dots span:nth-child(2){animation-delay:.2s}.dots span:nth-child(3){animation-delay:.4s}
+@keyframes osSpin{to{transform:rotate(360deg)}}
+@keyframes osDash{0%{stroke-dasharray:1 400;stroke-dashoffset:0}50%{stroke-dasharray:110 400;stroke-dashoffset:-40}100%{stroke-dasharray:1 400;stroke-dashoffset:-326}}
+@keyframes osCore{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
+@keyframes osType{0%,20%{opacity:.25}50%{opacity:1}80%,100%{opacity:.25}}
+
+/* Error page (Erreurs.dc.html) */
+.err-page{min-height:100vh;display:flex;flex-direction:column;background:#F2F5FA}
+.err-page .err{margin:32px auto;width:calc(100% - 48px);max-width:1200px;box-sizing:border-box}
+.err{background:#FFFFFF;border:1px solid #DDE4EF;border-radius:12px;padding:64px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;animation:fd .45s ease both}
+.err-icon{position:relative;width:112px;height:112px;border-radius:14px;background:#E8EFFC;color:#1E56D6;display:flex;align-items:center;justify-content:center}
+.err-icon i{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:4px solid #FFFFFF;box-sizing:border-box}
+.err-code{font-size:14px;font-weight:500;letter-spacing:.12em;color:#1E56D6}
+.err h1{font-size:30px;max-width:640px}
+.err p{margin:0;font-size:17px;line-height:1.6;color:#52627A;max-width:560px}
+
+/* Login (Main.dc.html) */
+.login{position:relative;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;background:#F6F7F9}
+.bgdots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(14,23,38,.10) 1px,transparent 1.4px);background-size:22px 22px}
+.bgfade{position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 45%,#F6F7F9 30%,rgba(246,247,249,0) 100%)}
+
+@media (max-width:960px){.side-in{position:static;height:auto}.cols-2{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .topbar-in{padding:0 16px;gap:4px 12px}
+  .topnav{order:3;width:100%;padding-bottom:8px}
+  .user-name{display:none}
+  .page,.shell-main{padding:20px 16px 48px}
+  .bell .menu{position:fixed;top:64px;left:16px;right:16px;width:auto;max-width:none}
+  .err{padding:40px 20px}
+  .err h1{font-size:24px}
+}
