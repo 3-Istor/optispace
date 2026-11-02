@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Chargement</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&amp;family=Sora:wght@500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>h1,h2,h3{font-family:'Sora',system-ui,sans-serif}</style>
+<style>
+.app-h,h1,h2,h3{font-family:'Sora',system-ui,sans-serif;letter-spacing:-0.02em}
+body{-webkit-font-smoothing:antialiased}
+button,a,input,select{transition:background-color .2s ease,border-color .2s ease,transform .1s ease-out}
+button:active{transform:scale(.98)}
+body{margin:0;background:#F2F5FA}
+@keyframes osSpin{to{transform:rotate(360deg)}}
+@keyframes osDash{0%{stroke-dasharray:1 400;stroke-dashoffset:0}50%{stroke-dasharray:110 400;stroke-dashoffset:-40}100%{stroke-dasharray:1 400;stroke-dashoffset:-326}}
+@keyframes osCore{0%,100%{transform:scale(1)}50%{transform:scale(.82)}}
+@keyframes osDot{0%,100%{transform:scale(.6);opacity:.5}50%{transform:scale(1);opacity:1}}
+@keyframes osShimmer{0%{background-position:-480px 0}100%{background-position:480px 0}}
+@keyframes osBar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+@keyframes osType{0%,20%{opacity:.25}50%{opacity:1}80%,100%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){*{animation-duration:3s !important}}
+</style>
+</helmet>
+<div style="min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; color: #0F1E33; background: #F2F5FA; padding: 32px 24px 56px; box-sizing: border-box">
+  <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <h1 style="margin: 0; font-size: 28px; font-weight: 500; letter-spacing: -0.02em">Chargement</h1>
+      <p style="margin: 0; font-size: 15px; color: #52627A">Le loader OptiSpace : trois arcs en nuances de bleu tournent autour du boîtier.</p>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 20px">
+      <section role="status" aria-label="Chargement en cours" style="flex: 2 1 560px; min-height: 460px; border-radius: 12px; background: #0A1B33; color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px">
+        <div style="position: relative; width: 140px; height: 140px">
+          <svg width="140" height="140" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 2.4s linear infinite">
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#1B3157" stroke-width="5"></circle>
+            <circle cx="60" cy="60" r="52" fill="none" stroke="#1E56D6" stroke-width="5" stroke-linecap="round" style="animation: osDash 1.8s ease-in-out infinite"></circle>
+          </svg>
+          <svg width="140" height="140" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 1.9s linear infinite reverse">
+            <circle cx="60" cy="60" r="42" fill="none" stroke="#5B8CF0" stroke-width="5" stroke-linecap="round" style="animation: osDash 1.6s ease-in-out infinite .2s"></circle>
+          </svg>
+          <svg width="140" height="140" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 1.4s linear infinite">
+            <circle cx="60" cy="60" r="32" fill="none" stroke="#A9C6FF" stroke-width="5" stroke-linecap="round" style="animation: osDash 1.4s ease-in-out infinite .4s"></circle>
+          </svg>
+          <div style="position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 8px; background: #1E56D6; display: flex; align-items: center; justify-content: center; animation: osCore 1.4s ease-in-out infinite">
+            <span style="width: 10px; height: 10px; border-radius: 50%; border: 2.5px solid #FFFFFF"></span>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px">
+          <span style="font-size: 18px; font-weight: 500">Chargement de vos salles<span style="animation: osType 1.2s infinite">.</span><span style="animation: osType 1.2s infinite .2s">.</span><span style="animation: osType 1.2s infinite .4s">.</span></span>
+          <span style="font-size: 14px; color: #A9BBD8">Synchronisation avec les boîtiers</span>
+        </div>
+        <div aria-hidden="true" style="width: 220px; height: 4px; border-radius: 4px; background: #1B3157; overflow: hidden">
+          <div style="width: 40%; height: 100%; border-radius: 4px; background: #5B8CF0; animation: osBar 1.4s ease-in-out infinite"></div>
+        </div>
+      </section>
+
+      <div style="flex: 1 1 340px; display: flex; flex-direction: column; gap: 20px">
+        <section style="background: #FFFFFF; border: 1px solid #DDE4EF; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 16px">
+          <h2 style="margin: 0; font-size: 14px; font-weight: 500; color: #52627A; text-transform: uppercase; letter-spacing: 0.05em">Bouton en cours</h2>
+          <button type="button" aria-busy="true" style="height: 42px; border: 0; border-radius: 8px; background: #1E56D6; color: #FFFFFF; font: inherit; font-size: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px">
+            <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" style="animation: osSpin .8s linear infinite"><circle cx="12" cy="12" r="9" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="3"></circle><path d="M12 3a9 9 0 019 9" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"></path></svg>
+            Connexion en cours
+          </button>
+          <button type="button" aria-busy="true" style="height: 42px; border: 1px solid #C9D3E3; border-radius: 8px; background: #FFFFFF; color: #0F1E33; font: inherit; font-size: 15px; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 10px">
+            <span aria-hidden="true" style="display: flex; gap: 5px">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #1E56D6; animation: osDot 1s ease-in-out infinite"></span>
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #5B8CF0; animation: osDot 1s ease-in-out infinite .15s"></span>
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: #A9C6FF; animation: osDot 1s ease-in-out infinite .3s"></span>
+            </span>
+            Réservation…
+          </button>
+        </section>
+
+        <section aria-label="Contenu en chargement" style="background: #FFFFFF; border: 1px solid #DDE4EF; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; gap: 14px">
+          <h2 style="margin: 0; font-size: 14px; font-weight: 500; color: #52627A; text-transform: uppercase; letter-spacing: 0.05em">Squelette de carte</h2>
+          <div aria-hidden="true" style="display: flex; gap: 14px; align-items: center">
+            <div style="width: 48px; height: 42px; border-radius: 12px; background: linear-gradient(90deg, #EEF2F7 0px, #E1E8F2 120px, #EEF2F7 240px); background-size: 960px 100%; animation: osShimmer 1.4s linear infinite"></div>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+              <div style="height: 14px; width: 60%; border-radius: 6px; background: linear-gradient(90deg, #EEF2F7 0px, #E1E8F2 120px, #EEF2F7 240px); background-size: 960px 100%; animation: osShimmer 1.4s linear infinite"></div>
+              <div style="height: 12px; width: 40%; border-radius: 6px; background: linear-gradient(90deg, #EEF2F7 0px, #E1E8F2 120px, #EEF2F7 240px); background-size: 960px 100%; animation: osShimmer 1.4s linear infinite"></div>
+            </div>
+          </div>
+          <div aria-hidden="true" style="height: 12px; width: 100%; border-radius: 6px; background: linear-gradient(90deg, #EEF2F7 0px, #E1E8F2 120px, #EEF2F7 240px); background-size: 960px 100%; animation: osShimmer 1.4s linear infinite"></div>
+          <div aria-hidden="true" style="height: 12px; width: 85%; border-radius: 6px; background: linear-gradient(90deg, #EEF2F7 0px, #E1E8F2 120px, #EEF2F7 240px); background-size: 960px 100%; animation: osShimmer 1.4s linear infinite"></div>
+          <span style="font-size: 13px; color: #52627A">Utilisé pour les listes de salles et le tableau de bord.</span>
+        </section>
+
+        <section style="background: #FFFFFF; border: 1px solid #DDE4EF; border-radius: 12px; padding: 24px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap">
+          <h2 style="margin: 0; font-size: 14px; font-weight: 500; color: #52627A; text-transform: uppercase; letter-spacing: 0.05em; flex-basis: 100%">Tailles</h2>
+          <div role="status" aria-label="Chargement" style="position: relative; width: 48px; height: 42px">
+            <svg width="48" height="48" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 2.4s linear infinite"><circle cx="60" cy="60" r="52" fill="none" stroke="#1E56D6" stroke-width="10" stroke-linecap="round" style="animation: osDash 1.8s ease-in-out infinite"></circle></svg>
+            <svg width="48" height="48" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 1.9s linear infinite reverse"><circle cx="60" cy="60" r="36" fill="none" stroke="#5B8CF0" stroke-width="10" stroke-linecap="round" style="animation: osDash 1.6s ease-in-out infinite .2s"></circle></svg>
+            <svg width="48" height="48" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 1.4s linear infinite"><circle cx="60" cy="60" r="20" fill="none" stroke="#A9C6FF" stroke-width="10" stroke-linecap="round" style="animation: osDash 1.4s ease-in-out infinite .4s"></circle></svg>
+          </div>
+          <div role="status" aria-label="Chargement" style="position: relative; width: 28px; height: 28px">
+            <svg width="28" height="28" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0; animation: osSpin 2.4s linear infinite"><circle cx="60" cy="60" r="50" fill="none" stroke="#1E56D6" stroke-width="14" stroke-linecap="round" style="animation: osDash 1.6s ease-in-out infinite"></circle></svg>
+          </div>
+          <span style="font-size: 13px; color: #52627A">Moyen (48 px) et petit (28 px, une seule couleur).</span>
+        </section>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

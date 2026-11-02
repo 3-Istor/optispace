@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Salles et bulles</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+.bell{position:relative}
+.bell>summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#3A4555;border:1px solid #DCE1E8;background:#FFFFFF;position:relative;transition:background-color .15s ease}
+.bell>summary::-webkit-details-marker{display:none}
+.bell>summary:hover{background:#F6F7F9}
+.bell .cnt{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#D63F45;color:#FFFFFF;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #F6F7F9}
+.bell .menu{position:absolute;right:0;top:44px;width:360px;background:#FFFFFF;border:1px solid #E4E8EE;border-radius:12px;box-shadow:0 16px 40px rgba(14,23,38,.14);z-index:50;overflow:hidden;animation:fd .18s ease-out;text-align:left}
+.ntf{display:flex;gap:12px;padding:12px 16px;border-top:1px solid #EEF1F5}
+.ntf i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+</helmet>
+<div class="shell" style="display: flex; min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9">
+<aside class="side" style="width: 244px; flex: none; align-self: stretch; background: #FBFBFC; border-right: 1px solid #E4E8EE"><div class="side" style="position: sticky; top: 0; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; padding: 18px 12px"><a href="AdminDashboard.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 2px 6px; color: #0E1726"><img src="img/3istor.png" alt="3istor" style="height: 30px; width: auto; display: block"><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 500">OptiSpace</span><span style="font-size: 11px; color: #5B6676">Facility management</span></span></a><span style="font-size: 12px; color: #5B6676; padding: 0 8px">Siège · Bâtiment A</span><nav aria-label="Navigation" style="display: flex; flex-direction: column; gap: 18px"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Pilotage</span><a class="nav-i" href="AdminDashboard.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h4v7H3zM10 4h4v16h-4zM17 9h4v11h-4z"></path></svg>Tableau de bord</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Espaces</span><a class="nav-i" href="AdminSalles.dc.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 11h18M11 4v16"></path></svg>Salles et bulles</a><a class="nav-i" href="AdminBoitier.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg>Boîtiers</a><a class="nav-i" href="AdminReglages.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Paramètres</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Compte</span><a class="nav-i" href="AdminProfil.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"></path></svg>Profil</a></div></nav><div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 6px 0; border-top: 1px solid #E4E8EE"><span style="width: 30px; height: 30px; border-radius: 50%; background: #E7ECF4; color: #1747B3; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">CM</span><span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1"><span style="font-size: 13px; font-weight: 500">Camille Martin</span><span style="font-size: 11px; color: #5B6676">Facility manager</span></span><a href="Main.dc.html" class="btn btn-g" style="width: 30px; height: 30px; padding: 0" aria-label="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"></path></svg></a></div></div></aside><main style="flex: 1; min-width: 0; padding: 26px 36px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px"><header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: #8A94A3">Espaces / Salles et bulles</span><h1 style="font-size: 24px">Salles et bulles</h1></div><div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><button type="button" class="btn btn-p" onClick="{{openNew}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Ajouter un espace</button><details class="bell"><summary aria-label="Notifications, 2 non lues"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="cnt num">2</span></summary><div class="menu"><div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px"><span style="font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 500">Notifications</span><a href="#" style="font-size: 12px">Tout marquer comme lu</a></div><div style="margin: 0 12px 12px; padding: 12px; border-radius: 10px; background: #F3F6FD; border: 1px solid #DCE6FA; display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 500">Activer les notifications du navigateur</span><span class="muted" style="font-size: 12px; line-height: 1.45">Soyez prévenu d’une absence ou d’une libération même quand OptiSpace est fermé.</span><span style="display: flex; gap: 8px"><button type="button" class="btn btn-p" style="height: 30px; font-size: 13px">Activer</button><button type="button" class="btn btn-g" style="height: 30px; font-size: 13px">Plus tard</button></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #D63F45"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier hors ligne</span><span class="num muted" style="font-size: 12px">09:13</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas est hors ligne depuis 09:12.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #2F6FE0"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier rescellé</span><span class="num muted" style="font-size: 12px">08:40</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas a été rescellé.</span></span></div><div class="ntf" style="background: #FFFFFF"><i style="background: #8A94A3"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Réservation libérée</span><span class="num muted" style="font-size: 12px">hier</span></span><span style="font-size: 13px; line-height: 1.45">La réservation d’Atlas a été libérée à 14:10.</span></span></div></div></details></div></header>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px">
+  <div class="seg" role="group" aria-label="Type d’espace">
+    <sc-for list="{{types}}" as="t" hint-placeholder-count="2"><button type="button" aria-pressed="{{t.on}}" onClick="{{t.pick}}">{{t.l}} <span class="num" style="color: #8A94A3; margin-left: 2px">{{t.n}}</span></button></sc-for>
+  </div>
+  <div style="position: relative; margin-left: auto"><span style="position: absolute; left: 10px; top: 10px; color: #8A94A3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg></span><input class="input" type="search" placeholder="Rechercher" aria-label="Rechercher un espace" value="{{q}}" onChange="{{onQ}}" style="width: 220px; padding-left: 34px"></div>
+</div>
+<div class="cols" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 360px); gap: 16px; align-items: start">
+  <section class="card" style="overflow: hidden">
+    <div style="overflow-x: auto"><table class="tbl" style="min-width: 640px">
+      <thead><tr><th style="padding-left: 20px">Espace</th><th>Capacité</th><th>Durées</th><th>Boîtier</th><th>Statut</th></tr></thead>
+      <tbody>
+        <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+          <tr class="row" aria-selected="{{r.sel}}" onClick="{{r.pick}}">
+            <td style="padding-left: 20px"><span style="display: flex; flex-direction: column; line-height: 1.35"><span style="font-weight: 500">{{r.n}}</span><span class="muted" style="font-size: 12px">{{r.f}}</span></span></td>
+            <td class="num">{{r.cap}}</td>
+            <td class="num muted" style="font-size: 13px">{{r.dur}}</td>
+            <td><span style="{{r.devStyle}}">{{r.devSt}}</span></td>
+            <td><span class="st" style="white-space: normal"><span class="dot" style="{{r.dot}}"></span>{{r.st}}</span></td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table></div>
+    <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><p class="muted" style="margin: 0; padding: 28px 20px; text-align: center">Aucun espace ne correspond à « {{q}} ».</p></sc-if>
+  </section>
+  <aside class="card fade" style="overflow: hidden; position: sticky; top: 20px">
+    <div style="padding: 18px 20px 0; display: flex; flex-direction: column; gap: 4px"><span class="lbl">{{cur.t}}</span><div style="display: flex; align-items: center; justify-content: space-between; gap: 8px"><h2 style="font-size: 18px">{{cur.n}}</h2><button type="button" class="btn btn-s" onClick="{{editCur}}" style="height: 30px">Modifier</button></div><span class="st" style="font-size: 13px; margin-top: 4px; white-space: normal"><span class="dot" style="{{cur.dot}}"></span>{{cur.st}}</span></div>
+    <div role="tablist" aria-label="Fiche" style="display: flex; gap: 18px; padding: 0 20px; margin-top: 14px; border-bottom: 1px solid #E4E8EE">
+      <button type="button" role="tab" aria-selected="{{tDet}}" onClick="{{pickDet}}" style="{{tDetStyle}}">Détails</button>
+      <button type="button" role="tab" aria-selected="{{tHist}}" onClick="{{pickHist}}" style="{{tHistStyle}}">Historique</button>
+    </div>
+    <sc-if value="{{isDet}}" hint-placeholder-val="{{true}}">
+      <dl class="fade" style="display: grid; grid-template-columns: 110px 1fr; gap: 10px 12px; margin: 0; padding: 16px 20px 20px; font-size: 13px">
+        <dt class="muted">Description</dt><dd style="margin: 0">{{cur.desc}}</dd>
+        <dt class="muted">Étage</dt><dd style="margin: 0">{{cur.f}}</dd>
+        <dt class="muted">Capacité</dt><dd class="num" style="margin: 0">{{cur.cap}}</dd>
+        <dt class="muted">Équipements</dt><dd style="margin: 0">{{cur.eq}}</dd>
+        <dt class="muted">Durées</dt><dd class="num" style="margin: 0">{{cur.dur}}</dd>
+        <dt class="muted">Boîtier</dt><dd class="num" style="margin: 0">{{cur.dev}} · {{cur.devSt}}</dd>
+      </dl>
+    </sc-if>
+    <sc-if value="{{isHist}}" hint-placeholder-val="{{false}}">
+      <div class="fade" style="padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px">
+        <span class="lbl">Aujourd’hui</span>
+        <div aria-hidden="true" style="position: relative; height: 26px; border-radius: 6px; background: #F1F3F6; overflow: hidden">
+          <sc-for list="{{band}}" as="b" hint-placeholder-count="3"><span style="{{b.style}}"></span></sc-for>
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #8A94A3" class="num"><span>09:00</span><span>10:00</span><span>11:00</span><span>12:00</span></div>
+        <ol style="list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px">
+          <sc-for list="{{hist}}" as="h" hint-placeholder-count="3">
+            <li style="display: flex; gap: 10px"><span style="{{h.dot}}"></span><span style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 13px; font-weight: 500">{{h.t}}</span><span class="num muted" style="font-size: 12px">{{h.when}}</span></span><span class="muted" style="font-size: 12px; line-height: 1.45">{{h.d}}</span><span style="{{h.outStyle}}">{{h.out}}</span></span></li>
+          </sc-for>
+        </ol>
+      </div>
+    </sc-if>
+  </aside>
+</div>
+
+<div style="{{scrim}}" onClick="{{closeForm}}" aria-hidden="true"></div>
+<form role="dialog" aria-modal="true" aria-label="{{formTitle}}" onSubmit="{{saveForm}}" style="{{drawer}}">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #E4E8EE"><h2 style="font-size: 17px">{{formTitle}}</h2><button type="button" class="btn btn-g" onClick="{{closeForm}}" aria-label="Fermer" style="width: 32px; padding: 0">✕</button></div>
+  <div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 16px; overflow: auto; flex: 1">
+    <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Nom</span><input class="input" value="{{fName}}" onChange="{{onFName}}" placeholder="Ex. Cervin" style="{{fNameStyle}}"></label>
+    <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Type</span><div class="seg" role="group" aria-label="Type"><button type="button" aria-pressed="{{fRoom}}" onClick="{{fPickRoom}}">Salle de réunion</button><button type="button" aria-pressed="{{fBubble}}" onClick="{{fPickBubble}}">Bulle individuelle</button></div></div>
+    <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Description</span><textarea class="input" rows="2" value="{{fDesc}}" onChange="{{onFDesc}}" style="height: auto; padding: 10px 12px; line-height: 1.5; resize: vertical"></textarea></label>
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px">
+      <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Capacité</span><input class="input num" type="number" min="1" value="{{fCap}}" onChange="{{onFCap}}" style="width: 100%"></label>
+      <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Étage</span><select class="input" value="{{fFloor}}" onChange="{{onFFloor}}" style="width: 100%"><option>RDC</option><option>2e étage</option><option>3e étage</option><option>4e étage</option></select></label>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 8px"><span class="lbl">Équipements</span><div style="display: flex; flex-wrap: wrap; gap: 6px"><sc-for list="{{fEq}}" as="e" hint-placeholder-count="5"><button type="button" class="chip" aria-pressed="{{e.on}}" onClick="{{e.flip}}">{{e.l}}</button></sc-for></div></div>
+    <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 8px; background: #F8F9FB; border: 1px solid #EEF1F5">
+      <span style="display: flex; justify-content: space-between; align-items: center"><span class="lbl">Durées de réservation</span><span class="muted" style="font-size: 12px">{{fDurHint}}</span></span>
+      <div style="display: flex; flex-wrap: wrap; gap: 18px">
+        <span style="display: flex; align-items: center; gap: 8px"><span style="font-size: 13px; min-width: 64px">Minimum</span><button type="button" class="step" onClick="{{fMinDec}}" aria-label="Diminuer le minimum">−</button><span class="num" style="min-width: 58px; text-align: center; font-weight: 500">{{fMin}}</span><button type="button" class="step" onClick="{{fMinInc}}" aria-label="Augmenter le minimum">+</button></span>
+        <span style="display: flex; align-items: center; gap: 8px"><span style="font-size: 13px; min-width: 64px">Maximum</span><button type="button" class="step" onClick="{{fMaxDec}}" aria-label="Diminuer le maximum">−</button><span class="num" style="min-width: 58px; text-align: center; font-weight: 500">{{fMax}}</span><button type="button" class="step" onClick="{{fMaxInc}}" aria-label="Augmenter le maximum">+</button></span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 4px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">{{fActiveLabel}}</span><span class="muted" style="font-size: 12px">Un espace hors service n’apparaît plus dans la recherche</span></span><button type="button" role="switch" class="tog" aria-checked="{{fActive}}" aria-label="Espace actif" onClick="{{fFlip}}" style="{{fActiveStyle}}"><span></span></button></div>
+    <span role="alert" style="{{fErrStyle}}">{{fErr}}</span>
+  </div>
+  <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid #E4E8EE"><button type="button" class="btn btn-s" onClick="{{closeForm}}">Annuler</button><button type="submit" class="btn btn-p">Enregistrer</button></div>
+</form>
+</main></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var S = function (n, f, cap, eq, desc, dev, devSt, st, extra) { return { n: n, f: f, cap: cap, eq: eq, desc: desc, dev: dev, devSt: devSt, st: st, extra: extra || '', min: null, max: null, active: st !== 'off' }; };
+    this.state = { type: 'room', sel: 0, q: '', tab: 'det', form: false, editIdx: -1, f: null, err: '',
+      SP: {
+        room: [
+          S('Atlas', '3e étage', 8, ['Écran', 'Visioconférence', 'Tableau blanc'], 'Salle d’équipe côté baie vitrée.', 'esp32-24A1B2C3D498', 'Actif', 'busy'),
+          S('Everest', '4e étage', 12, ['Écran', 'Visioconférence', 'Accessible PMR'], 'Grande salle pour les réunions clients.', 'esp32-24A1B2C3D501', 'Actif', 'wait', '14:40'),
+          S('Mont-Blanc', '3e étage', 10, ['Vidéoprojecteur', 'Paperboard'], 'Salle de formation.', 'esp32-24A1B2C3D512', 'Scellé', 'off'),
+          S('Cervin', '3e étage', 4, ['Écran', 'Tableau blanc'], 'Petite salle de point rapide.', 'Aucun', 'À équiper', 'free'),
+          S('Vercors', '3e étage', 6, ['Écran', 'Visioconférence'], 'Salle de visio.', 'esp32-24A1B2C3D524', 'Actif', 'walkin'),
+          S('Agora', 'RDC', 20, ['Vidéoprojecteur', 'Sonorisation'], 'Espace de présentation.', 'esp32-24A1B2C3D487', 'Hors ligne', 'check')
+        ],
+        bubble: [
+          S('Bulle B-01', '2e étage', 1, ['Écran', 'Prise'], 'Bulle acoustique.', 'esp32-24A1B2C3D528', 'Actif', 'free'),
+          S('Bulle B-02', '2e étage', 1, ['Prise'], 'Bulle acoustique.', 'esp32-24A1B2C3D529', 'Actif', 'busy'),
+          S('Bulle B-03', '2e étage', 1, ['Écran', 'Prise', 'Casque'], 'Bulle visio.', 'esp32-24A1B2C3D531', 'Actif', 'wait', '14:25'),
+          S('Bulle B-05', '2e étage', 2, ['Écran', 'Prise'], 'Bulle pour deux personnes.', 'esp32-24A1B2C3D532', 'Actif', 'free'),
+          S('Bulle B-07', '2e étage', 1, ['Prise'], 'Bulle acoustique.', 'esp32-24A1B2C3D534', 'Actif', 'walkin')
+        ]
+      } };
+  }
+  renderVals() {
+    var self = this, s = this.state, SP = s.SP;
+    var DEF = { room: [30, 180], bubble: [15, 60] };
+    var EQ = ['Écran', 'Visioconférence', 'Tableau blanc', 'Vidéoprojecteur', 'Paperboard', 'Prise', 'Casque', 'Accessible PMR', 'Sonorisation'];
+    var ST = { free: ['Libre', '#1A8F4E'], wait: ['Réservée, en attente de présence', '#D9771F'], busy: ['Occupée', '#D63F45'], walkin: ['Occupée sans réservation', '#A8323A'], check: ['Présence à vérifier', '#2F6FE0'], off: ['Hors service', '#8A94A3'] };
+    function fmt(m) { var h = Math.floor(m / 60), r = m % 60; return h ? (h + ' h' + (r ? ' ' + ('0' + r).slice(-2) : '')) : r + ' min'; }
+    function stTxt(r) { var st = r.active ? r.st : 'off'; return ST[st][0] + (st === 'wait' && r.extra ? ' (libération à ' + r.extra + ')' : ''); }
+    function dur(r, t) { var a = r.min || DEF[t][0], b = r.max || DEF[t][1]; return fmt(a) + ' à ' + fmt(b) + (r.min || r.max ? '' : ' (type)'); }
+    var q = s.q.trim().toLowerCase();
+    var list = SP[s.type].map(function (r, i) { return { r: r, i: i }; }).filter(function (x) { return !q || x.r.n.toLowerCase().indexOf(q) !== -1; });
+    var sel = Math.min(s.sel, SP[s.type].length - 1);
+    function m(r, i) { var st = r.active ? r.st : 'off'; return { n: r.n, f: r.f, cap: r.cap, eq: r.eq.join(', '), desc: r.desc, dur: dur(r, s.type), dev: r.dev, devSt: r.devSt, devStyle: 'font-size: 13px; color: ' + (r.devSt === 'Hors ligne' ? '#B4232A' : (r.devSt === 'Actif' ? '#3A4555' : '#1747B3')), st: stTxt(r), dot: 'background: ' + ST[st][1], t: s.type === 'room' ? 'Salle de réunion' : 'Bulle individuelle', sel: i === sel ? 'true' : 'false', pick: function () { self.setState({ sel: i }); } }; }
+    var cur = SP[s.type][sel];
+    function tabStyle(on) { return 'height: 38px; padding: 0; border: 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; border-bottom: 2px solid ' + (on ? '#1E56D6' : 'transparent') + '; color: ' + (on ? '#0E1726' : '#5B6676') + '; margin-bottom: -1px'; }
+    var f = s.f || { n: '', type: s.type, desc: '', cap: 4, floor: '3e étage', eq: [], min: DEF[s.type][0], max: DEF[s.type][1], active: true };
+    function setF(o) { self.setState({ f: Object.assign({}, f, o), err: '' }); }
+    function openForm(idx) {
+      var r = idx >= 0 ? SP[s.type][idx] : null;
+      self.setState({ form: true, editIdx: idx, err: '', f: r ? { n: r.n, type: s.type, desc: r.desc, cap: r.cap, floor: r.f, eq: r.eq.slice(), min: r.min || DEF[s.type][0], max: r.max || DEF[s.type][1], active: r.active } : { n: '', type: s.type, desc: '', cap: s.type === 'room' ? 6 : 1, floor: '3e étage', eq: [], min: DEF[s.type][0], max: DEF[s.type][1], active: true } });
+    }
+    var hist = cur.n === 'Atlas' ? [
+      { t: 'Réservation honorée', when: '09:00', d: 'Hugo, 09:00 à 10:00. Présence détectée dès le début.', out: 'Occupée 60 min avec réservation', c: '#1E56D6', oc: '#3A4555' },
+      { t: 'Épisode d’absence', when: '10:00', d: 'Réservation de Léa, 10:00 à 11:00. Personne détecté.', out: 'Libérée à 10:10 · 50 min rendues', c: '#D9771F', oc: '#156B3C' },
+      { t: 'Occupation sans réservation', when: '11:15', d: 'Présence détectée de 11:15 à 11:45 sans réservation.', out: '30 min sans réservation', c: '#9DB8EE', oc: '#3A4555' }
+    ] : [{ t: 'Aucun événement aujourd’hui', when: '', d: 'Les présences, réservations et épisodes d’absence apparaîtront ici.', out: '', c: '#C9D0DA', oc: '#3A4555' }];
+    var band = cur.n === 'Atlas' ? [[0, 60, '#1E56D6'], [60, 70, '#F2C59A'], [135, 165, '#9DB8EE']] : [];
+    return {
+      types: [['room', 'Salles de réunion'], ['bubble', 'Bulles individuelles']].map(function (t) { return { l: t[1], n: SP[t[0]].length, on: s.type === t[0] ? 'true' : 'false', pick: function () { self.setState({ type: t[0], sel: 0 }); } }; }),
+      q: s.q, onQ: function (e) { self.setState({ q: e.target.value }); },
+      rows: list.map(function (x) { return m(x.r, x.i); }), empty: list.length === 0, cur: m(cur, sel),
+      tDet: s.tab === 'det' ? 'true' : 'false', tHist: s.tab === 'hist' ? 'true' : 'false', isDet: s.tab === 'det', isHist: s.tab === 'hist',
+      tDetStyle: tabStyle(s.tab === 'det'), tHistStyle: tabStyle(s.tab === 'hist'),
+      pickDet: function () { self.setState({ tab: 'det' }); }, pickHist: function () { self.setState({ tab: 'hist' }); },
+      hist: hist.map(function (h) { return Object.assign({}, h, { dot: 'width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex: none; background: ' + h.c, outStyle: h.out ? 'font-size: 12px; font-weight: 500; color: ' + h.oc : 'display: none' }); }),
+      band: band.map(function (b) { return { style: 'position: absolute; top: 0; bottom: 0; left: ' + (b[0] / 180 * 100) + '%; width: ' + ((b[1] - b[0]) / 180 * 100) + '%; background: ' + b[2] }; }),
+      editCur: function () { openForm(sel); }, openNew: function () { openForm(-1); },
+      formTitle: s.editIdx >= 0 ? 'Modifier l’espace' : 'Ajouter un espace',
+      scrim: 'position: fixed; inset: 0; background: rgba(14,23,38,0.28); z-index: 40; transition: opacity .2s ease; ' + (s.form ? 'opacity: 1' : 'opacity: 0; pointer-events: none'),
+      drawer: 'position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100%); background: #FFFFFF; z-index: 41; display: flex; flex-direction: column; box-shadow: -20px 0 50px rgba(14,23,38,0.15); transition: transform .25s cubic-bezier(.2,.8,.2,1); transform: translateX(' + (s.form ? '0' : '105%') + ')',
+      closeForm: function () { self.setState({ form: false }); },
+      fName: f.n, onFName: function (e) { setF({ n: e.target.value }); }, fNameStyle: s.err ? 'border-color: #D63F45' : '',
+      fRoom: f.type === 'room' ? 'true' : 'false', fBubble: f.type === 'bubble' ? 'true' : 'false',
+      fPickRoom: function () { setF({ type: 'room', min: DEF.room[0], max: DEF.room[1] }); }, fPickBubble: function () { setF({ type: 'bubble', min: DEF.bubble[0], max: DEF.bubble[1] }); },
+      fDesc: f.desc, onFDesc: function (e) { setF({ desc: e.target.value }); },
+      fCap: f.cap, onFCap: function (e) { setF({ cap: Math.max(1, parseInt(e.target.value || '1', 10)) }); },
+      fFloor: f.floor, onFFloor: function (e) { setF({ floor: e.target.value }); },
+      fEq: EQ.map(function (e) { var on = f.eq.indexOf(e) !== -1; return { l: e, on: on ? 'true' : 'false', flip: function () { setF({ eq: on ? f.eq.filter(function (x) { return x !== e; }) : f.eq.concat([e]) }); } }; }),
+      fDurHint: 'Par défaut pour ce type : ' + fmt(DEF[f.type][0]) + ' à ' + fmt(DEF[f.type][1]),
+      fMin: fmt(f.min), fMax: fmt(f.max),
+      fMinDec: function () { setF({ min: Math.max(5, f.min - 5) }); }, fMinInc: function () { setF({ min: Math.min(f.max - 5, f.min + 5) }); },
+      fMaxDec: function () { setF({ max: Math.max(f.min + 5, f.max - 5) }); }, fMaxInc: function () { setF({ max: Math.min(480, f.max + 5) }); },
+      fActive: f.active ? 'true' : 'false', fActiveLabel: f.active ? 'Actif' : 'Hors service', fActiveStyle: 'background: ' + (f.active ? '#1E56D6' : '#C9D0DA'), fFlip: function () { setF({ active: !f.active }); },
+      fErr: s.err, fErrStyle: s.err ? 'font-size: 13px; color: #B4232A' : 'display: none',
+      saveForm: function (e) {
+        e.preventDefault();
+        if (!f.n.trim()) { self.setState({ err: 'Donnez un nom à l’espace.' }); return; }
+        var sp = JSON.parse(JSON.stringify(SP));
+        var isDef = f.min === DEF[f.type][0] && f.max === DEF[f.type][1];
+        var rec = { n: f.n.trim(), f: f.floor, cap: f.cap, eq: f.eq, desc: f.desc || 'Sans description.', min: isDef ? null : f.min, max: isDef ? null : f.max, active: f.active };
+        if (s.editIdx >= 0 && f.type === s.type) { sp[s.type][s.editIdx] = Object.assign(sp[s.type][s.editIdx], rec); self.setState({ SP: sp, form: false }); }
+        else { if (s.editIdx >= 0) sp[s.type].splice(s.editIdx, 1); sp[f.type].push(Object.assign({ dev: 'Aucun', devSt: 'À équiper', st: 'free', extra: '' }, rec)); self.setState({ SP: sp, form: false, type: f.type, sel: sp[f.type].length - 1 }); }
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>
