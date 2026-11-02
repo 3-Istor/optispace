@@ -1,0 +1,42 @@
+# deploy/values-backend.yaml
+replicaCount: 1
+
+image:
+  # Points to the backend Docker image
+  repository: ghcr.io/3-istor/template-app-webapp-python-fastapi-react/backend
+  tag: "latest"
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+
+# The backend connects to the DB and needs Vault secrets
+secrets:
+  enabled: true
+  vaultPath: "kvv2/projects/sandbox/app-fastapi-react"
+
+imagePullSecrets:
+  - name: app-registry
+
+db:
+  enabled: true
+  name: "app_fastapi_react"
+  storage: "1Gi"
+
+# The platform runs backend/migrate (alembic upgrade head) as a Job once the
+# database is Ready and before each new version starts.
+migrations:
+  enabled: true
+  command: ["/app/migrate"]
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
