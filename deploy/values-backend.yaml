@@ -32,6 +32,11 @@ auth:
   realm: "iot"
   clientId: "cnp-iot-optispace"
 
+env:
+  # Issuer of the gateway's JWT, checked by app/security.py.
+  - name: OIDC_ISSUER
+    value: "https://auth.3istor.com/realms/iot"
+
 resources:
   requests:
     cpu: "50m"

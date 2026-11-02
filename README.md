@@ -109,7 +109,7 @@ Ce qui passe en une release et ce qui se découpe :
 
 Au quotidien :
 
-1. Modifier les modèles dans `backend/app/models.py`.
+1. Modifier les modèles dans `backend/app/models/` (un module par table).
 2. `make migration name="add email_verified"` génère la révision avec `alembic revision --autogenerate`.
 3. Relire le fichier généré. L'autogenerate prend un renommage pour une suppression suivie d'un ajout.
 4. `docker compose up` applique la migration en local.
@@ -140,7 +140,7 @@ template-app-webapp-python-fastapi-react/
 │       ├── __init__.py
 │       ├── config.py
 │       ├── database.py
-│       ├── models.py
+│       ├── models/
 │       ├── main.py
 │       ├── test_main.py
 │       └── test_migrations.py
