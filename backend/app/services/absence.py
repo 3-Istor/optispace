@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import exists, func, select, update
 from sqlalchemy.orm import Session
 
 from app.models import AbsenceEpisode, AppSettings, AppUser, Device, Observation, Reservation, Space, SpaceStatus
@@ -14,6 +14,12 @@ from app.services.notifications import iso, notify
 def evaluate_space(db: Session, space_id: UUID, now: datetime) -> None:
     """Open, close or release the absence episode of the space's current reservation.
     Idempotent: a second call at the same instant changes nothing. The caller commits."""
+    # No request reached the deadline before the end: nothing was released.
+    for episode in db.scalars(select(AbsenceEpisode).join(Reservation).where(
+        Reservation.space_id == space_id, AbsenceEpisode.outcome == EpisodeOutcome.PENDING,
+        func.coalesce(Reservation.released_at, Reservation.end_at) <= now,
+    )):
+        episode.outcome, episode.closed_at = EpisodeOutcome.RELEASE_BLOCKED, now
     current = booking.current_reservation(db, space_id, now)
     if current is None:
         return

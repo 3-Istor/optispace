@@ -134,6 +134,19 @@ def test_gap_during_episode_blocks(db, space, reservation):
     assert reservation.status == ReservationStatus.ACTIVE
 
 
+def test_pending_episode_closed_once_the_reservation_ended(db, space, owner):
+    ended = book(db, space, at("10:00"), at("10:30"), user=owner)
+    heartbeats(db, space, ABSENT, at("09:59:50"), at("10:05"))
+    # offline from 10:05 and nobody reads the space until its end
+    absence.evaluate_space(db, space.id, at("10:30"))
+    db.commit()
+
+    [episode] = episodes(db)
+    assert (episode.outcome, episode.closed_at) == (EpisodeOutcome.RELEASE_BLOCKED, at("10:30"))
+    assert ended.status == ReservationStatus.ACTIVE
+    assert sent(db, RELEASED) == []
+
+
 def test_sealed_device_never_released(db, space, reservation):
     heartbeats(db, space, ABSENT, at("09:59:50"), at("10:05"))
     db.scalar(select(Device)).seal = SealState.SEALED
