@@ -42,6 +42,8 @@ class AlertIn(BaseModel):
     end_at: AwareDatetime
     space_type: SpaceType
     min_capacity: int = Field(default=1, ge=1)
+    floor: int | None = None  # null = any floor
+    equipment: list[str] = []  # the space has every item
 
 
 class AlertOut(BaseModel):
@@ -50,6 +52,8 @@ class AlertOut(BaseModel):
     id: UUID
     space_type: SpaceType
     min_capacity: int
+    floor: int | None
+    equipment: list[str]
     start_at: datetime
     end_at: datetime
     status: AlertStatus

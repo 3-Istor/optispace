@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from sqlalchemy.orm import Session
 
 from app import clock
@@ -14,9 +14,14 @@ router = APIRouter(tags=["alerts"])
 
 
 @router.post("/alerts", status_code=201, response_model=AlertOut)
-def create_alert(body: AlertIn, user: AppUser = Depends(get_app_user), db: Session = Depends(get_db)):
-    alert = alerts.create(db, user, body.start_at, body.end_at, body.space_type, body.min_capacity, clock.now())
+def create_alert(
+    body: AlertIn, response: Response, user: AppUser = Depends(get_app_user), db: Session = Depends(get_db),
+):
+    """201, or 200 with the user's active alert of the same criteria; 422 INVALID_SLOT."""
+    alert, created = alerts.create(db, user, clock.now(), **body.model_dump())
     db.commit()
+    if not created:
+        response.status_code = 200
     return alert
 
 

@@ -1,4 +1,5 @@
 import datetime as dt
+from types import SimpleNamespace
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -16,7 +17,7 @@ from app.schemas.spaces import (
     SpaceOut, SpacePatch,
 )
 from app.security import current_user, get_app_user, is_fm, require_fm
-from app.services import absence, booking, devices, occupancy
+from app.services import absence, alerts, booking, devices, occupancy
 from app.services.notifications import PARIS
 
 router = APIRouter(tags=["spaces"])
@@ -138,20 +139,27 @@ def _save(db: Session, space: Space) -> None:
 
 @router.post("/spaces", status_code=201, response_model=SpaceOut, dependencies=[Depends(require_fm)])
 def create_space(body: SpaceIn, db: Session = Depends(get_db)):
+    now = clock.now()
     space = Space(**body.model_dump())
     db.add(space)
     _save(db, space)
-    return space_out(db, space, clock.now(), fm=True)
+    alerts.on_space_available(db, space, now)
+    db.commit()
+    return space_out(db, space, now, fm=True)
 
 
 @router.patch("/spaces/{space_id}", response_model=SpaceOut, dependencies=[Depends(require_fm)])
 def update_space(space_id: UUID, body: SpacePatch, db: Session = Depends(get_db)):
-    """Existing reservations are not touched (spec §4.1)."""
+    """Existing reservations are not touched (spec §4.1); alerts the space starts matching are notified."""
+    now = clock.now()
     space = _space(db, space_id, fm=True)
+    before = SimpleNamespace(**{field: getattr(space, field) for field in FIELDS})
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(space, field, value)
     _save(db, space)
-    return space_out(db, space, clock.now(), fm=True)
+    alerts.on_space_available(db, space, now, before)
+    db.commit()
+    return space_out(db, space, now, fm=True)
 
 
 @router.get("/spaces/{space_id}/history", response_model=History, dependencies=[Depends(require_fm)])

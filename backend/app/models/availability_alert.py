@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import JSON, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app import clock
@@ -18,5 +18,7 @@ class AvailabilityAlert(Base):
     end_at: Mapped[datetime]
     space_type: Mapped[SpaceType]
     min_capacity: Mapped[int] = mapped_column(default=1)
+    floor: Mapped[int | None]  # None = any floor
+    equipment: Mapped[list[str]] = mapped_column(JSON, default=list, server_default="[]")
     status: Mapped[AlertStatus] = mapped_column(default=AlertStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())
