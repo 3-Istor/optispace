@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from threading import Thread
 from types import SimpleNamespace
 
 import pytest
@@ -31,7 +32,21 @@ def test_notification_texts():
 
 
 @pytest.fixture
-def pushes(monkeypatch, settings_env):
+def threads(monkeypatch):
+    """The push threads, run at start() so a test reads their effects right after the commit."""
+    started = []
+
+    class Inline(Thread):
+        def start(self):
+            started.append(self)
+            self.run()
+
+    monkeypatch.setattr(notifications, "Thread", Inline)
+    return started
+
+
+@pytest.fixture
+def pushes(monkeypatch, settings_env, threads):
     settings_env(VAPID_PUBLIC_KEY="public", VAPID_PRIVATE_KEY="private")
     calls = []
     monkeypatch.setattr(webpush, "send", lambda sub, payload: calls.append((sub.endpoint, payload)) or True)
@@ -48,6 +63,7 @@ def test_notification_prefs_respected(db, pushes, settings_env):
     subscribe(db, user)
 
     assert notifications.notify(db, user, T.RELEASED, space_name="Bulle 1", at=AT) is None
+    db.commit()
     assert db.scalar(select(func.count()).select_from(Notification)) == 0
     assert pushes == [("https://push.example/1", {
         "title": "OptiSpace", "body": "Votre réservation de Bulle 1 a été libérée à 10:10.", "url": "/reservations",
@@ -56,12 +72,32 @@ def test_notification_prefs_respected(db, pushes, settings_env):
     user.notify_in_app, user.notify_push = True, False
     row = notifications.notify(db, user, T.RELEASED, reservation_id=None, space_name="Bulle 1", at=AT)
     assert (row.user_id, row.type, row.params) == (user.id, T.RELEASED, {"space_name": "Bulle 1", "at": AT})
+    db.commit()
     assert len(pushes) == 1
 
     settings_env(VAPID_PUBLIC_KEY="", VAPID_PRIVATE_KEY="")  # no VAPID keys: no push
     user.notify_push = True
     notifications.notify(db, user, T.RELEASED, space_name="Bulle 1", at=AT)
+    db.commit()
     assert len(pushes) == 1
+
+
+def test_push_sent_after_commit_only(db, pushes, threads):
+    user = make_user(db)
+    subscribe(db, user)
+
+    notifications.notify(db, user, T.RELEASED, space_name="Bulle 1", at=AT)
+    db.begin_nested().commit()  # a savepoint is not the commit
+    assert pushes == []
+    db.rollback()
+    db.commit()
+    assert (pushes, threads) == ([], [])
+
+    notifications.notify(db, user, T.RELEASED, space_name="Bulle 1", at=AT)
+    db.commit()
+
+    assert [endpoint for endpoint, _ in pushes] == ["https://push.example/1"]
+    assert [thread.daemon for thread in threads] == [True]
 
 
 def test_push_urls(db, pushes):
@@ -72,6 +108,7 @@ def test_push_urls(db, pushes):
                          start_at=AT, end_at=iso(at("11:00")))
     notifications.notify(db, user, T.DEVICE_SEALED, space_name="Bulle 1")
     notifications.notify(db, user, T.ABSENCE_WARNING, space_name="Bulle 1", at=AT)
+    db.commit()
 
     assert [payload["url"] for _, payload in pushes] == [
         "/?type=individual_booth&start_at=2026-11-02T09%3A10%3A00Z&end_at=2026-11-02T10%3A00%3A00Z",
@@ -80,7 +117,7 @@ def test_push_urls(db, pushes):
     ]
 
 
-def test_push_410_deletes_subscription(db, monkeypatch, settings_env):
+def test_push_410_deletes_subscription(db, monkeypatch, settings_env, threads):
     settings_env(VAPID_PUBLIC_KEY="public", VAPID_PRIVATE_KEY="private", VAPID_SUBJECT="mailto:ops@example.com")
     user = make_user(db)
     for endpoint in ("gone", "missing", "busy", "broken", "fine"):
@@ -100,6 +137,7 @@ def test_push_410_deletes_subscription(db, monkeypatch, settings_env):
     row = notifications.notify(db, user, T.RELEASED, space_name="Bulle 1", at=AT)
     db.commit()
 
+    assert len(threads) == 1
     assert row is not None
     assert sorted(db.scalars(select(PushSubscription.endpoint))) == ["broken", "busy", "fine"]
     info, kwargs = calls[0]
