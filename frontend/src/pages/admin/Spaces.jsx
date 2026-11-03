@@ -23,13 +23,9 @@ const TYPE_KEYS = { meeting_room: ['meeting_min_min', 'meeting_max_min'], indivi
 const byName = (a, b) => a.name.localeCompare(b.name, 'fr')
 const H = 36e5
 
-// Effective [min, max] of a space: its own values, else its type's defaults from /settings.
-const bounds = (s, settings) => TYPE_KEYS[s.type].map((k, i) => [s.min_duration_min, s.max_duration_min][i] ?? settings[k])
-
-function durations(s, settings) {
-  const [min, max] = bounds(s, settings)
-  return `${fmtDuration(min)} à ${fmtDuration(max)}${s.min_duration_min == null && s.max_duration_min == null ? ' (type)' : ''}`
-}
+// min/max_duration_min are effective; the *_override fields are null when the type's default applies.
+const durations = (s) => `${fmtDuration(s.min_duration_min)} à ${fmtDuration(s.max_duration_min)}`
+  + (s.min_duration_override == null && s.max_duration_override == null ? ' (type)' : '')
 
 const status = (s) => (s.is_active === false
   ? <StatusBadge state="sealed">Hors service</StatusBadge>
@@ -72,7 +68,7 @@ export function Spaces() {
   )
   if (!data) return <>{header}{error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement des espaces" />}</>
 
-  const { spaces, devices, settings } = data
+  const { spaces, devices } = data
   const deviceOf = Object.fromEntries(devices.filter((d) => d.space).map((d) => [d.space.id, d]))
   const ofType = spaces.filter((s) => s.type === type).sort(byName)
   const needle = q.trim().toLowerCase()
@@ -119,7 +115,7 @@ export function Spaces() {
                           </span>
                         </td>
                         <td className="num">{s.capacity}</td>
-                        <td className="num muted" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{durations(s, settings)}</td>
+                        <td className="num muted" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{durations(s)}</td>
                         <td><span style={{ fontSize: 13, color: devColor, whiteSpace: 'nowrap' }}>{devLabel}</span></td>
                         <td>
                           <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -158,7 +154,7 @@ export function Spaces() {
                   <dt className="muted">Étage</dt><dd style={{ margin: 0 }}>{floorLabel(cur.floor)}</dd>
                   <dt className="muted">Capacité</dt><dd className="num" style={{ margin: 0 }}>{cur.capacity}</dd>
                   <dt className="muted">Équipements</dt><dd style={{ margin: 0 }}>{cur.equipment?.join(', ') || 'Aucun'}</dd>
-                  <dt className="muted">Durées</dt><dd className="num" style={{ margin: 0 }}>{durations(cur, settings)}</dd>
+                  <dt className="muted">Durées</dt><dd className="num" style={{ margin: 0 }}>{durations(cur)}</dd>
                   <dt className="muted">Boîtier</dt>
                   <dd className="num" style={{ margin: 0, overflowWrap: 'anywhere' }}>{deviceOf[cur.id] ? `${deviceOf[cur.id].id} · ${deviceText(deviceOf[cur.id])[0]}` : 'Aucun'}</dd>
                   {booking(cur.current_reservation) && <><dt className="muted">En cours</dt><dd style={{ margin: 0 }}>{booking(cur.current_reservation)}</dd></>}
@@ -284,14 +280,14 @@ function History({ space }) {
   )
 }
 
-// Create/edit drawer. Durations left null follow the type's defaults (Paramètres).
+// Create/edit drawer. f.min/max_duration_min hold the overrides sent: null follows the type's default (Paramètres).
 function SpaceForm({ space, settings, onClose, onSaved }) {
   const ref = useRef(null)
   const isNew = !space.id
   const [f, setF] = useState(() => ({
     name: space.name ?? '', type: space.type, description: space.description ?? '',
     capacity: space.capacity ?? (space.type === 'individual_booth' ? 1 : 6), floor: space.floor ?? 0, equipment: space.equipment ?? [],
-    min_duration_min: space.min_duration_min ?? null, max_duration_min: space.max_duration_min ?? null, is_active: space.is_active ?? true,
+    min_duration_min: space.min_duration_override ?? null, max_duration_min: space.max_duration_override ?? null, is_active: space.is_active ?? true,
   }))
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
@@ -301,13 +297,13 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
   useEffect(() => { if (!ref.current.open) ref.current.showModal() }, [])
 
   const [dMin, dMax] = TYPE_KEYS[f.type].map((k) => settings[k])
-  const [min, max] = bounds(f, settings)
+  const [min, max] = [f.min_duration_min ?? dMin, f.max_duration_min ?? dMax]
   const custom = f.min_duration_min != null || f.max_duration_min != null
 
   async function save(e) {
     e.preventDefault()
     if (!f.name.trim()) return setErr('Donnez un nom à l’espace.')
-    if (min >= max) return setErr('La durée minimum doit être inférieure à la durée maximum.')
+    if (min > max) return setErr('La durée minimum doit être inférieure ou égale à la durée maximum.')
     setBusy(true)
     try {
       const body = { ...f, name: f.name.trim(), capacity: Number(f.capacity) }

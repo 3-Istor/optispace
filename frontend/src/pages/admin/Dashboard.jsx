@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { api } from '../../api.js'
-import { DEVICE_STATES, deviceState, errorText, floorLabel } from '../../messages.js'
+import { DEVICE_STATES, deviceState, errorText, floorLabel, WARNINGS } from '../../messages.js'
 import { Link } from '../../router.jsx'
 import { dayLabel, fmtAgo, fmtTime, fromParis, toParis } from '../../time.js'
 import { usePolling } from '../../usePolling.js'
@@ -60,7 +60,8 @@ export function Dashboard() {
   const loadInsights = useCallback(async () => {
     if (!spaceId) return null
     const from = fromParis(toParis(new Date(Date.now() - (PERIODS[period][1] - 1) * 864e5)).date, '00:00')
-    const to = new Date(Math.floor(Date.now() / 6e4) * 6e4)
+    // At least one minute after from: "Aujourd’hui" just after midnight would otherwise send from == to.
+    const to = new Date(Math.max(+from + 6e4, Math.floor(Date.now() / 6e4) * 6e4))
     const q = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
     return { key: `${spaceId}|${period}`, ...(await api.get(`/spaces/${spaceId}/insights?${q}`)) }
   }, [spaceId, period])
@@ -134,7 +135,7 @@ export function Dashboard() {
             <ul aria-label="Avertissements" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {ins.warnings.map((w, i) => (
                 <li key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 26, padding: '0 10px', borderRadius: 6, background: '#FDF6EE', color: '#8A4A0E', fontSize: 12 }}>
-                  <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none' }} />{text(w)}
+                  <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none' }} />{WARNINGS[w] ?? text(w)}
                 </li>
               ))}
             </ul>

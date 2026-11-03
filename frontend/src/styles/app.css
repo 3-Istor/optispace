@@ -26,6 +26,9 @@ body{font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#0E1726}
 .side-in{position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;gap:22px;padding:18px 12px}
 .side-group{display:flex;flex-direction:column;gap:2px}
 .side-title{font-size:11px;color:#8A94A3;padding:0 10px 4px;letter-spacing:.02em}
+.side-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.side-menu{display:none}
+.side-nav{flex:1;display:flex;flex-direction:column;gap:22px}
 .side-user{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px 6px 0;border-top:1px solid #E4E8EE}
 .shell-main{flex:1;min-width:0;padding:26px 36px 56px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
 
@@ -105,7 +108,13 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
 .bgdots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(14,23,38,.10) 1px,transparent 1.4px);background-size:22px 22px}
 .bgfade{position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 45%,#F6F7F9 30%,rgba(246,247,249,0) 100%)}
 
-@media (max-width:960px){.side-in{position:static;height:auto}.cols-2{grid-template-columns:1fr}}
+@media (max-width:960px){
+  .side-in{position:static;height:auto;gap:14px;padding:10px 16px}
+  .side-menu{display:inline-flex}
+  .side-nav:not(.open){display:none}
+  .side-nav{padding-bottom:6px}
+  .cols-2{grid-template-columns:1fr}
+}
 @media (max-width:640px){
   .topbar-in{padding:0 16px;gap:4px 12px}
   .topnav{order:3;width:100%;padding-bottom:8px}

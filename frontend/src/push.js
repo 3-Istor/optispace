@@ -20,3 +20,12 @@ export async function enablePush() {
   await api.post('/push-subscriptions', sub.toJSON())
   return true
 }
+
+// Unsubscribes this browser and drops its subscription on the server; no-op when not subscribed.
+export async function disablePush() {
+  if (!pushSupported()) return
+  const sub = await (await navigator.serviceWorker.getRegistration())?.pushManager.getSubscription()
+  if (!sub) return
+  await sub.unsubscribe()
+  await api.del('/push-subscriptions', { endpoint: sub.endpoint })
+}
