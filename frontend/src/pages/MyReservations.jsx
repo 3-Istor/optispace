@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { errorText, floorLabel, NOTIFICATIONS, SPACE_TYPES } from '../messages.js'
-import { disablePush, enablePush } from '../push.js'
 import { dayLabel, fmtLongDay, fmtTime, fromParis, toParis } from '../time.js'
 import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
@@ -14,7 +13,6 @@ import { toast } from '../ui/Toast.jsx'
 
 const PAST_DAYS = 7
 const PAST_SHOWN = 10
-const PREFS = [['notify_push', 'Notifications du navigateur'], ['notify_in_app', 'Notifications dans l’application']]
 
 async function load() {
   const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString()
@@ -42,7 +40,7 @@ function status(r, kind, space) {
   return <Dot color="#1A8F4E">Terminée</Dot>
 }
 
-export function MyReservations({ me, setMe }) {
+export function MyReservations({ me }) {
   const { data, error, refresh } = usePolling(load, 5000)
   const [edit, setEdit] = useState(null)
   const [busyId, setBusyId] = useState(null)
@@ -74,18 +72,6 @@ export function MyReservations({ me, setMe }) {
     }
     setBusyId(null)
     refresh()
-  }
-
-  async function togglePref(key) {
-    const on = !me[key]
-    try {
-      // Permission prompt first, while the click still counts as a user gesture.
-      if (key === 'notify_push' && on) await enablePush().catch(() => false)
-      setMe(await api.patch('/me', { [key]: on }))
-      if (key === 'notify_push' && !on) await disablePush().catch(() => {})
-    } catch (e) {
-      toast(errorText(e), 'err')
-    }
   }
 
   const card = (r, kind) => {
@@ -164,16 +150,6 @@ export function MyReservations({ me, setMe }) {
                 Aucune alerte active. Vous pouvez en créer une depuis la recherche quand aucun espace ne correspond.
               </p>
             )}
-          </section>
-          <section className="card side-card" aria-labelledby="prefs-h">
-            <h2 id="prefs-h">Notifications</h2>
-            {PREFS.map(([key, label]) => (
-              <div className="line" key={key}>
-                <span>{label}</span>
-                <button type="button" role="switch" className="tog" aria-checked={!!me[key]} aria-label={label}
-                  style={{ background: me[key] ? '#1E56D6' : '#C9D0DA' }} onClick={() => togglePref(key)}><span /></button>
-              </div>
-            ))}
           </section>
         </div>
       </div>

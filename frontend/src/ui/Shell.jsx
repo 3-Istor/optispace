@@ -14,6 +14,7 @@ const FM_NAV = [
   ['Compte', [['/admin/profile', 'Profil', ICONS.profile]]],
 ]
 
+export const roleLabel = (me) => (me.role === 'facility_manager' ? 'Facility manager' : 'Employé')
 export const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
 
 function NavLink({ to, children }) {

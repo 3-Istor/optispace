@@ -1,21 +1,23 @@
 import { useState } from 'react'
-import { api } from '../../api.js'
-import { errorText } from '../../messages.js'
-import { disablePush, enablePush } from '../../push.js'
-import { Icon } from '../../ui/Icon.jsx'
-import { initials, PageHeader } from '../../ui/Shell.jsx'
-import { toast } from '../../ui/Toast.jsx'
+import { api } from '../api.js'
+import { errorText } from '../messages.js'
+import { disablePush, enablePush } from '../push.js'
+import { Icon } from '../ui/Icon.jsx'
+import { initials, PageHeader, roleLabel } from '../ui/Shell.jsx'
+import { toast } from '../ui/Toast.jsx'
 
 // Keycloak account console; set at build time, the link is hidden when empty.
 const ACCOUNT_URL = import.meta.env.VITE_KEYCLOAK_ACCOUNT_URL
 const ALERTS = [['alert_device_offline', 'Boîtier hors ligne'], ['alert_device_sealed', 'Boîtier rescellé']]
 const CHANNELS = [['notify_push', 'Notifications du navigateur'], ['notify_in_app', 'Notifications dans l’application']]
 
-// AdminProfil.dc.html. Identity comes from Keycloak and is read-only here.
+// AdminProfil.dc.html, at /profile for everyone and /admin/profile for Facility managers, who also
+// get the device alerts. Identity comes from Keycloak and is read-only here.
 export function Profile({ me, setMe }) {
   const [phone, setPhone] = useState(me.phone ?? '')
   const [phoneSaved, setPhoneSaved] = useState(false)
   const name = me.display_name || me.email || ''
+  const fm = me.role === 'facility_manager'
 
   async function savePhone(e) {
     e.preventDefault()
@@ -28,7 +30,6 @@ export function Profile({ me, setMe }) {
     }
   }
 
-  // Same behaviour as the employee toggles of MyReservations.jsx.
   async function toggle(key) {
     const on = !me[key]
     try {
@@ -63,7 +64,7 @@ export function Profile({ me, setMe }) {
             <span className="avatar" aria-hidden="true" style={{ width: 52, height: 52, fontSize: 18 }}>{initials(name)}</span>
             <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
               <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 18 }}>{name}</span>
-              <span className="muted" style={{ fontSize: 13 }}>Facility manager</span>
+              <span className="muted" style={{ fontSize: 13 }}>{roleLabel(me)}</span>
             </span>
             {ACCOUNT_URL && (
               <a href={ACCOUNT_URL} className="btn btn-s" target="_blank" rel="noopener noreferrer">
@@ -89,8 +90,8 @@ export function Profile({ me, setMe }) {
           </form>
         </section>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {switches('Alertes', ALERTS)}
-          {switches('Canaux', CHANNELS)}
+          {fm && switches('Alertes', ALERTS)}
+          {switches(fm ? 'Canaux' : 'Notifications', CHANNELS)}
         </div>
       </div>
     </>
