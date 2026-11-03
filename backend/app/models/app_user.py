@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from sqlalchemy import false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app import clock
@@ -20,4 +21,6 @@ class AppUser(Base):
     notify_in_app: Mapped[bool] = mapped_column(default=True)
     alert_device_offline: Mapped[bool] = mapped_column(default=True)
     alert_device_sealed: Mapped[bool] = mapped_column(default=True)
+    # Copied from the token's groups on each request, to find who gets device alerts.
+    is_fm: Mapped[bool] = mapped_column(default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())

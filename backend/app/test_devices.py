@@ -2,9 +2,10 @@ from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
 import pytest
+from sqlalchemy import select
 
-from app.models import AbsenceEpisode, AppUser, Device, Reservation, Space, SpaceStatus
-from app.models.enums import EpisodeKind, Presence, SealState, SpaceType
+from app.models import AbsenceEpisode, AppUser, Device, Notification, Reservation, Space, SpaceStatus
+from app.models.enums import EpisodeKind, NotificationType, Presence, SealState, SpaceType
 from app.services import devices
 
 NOW = datetime(2026, 11, 2, 9, 0, tzinfo=timezone.utc)
@@ -157,6 +158,82 @@ def test_unseal_unassigned_409(client, db, fm):
     response = client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
 
     assert (response.status_code, response.json()) == (409, {"detail": "DEVICE_UNASSIGNED"})
+
+
+def test_is_fm_follows_the_token(client, db, claims):
+    claims["groups"] = ["project-admins"]
+    client.get("/api/v1/me")
+    assert db.scalar(select(AppUser)).is_fm is True
+
+    claims["groups"] = ["project-members"]
+    client.get("/api/v1/me")
+    db.expire_all()
+    assert db.scalar(select(AppUser)).is_fm is False
+
+
+@pytest.fixture
+def fms(db):
+    """Two facility managers, the second without device alerts, and an employee."""
+    users = [
+        AppUser(keycloak_sub="fm1", is_fm=True),
+        AppUser(keycloak_sub="fm2", is_fm=True, alert_device_sealed=False, alert_device_offline=False),
+        AppUser(keycloak_sub="employee"),
+    ]
+    db.add_all(users)
+    db.commit()
+    return users
+
+
+def alerts(db):
+    return [(n.user_id, n.type, n.space_id, n.params)
+            for n in db.scalars(select(Notification).order_by(Notification.created_at))]
+
+
+def test_reseal_alerts_fms(client, db, fm, fms):
+    space, other = make_space(db), make_space(db, "Salle Lovelace")
+    make_device(db, space=space, seal=SealState.UNSEALED)
+    db.commit()
+    resealed = (fms[0].id, NotificationType.DEVICE_SEALED, space.id, {"space_name": "Bulle 2"})
+
+    client.post(f"/api/v1/devices/{DEVICE}/seal")
+    client.post(f"/api/v1/devices/{DEVICE}/seal")  # already sealed: no alert
+    client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(other.id)})  # sealed: no alert
+    assert alerts(db) == [resealed]
+
+    client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(space.id)})
+    client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
+    client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(other.id)})  # moving an unsealed device
+
+    assert alerts(db) == [resealed, resealed]
+
+
+@pytest.mark.parametrize("route", ["/api/v1/devices", "/api/v1/spaces"])
+def test_offline_alert_once(client, db, fm, fms, frozen_clock, route):
+    space = make_space(db)
+    make_device(db, space=space, seal=SealState.UNSEALED, last_seen_at=NOW - 29 * SEC)
+    make_device(db, "esp32-000000000001", space=make_space(db, "Salle Lovelace"), last_seen_at=NOW - 60 * MIN)  # sealed
+    make_device(db, "esp32-000000000002", seal=SealState.UNSEALED, last_seen_at=NOW - 60 * MIN)  # unassigned
+    db.commit()
+    assert client.get(route).status_code == 200
+    assert alerts(db) == []
+
+    frozen_clock.now = NOW + SEC
+    client.get(route)
+    client.get(route)
+
+    offline = (fms[0].id, NotificationType.DEVICE_OFFLINE, space.id, {"space_name": "Bulle 2", "at": "2026-11-02T08:59:31Z"})
+    assert alerts(db) == [offline]
+    db.expire_all()
+    assert db.get(Device, DEVICE).offline_notified_at == NOW + SEC
+
+    # back online, then offline again: a new alert
+    device = db.get(Device, DEVICE)
+    device.last_seen_at = NOW + 10 * SEC
+    db.commit()
+    frozen_clock.now = NOW + 40 * SEC
+    client.get(route)
+
+    assert alerts(db)[1:] == [(*offline[:3], {"space_name": "Bulle 2", "at": "2026-11-02T09:00:10Z"})]
 
 
 def test_unseal_then_seal(client, db, fm):

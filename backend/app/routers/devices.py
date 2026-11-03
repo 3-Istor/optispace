@@ -30,6 +30,8 @@ def _out(db: Session, device: Device, now: datetime) -> dict:
 @router.get("/devices", response_model=list[DeviceOut])
 def list_devices(db: Session = Depends(get_db)):
     now = clock.now()
+    devices.notify_offline(db, now)
+    db.commit()
     return [_out(db, device, now) for device in db.scalars(select(Device).order_by(Device.id))]
 
 

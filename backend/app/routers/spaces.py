@@ -16,7 +16,7 @@ from app.schemas.spaces import (
     SpaceOut, SpacePatch,
 )
 from app.security import current_user, get_app_user, is_fm, require_fm
-from app.services import absence, booking, occupancy
+from app.services import absence, booking, devices, occupancy
 from app.services.notifications import PARIS
 
 router = APIRouter(tags=["spaces"])
@@ -72,6 +72,7 @@ def list_spaces(
     """Inactive spaces only for facility managers; a space has every `equipment` asked."""
     now, fm = clock.now(), is_fm(claims)
     spaces = booking.find_spaces(db, type, min_capacity, floor, equipment, active_only=not fm)
+    devices.notify_offline(db, now)  # committed by _evaluate
     _evaluate(db, spaces, now)
     return [space_out(db, s, now, fm) for s in spaces]
 

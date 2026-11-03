@@ -2,15 +2,16 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import AbsenceEpisode, Device, Observation, Space
-from app.models.enums import EpisodeOutcome, SealState, SpaceState
+from app.models import AbsenceEpisode, AppUser, Device, Observation, Space
+from app.models.enums import EpisodeOutcome, NotificationType, SealState, SpaceState
 from app.schemas.telemetry import TelemetryIn
 from app.services import absence, booking, occupancy
+from app.services.notifications import iso, notify
 
 MAX_CLOCK_SKEW = timedelta(seconds=60)
 
@@ -33,6 +34,19 @@ def register_or_touch(db: Session, device_id: str, firmware_version: str, now: d
     return device
 
 
+def _notify_fms(db: Session, alert, type: NotificationType, space: Space, **params) -> None:
+    """`alert`: the AppUser preference column of this alert."""
+    for fm in db.scalars(select(AppUser).where(AppUser.is_fm, alert)).all():
+        notify(db, fm, type, space_id=space.id, space_name=space.name, **params)
+
+
+def _reseal(db: Session, device: Device) -> None:
+    """DEVICE_SEALED for the space an unsealed device was measuring."""
+    if device.seal == SealState.UNSEALED and device.space_id is not None:
+        _notify_fms(db, AppUser.alert_device_sealed, NotificationType.DEVICE_SEALED, db.get(Space, device.space_id))
+    device.seal = SealState.SEALED
+
+
 def assign(db: Session, device_id: str, space_id: UUID | None) -> Device:
     """Always reseals, even when the space does not change."""
     device = get(db, device_id)
@@ -41,16 +55,33 @@ def assign(db: Session, device_id: str, space_id: UUID | None) -> Device:
             raise DomainError(404, "SPACE_NOT_FOUND")
         if db.scalar(select(Device.id).where(Device.space_id == space_id)) not in (None, device_id):
             raise DomainError(409, "SPACE_HAS_DEVICE")
-    device.space_id, device.seal = space_id, SealState.SEALED
+    _reseal(db, device)
+    device.space_id = space_id
     db.flush()
     return device
 
 
 def seal(db: Session, device_id: str) -> Device:
     device = get(db, device_id)
-    device.seal = SealState.SEALED
+    _reseal(db, device)
     db.flush()
     return device
+
+
+def notify_offline(db: Session, now: datetime) -> None:
+    """DEVICE_OFFLINE once per silence of an assigned unsealed device, checked by the polled reads
+    (no background job). The caller commits."""
+    unsent = or_(Device.offline_notified_at.is_(None), Device.offline_notified_at < Device.last_seen_at)
+    candidates = db.scalars(select(Device).where(
+        Device.space_id.is_not(None), Device.seal == SealState.UNSEALED,
+        Device.last_seen_at <= now - occupancy.STALE_AFTER, unsent,
+    ).order_by(Device.id)).all()  # a fixed order keeps row locks deadlock-free
+    for device in candidates:
+        # Conditional update: of two concurrent polls, only one sends the alert.
+        claimed = db.execute(update(Device).where(Device.id == device.id, unsent).values(offline_notified_at=now)).rowcount
+        if claimed:
+            _notify_fms(db, AppUser.alert_device_offline, NotificationType.DEVICE_OFFLINE,
+                        db.get(Space, device.space_id), at=iso(device.last_seen_at))
 
 
 def unseal(db: Session, device_id: str) -> Device:

@@ -47,16 +47,17 @@ def require_fm(claims: dict = Depends(current_user)) -> dict:
 
 
 def get_app_user(db: Session = Depends(get_db), claims: dict = Depends(current_user)) -> AppUser:
-    """The user of the token, created on first call; e-mail and name follow the IdP."""
+    """The user of the token, created on first call; e-mail, name and FM role follow the IdP."""
     by_sub = select(AppUser).where(AppUser.keycloak_sub == claims["sub"])
     email, name = claims.get("email"), claims.get("name") or claims.get("preferred_username")
+    fm = is_fm(claims)
     user = db.scalar(by_sub)
     if user is None:
         user = AppUser(keycloak_sub=claims["sub"])
         db.add(user)
-    elif (user.email, user.display_name) == (email, name):
+    elif (user.email, user.display_name, user.is_fm) == (email, name, fm):
         return user
-    user.email, user.display_name = email, name
+    user.email, user.display_name, user.is_fm = email, name, fm
     try:
         db.commit()
     except IntegrityError:
