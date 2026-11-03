@@ -48,6 +48,8 @@ def space_out(db: Session, space: Space, now: dt.datetime, fm: bool) -> SpaceOut
         )
     return SpaceOut(
         **{field: getattr(space, field) for field in FIELDS}, min_duration_min=lo, max_duration_min=hi,
+        min_duration_override=space.min_duration_min if fm else None,
+        max_duration_override=space.max_duration_min if fm else None,
         space_state=occupancy.space_state(db, space, now),
         occupancy_fresh_at=status.last_observation_at if status else None, current_reservation=current,
     )

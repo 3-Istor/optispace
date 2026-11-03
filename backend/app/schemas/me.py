@@ -19,6 +19,7 @@ class Profile(BaseModel):
 
 class MeOut(Profile):
     role: Literal["employee", "facility_manager"]
+    absence_delay_min: int  # global setting D, readable by everyone
 
 
 class MePatch(BaseModel):

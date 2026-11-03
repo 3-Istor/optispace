@@ -25,6 +25,8 @@ class SpaceOut(BaseModel):
     is_active: bool
     min_duration_min: int  # effective: the space's override or its type's default
     max_duration_min: int
+    min_duration_override: int | None  # facility managers only; null = the type's default
+    max_duration_override: int | None
     space_state: SpaceState
     occupancy_fresh_at: dt.datetime | None  # last observation
     current_reservation: CurrentReservation | None

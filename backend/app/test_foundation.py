@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 
 from app import security
 from app.main import app
-from app.models import AppUser, Device, Reservation, Space, SpaceStatus
+from app.models import AppSettings, AppUser, Device, Reservation, Space, SpaceStatus
 from app.models.enums import Presence, ReservationStatus, SealState, SpaceState, SpaceType
 from app.services import booking, occupancy
 
@@ -36,6 +36,14 @@ def test_me_creates_user_on_first_call(client, db):
     assert body["email"] == "u1@example.com"
     assert body["display_name"] == "User One"
     assert db.scalar(select(func.count()).select_from(AppUser)) == 1
+
+
+def test_me_includes_the_absence_delay(client, db):
+    db.get(AppSettings, 1).absence_delay_min = 7
+    db.commit()
+
+    assert client.get("/api/v1/me").json()["absence_delay_min"] == 7
+    assert client.patch("/api/v1/me", json={"notify_push": False}).json()["absence_delay_min"] == 7
 
 
 def test_me_role_fm_from_group(client, claims):

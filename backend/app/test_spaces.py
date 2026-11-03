@@ -24,6 +24,7 @@ def test_list_spaces(client, db, claims):
     assert body[0] == {
         "id": str(booth.id), "name": "Bulle 1", "type": "individual_booth", "description": "", "capacity": 1,
         "floor": 0, "equipment": ["écran"], "is_active": True, "min_duration_min": 15, "max_duration_min": 60,
+        "min_duration_override": None, "max_duration_override": None,
         "space_state": "occupied_reserved", "occupancy_fresh_at": iso(at("10:00")),
         "current_reservation": {
             "id": str(reservation.id), "start_at": iso(at("09:30")), "end_at": iso(at("10:30")),
@@ -34,7 +35,11 @@ def test_list_spaces(client, db, claims):
     assert (room["min_duration_min"], room["max_duration_min"], room["space_state"], room["occupancy_fresh_at"],
             room["current_reservation"]) == (45, 180, "unknown", None, None)
     claims["groups"] = FM
-    assert client.get(URL).json()[0]["current_reservation"]["booker_name"] == "Alice Martin"
+    booth_fm, room_fm = client.get(URL).json()
+    assert booth_fm["current_reservation"]["booker_name"] == "Alice Martin"
+    # raw overrides for facility managers only: null follows the type's default
+    assert (room_fm["min_duration_override"], room_fm["max_duration_override"]) == (45, None)
+    assert room["min_duration_override"] is None
 
 
 def test_list_filters(client, db):
@@ -119,6 +124,7 @@ def test_create_and_patch_space(client, db, claims):
     assert created.json() == {
         "id": ANY, "name": "Salle 2", "type": "meeting_room", "description": "", "capacity": 6, "floor": 1,
         "equipment": ["visio"], "is_active": True, "min_duration_min": 30, "max_duration_min": 180,
+        "min_duration_override": None, "max_duration_override": None,
         "space_state": "unknown", "occupancy_fresh_at": None, "current_reservation": None,
     }
     duplicate = client.post(URL, json=body)
@@ -133,7 +139,12 @@ def test_create_and_patch_space(client, db, claims):
     assert patched.status_code == 200
     assert (patched.json()["max_duration_min"], patched.json()["is_active"], patched.json()["description"]) == (
         120, False, "Vue jardin")
-    assert client.patch(space_url, json={"max_duration_min": None}).json()["max_duration_min"] == 180
+    assert patched.json()["max_duration_override"] == 120
+    assert client.get(space_url).json()["max_duration_override"] == 120
+    reset = client.patch(space_url, json={"max_duration_min": None}).json()
+    assert (reset["max_duration_min"], reset["max_duration_override"]) == (180, None)
+    same = client.patch(space_url, json={"min_duration_min": 60, "max_duration_min": 60})
+    assert (same.status_code, same.json()["min_duration_min"], same.json()["max_duration_min"]) == (200, 60, 60)
     claims["groups"] = []
     assert client.patch(space_url, json={"capacity": 2}).status_code == 403
 
