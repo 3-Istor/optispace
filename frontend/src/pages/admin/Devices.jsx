@@ -1,10 +1,11 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useState } from 'react'
 import { api } from '../../api.js'
 import { DEVICE_STATES, deviceState, errorText, floorLabel, SPACE_TYPES } from '../../messages.js'
 import { useRoute } from '../../router.jsx'
 import { fmtAgo } from '../../time.js'
 import { usePolling } from '../../usePolling.js'
 import { Button } from '../../ui/Button.jsx'
+import { ConfirmDialog } from '../../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
@@ -50,28 +51,6 @@ function AssignForm({ busy, onAssign, ...pick }) {
       <SpaceSelect {...pick} value={spaceId} onChange={setSpaceId} style={{ flex: '0 1 300px', minWidth: 0 }} />
       <Button variant="p" type="submit" busy={busy} disabled={!spaceId}>Affecter</Button>
     </form>
-  )
-}
-
-// replaced by ui/ConfirmDialog after merge
-function LocalConfirmDialog({ open, title, children, confirmLabel, cancelLabel = 'Annuler', onConfirm, onCancel, busy, danger }) {
-  const ref = useRef(null)
-  const id = useId()
-  useEffect(() => {
-    if (open && !ref.current.open) ref.current.showModal()
-    if (!open && ref.current.open) ref.current.close()
-  }, [open])
-  return (
-    <dialog ref={ref} className="modal" aria-labelledby={id} onClose={onCancel}>
-      <form onSubmit={(e) => { e.preventDefault(); onConfirm() }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <h2 id={id} style={{ fontSize: 18 }}>{title}</h2>
-        {children}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <Button onClick={onCancel}>{cancelLabel}</Button>
-          <Button variant={danger ? 'd' : 'p'} type="submit" busy={busy}>{confirmLabel}</Button>
-        </div>
-      </form>
-    </dialog>
   )
 }
 
@@ -264,19 +243,19 @@ export function Devices() {
         </section>
       </div>
 
-      <LocalConfirmDialog open={ask === 'unseal'} title="Desceller le boîtier ?" confirmLabel="Desceller"
+      <ConfirmDialog open={ask === 'unseal'} title="Desceller le boîtier ?" confirmLabel="Desceller"
         busy={busy === 'unseal'} onConfirm={unseal} onCancel={() => setAsk(null)}>
         <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier mesurera la présence dans {cur.space?.name}.</p>
-      </LocalConfirmDialog>
-      <LocalConfirmDialog open={ask === 'seal'} title="Mettre en maintenance ?" confirmLabel="Mettre en maintenance" danger
+      </ConfirmDialog>
+      <ConfirmDialog open={ask === 'seal'} title="Mettre en maintenance ?" confirmLabel="Mettre en maintenance" danger
         busy={busy === 'seal'} onConfirm={seal} onCancel={() => setAsk(null)}>
         <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier sera rescellé.</p>
-      </LocalConfirmDialog>
-      <LocalConfirmDialog open={ask === 'move'} title="Changer d’espace" confirmLabel={moveTo ? 'Affecter' : 'Désaffecter'}
+      </ConfirmDialog>
+      <ConfirmDialog open={ask === 'move'} title="Changer d’espace" confirmLabel={moveTo ? 'Affecter' : 'Désaffecter'}
         busy={busy === 'assign'} onConfirm={move} onCancel={() => setAsk(null)}>
         <SpaceSelect {...pick} value={moveTo} onChange={setMoveTo} />
         {!sealed && <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier sera rescellé.</p>}
-      </LocalConfirmDialog>
+      </ConfirmDialog>
     </>
   )
 }

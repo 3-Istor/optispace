@@ -28,8 +28,9 @@ def post(url: str, key: str, body: dict) -> str:
             return f"{response.status} {response.read().decode()}"
     except urllib.error.HTTPError as error:
         return f"{error.code} {error.read().decode()}"
-    except urllib.error.URLError as error:
-        return f"unreachable: {error.reason}"
+    # A read timeout raises TimeoutError, not URLError: a real box retries next period.
+    except OSError as error:
+        return f"unreachable: {getattr(error, 'reason', error)}"
 
 
 def main() -> None:
