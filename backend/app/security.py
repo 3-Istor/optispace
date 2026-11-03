@@ -20,7 +20,7 @@ def _jwks() -> jwt.PyJWKClient:
 def current_user(authorization: str = Header(default="")) -> dict:
     """Claims of the gateway's token. Verified here too: other pods reach the backend without the gateway."""
     settings = get_settings()
-    if settings.dev_fake_user:
+    if settings.dev_fake_user and not settings.oidc_issuer:  # an issuer means a real deployment
         return json.loads(settings.dev_fake_user)
     token = authorization.removeprefix("Bearer ")
     if not token:

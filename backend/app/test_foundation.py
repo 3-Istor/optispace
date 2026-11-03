@@ -85,6 +85,18 @@ def test_current_user_verifies_the_token(monkeypatch, settings_env):
         assert (error.value.status_code, error.value.detail) == (401, "INVALID_TOKEN")
 
 
+def test_dev_fake_user_only_without_issuer(settings_env):
+    fake = '{"sub": "dev", "groups": ["project-admins"]}'
+
+    settings_env(DEV_FAKE_USER=fake, OIDC_ISSUER="")
+    assert security.current_user("")["sub"] == "dev"
+
+    settings_env(DEV_FAKE_USER=fake, OIDC_ISSUER="https://auth.example.com/realms/iot")
+    with pytest.raises(HTTPException) as error:
+        security.current_user("")
+    assert (error.value.status_code, error.value.detail) == (401, "NOT_AUTHENTICATED")
+
+
 def test_settings_requires_fm(client):
     for response in (client.get("/api/v1/settings"), client.patch("/api/v1/settings", json={})):
         assert response.status_code == 403

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -8,6 +10,8 @@ from app.routers import alerts, devices, insights, me, notifications, push, rese
 from app.routers import settings as settings_routes
 
 settings = get_settings()
+if settings.dev_fake_user and settings.oidc_issuer:
+    logging.getLogger(__name__).warning("DEV_FAKE_USER is ignored: OIDC_ISSUER is set")
 app = FastAPI(title="OptiSpace API")
 app.add_exception_handler(DomainError, domain_error_handler)
 for module in (
