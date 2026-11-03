@@ -62,7 +62,7 @@ export function MyReservations({ me }) {
   groups.now.sort(byStart)
   groups.next.sort(byStart)
   groups.past = groups.past.sort((a, b) => byStart(b, a)).slice(0, PAST_SHOWN)
-  const alerts = data.alerts.filter((a) => a.status === 'active')
+  const alerts = data.alerts.filter((a) => a.status === 'active' && Date.parse(a.end_at) > now)
 
   async function run(id, call, done) {
     setBusyId(id)
@@ -137,16 +137,20 @@ export function MyReservations({ me }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <section className="card side-card" aria-labelledby="alerts-h">
             <h2 id="alerts-h">Mes alertes</h2>
-            {alerts.map((a) => (
-              <div className="line" key={a.id}>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontWeight: 500 }}>{SPACE_TYPES[a.space_type]}{a.min_capacity > 1 && `, ${a.min_capacity} places ou plus`}</span>
-                  <span className="muted num" style={{ fontSize: 12 }}>{fmtLongDay(a.start_at)}, {fmtTime(a.start_at)} à {fmtTime(a.end_at)}</span>
-                </span>
-                <Button variant="g" busy={busyId === a.id} aria-label="Annuler l’alerte"
-                  onClick={() => run(a.id, () => api.del(`/alerts/${a.id}`), 'Alerte annulée.')}>Annuler</Button>
-              </div>
-            ))}
+            {alerts.map((a) => {
+              const where = [a.floor != null && floorLabel(a.floor), a.equipment?.join(', ')].filter(Boolean).join(' · ')
+              return (
+                <div className="line" key={a.id}>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ fontWeight: 500 }}>{SPACE_TYPES[a.space_type]}{a.min_capacity > 1 && ` · ${a.min_capacity} places ou plus`}</span>
+                    <span className="muted num" style={{ fontSize: 12 }}>{fmtLongDay(a.start_at)}, {fmtTime(a.start_at)} à {fmtTime(a.end_at)}</span>
+                    {where && <span className="muted" style={{ fontSize: 12 }}>{where}</span>}
+                  </span>
+                  <Button variant="g" busy={busyId === a.id} aria-label="Annuler l’alerte"
+                    onClick={() => run(a.id, () => api.del(`/alerts/${a.id}`), 'Alerte annulée.')}>Annuler</Button>
+                </div>
+              )
+            })}
             {!alerts.length && (
               <p className="muted" style={{ margin: '6px 0 0', fontSize: 13, lineHeight: 1.5 }}>
                 Aucune alerte active. Vous pouvez en créer une depuis la recherche quand aucun espace ne correspond.

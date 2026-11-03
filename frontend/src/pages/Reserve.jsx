@@ -28,7 +28,7 @@ function initialCriteria(query) {
   return { type, date, time, dur: asked > 0 ? Math.min(hi, Math.max(lo, asked)) : dflt, cap: 0, floor: '', eq: [] }
 }
 
-export function Reserve({ me }) {
+export function Reserve() {
   const { query } = useRoute()
   const [c, setC] = useState(() => initialCriteria(query))
   const [booked, setBooked] = useState([]) // ids booked here for the current criteria
@@ -95,9 +95,13 @@ export function Reserve({ me }) {
 
   async function createAlert() {
     try {
-      await api.post('/alerts', { start_at: startAt, end_at: endAt, space_type: c.type, min_capacity: c.cap || 1 })
+      const { status } = await api.post('/alerts', {
+        start_at: startAt, end_at: endAt, space_type: c.type, min_capacity: c.cap || 1,
+        floor: c.floor === '' ? null : Number(c.floor), equipment: c.eq,
+      }, true)
       setAlertSet(true)
-      toast('Alerte créée. Nous vous préviendrons dès qu’un espace correspondant se libère.')
+      // 200: the same alert was already active.
+      toast(status === 201 ? 'Alerte activée. Vous serez prévenu si un espace correspondant se libère.' : 'Cette alerte est déjà active.')
     } catch (e) {
       toast(errorText(e), 'err')
     }
@@ -200,10 +204,6 @@ export function Reserve({ me }) {
             </div>
           </div>
         )}
-        <span className="muted" style={{ fontSize: 12, marginLeft: 'auto', maxWidth: 230, lineHeight: 1.45 }}>
-          {c.type === 'meeting_room' ? 'Salles de réunion' : 'Bulles individuelles'} : de {fmtDuration(lo)} à {fmtDuration(hi)}, par pas de 5 min.
-          Sans présence détectée, la réservation est libérée au bout de {me.absence_delay_min ?? 10} min.
-        </span>
         {equipment.length > 0 && (
           <div role="group" aria-labelledby="eq-l" style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 12, borderTop: '1px solid #EEF1F5' }}>
             <span className="lbl" id="eq-l" style={{ alignSelf: 'center', marginRight: 6 }}>Équipements</span>
