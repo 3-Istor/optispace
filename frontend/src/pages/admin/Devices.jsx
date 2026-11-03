@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { api } from '../../api.js'
 import { DEVICE_STATES, deviceState, errorText, floorLabel, SPACE_TYPES } from '../../messages.js'
 import { useRoute } from '../../router.jsx'
@@ -23,29 +23,55 @@ const STEPS = ['Affecter', 'Desceller', 'Actif']
 
 const Dot = ({ state }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><span className="dot" style={{ background: DEVICE_STATES[state][1] }} />{DEVICE_STATES[state][0]}</span>
 
-// Space picker; a space holds one device, so spaces equipped by another device are left out.
-function AssignForm({ device, devices, spaces, busy, onAssign, children }) {
-  const current = device.space?.id ?? ''
-  const [spaceId, setSpaceId] = useState(current)
+// A space holds one device, so spaces equipped by another device are left out.
+function SpaceSelect({ device, devices, spaces, value, onChange, style }) {
   const taken = new Set(devices.filter((d) => d.space && d.id !== device.id).map((d) => d.space.id))
   const free = spaces.filter((s) => !taken.has(s.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onAssign(spaceId || null) }} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
-      <label className="field" style={{ flex: '0 1 300px', minWidth: 0 }}><span className="lbl">Espace</span>
-        <select className="input" value={spaceId} onChange={(e) => setSpaceId(e.target.value)} style={{ width: '100%' }}>
-          <option value="">Aucun espace</option>
-          {Object.entries(SPACE_TYPES).map(([type, label]) => (
-            <optgroup key={type} label={label}>
-              {free.filter((s) => s.type === type).map((s) => (
-                <option key={s.id} value={s.id}>{s.name} · {floorLabel(s.floor)}{s.is_active === false ? ' (hors service)' : ''}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </label>
-      <Button variant="p" type="submit" busy={busy} disabled={spaceId === current}>{spaceId || !current ? 'Affecter' : 'Désaffecter'}</Button>
-      {children}
+    <label className="field" style={style}><span className="lbl">Espace</span>
+      <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%' }}>
+        <option value="">Aucun espace</option>
+        {Object.entries(SPACE_TYPES).map(([type, label]) => (
+          <optgroup key={type} label={label}>
+            {free.filter((s) => s.type === type).map((s) => (
+              <option key={s.id} value={s.id}>{s.name} · {floorLabel(s.floor)}{s.is_active === false ? ' (hors service)' : ''}</option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function AssignForm({ busy, onAssign, ...pick }) {
+  const [spaceId, setSpaceId] = useState('')
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onAssign(spaceId) }} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 10 }}>
+      <SpaceSelect {...pick} value={spaceId} onChange={setSpaceId} style={{ flex: '0 1 300px', minWidth: 0 }} />
+      <Button variant="p" type="submit" busy={busy} disabled={!spaceId}>Affecter</Button>
     </form>
+  )
+}
+
+// replaced by ui/ConfirmDialog after merge
+function LocalConfirmDialog({ open, title, children, confirmLabel, cancelLabel = 'Annuler', onConfirm, onCancel, busy, danger }) {
+  const ref = useRef(null)
+  const id = useId()
+  useEffect(() => {
+    if (open && !ref.current.open) ref.current.showModal()
+    if (!open && ref.current.open) ref.current.close()
+  }, [open])
+  return (
+    <dialog ref={ref} className="modal" aria-labelledby={id} onClose={onCancel}>
+      <form onSubmit={(e) => { e.preventDefault(); onConfirm() }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <h2 id={id} style={{ fontSize: 18 }}>{title}</h2>
+        {children}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+          <Button onClick={onCancel}>{cancelLabel}</Button>
+          <Button variant={danger ? 'd' : 'p'} type="submit" busy={busy}>{confirmLabel}</Button>
+        </div>
+      </form>
+    </dialog>
   )
 }
 
@@ -56,9 +82,8 @@ export function Devices() {
   const [selId, setSelId] = useState(query.get('id'))
   const [filter, setFilter] = useState('all')
   const [busy, setBusy] = useState(null)
-  const [changing, setChanging] = useState(false)
-  const [confirmSeal, setConfirmSeal] = useState(false)
-  const dialog = useRef(null)
+  const [ask, setAsk] = useState(null) // open confirmation: 'unseal', 'seal' or 'move'
+  const [moveTo, setMoveTo] = useState('')
 
   const count = data?.devices.length
   const header = (
@@ -75,13 +100,14 @@ export function Devices() {
   const space = data.spaces.find((s) => s.id === cur.space?.id)
   const where = cur.space ? `${cur.space.name}${space ? ` · ${floorLabel(space.floor)}` : ''}` : 'Non affecté'
   const sealed = cur.seal !== 'unsealed'
-  const step = !cur.space || changing ? 0 : sealed ? 1 : 2
+  const step = !cur.space ? 0 : sealed ? 1 : 2
   const path = `/devices/${encodeURIComponent(cur.id)}`
 
-  function select(id) {
-    setSelId(id)
-    setChanging(false)
-    setConfirmSeal(false)
+  // Pins the selection so a refresh reordering the list cannot retarget the open dialog.
+  function openConfirm(kind) {
+    setSelId(cur.id)
+    setMoveTo(cur.space?.id ?? '')
+    setAsk(kind)
   }
 
   async function run(name, call, done) {
@@ -89,8 +115,7 @@ export function Devices() {
     try {
       await call()
       toast(done)
-      setChanging(false)
-      setConfirmSeal(false)
+      setAsk(null)
     } catch (e) {
       toast(errorText(e), 'err')
     }
@@ -98,17 +123,17 @@ export function Devices() {
     refresh()
   }
 
-  const assign = (spaceId) => run('assign', () => api.patch(path, { space_id: spaceId }),
+  const assign = (spaceId) => run('assign', () => api.patch(path, { space_id: spaceId || null }),
     spaceId ? 'Boîtier affecté. Descellez-le pour qu’il mesure la présence.' : 'Boîtier désaffecté et scellé.')
   const unseal = () => run('unseal', () => api.post(`${path}/unseal`, { confirm: true }),
-    `Boîtier actif dans ${cur.space?.name}. Il mesure la présence.`).then(() => dialog.current?.close())
+    `Boîtier actif dans ${cur.space?.name}. Il mesure la présence.`)
   const seal = () => run('seal', () => api.post(`${path}/seal`), 'Boîtier en maintenance : il ne mesure plus la présence.')
+  // PATCH reseals even on the same space, so an unchanged choice just closes.
+  const move = () => (moveTo === (cur.space?.id ?? '') ? setAsk(null) : assign(moveTo))
+  const pick = { device: cur, devices, spaces: data.spaces }
 
   const counts = Object.fromEntries(FILTERS.map(([key, , states]) => [key, devices.filter((d) => states.includes(deviceState(d))).length]))
   const shown = devices.filter((d) => FILTERS.find((f) => f[0] === filter)[2].includes(deviceState(d)))
-  const assignForm = (extra) => (
-    <AssignForm key={cur.id} device={cur} devices={devices} spaces={data.spaces} busy={busy === 'assign'} onAssign={assign}>{extra}</AssignForm>
-  )
 
   return (
     <>
@@ -128,7 +153,7 @@ export function Devices() {
               const s = deviceState(d)
               return (
                 <li key={d.id}>
-                  <button type="button" className="row" aria-pressed={on} onClick={() => select(d.id)}
+                  <button type="button" className="row" aria-pressed={on} onClick={() => setSelId(d.id)}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', border: 0, background: on ? '#F3F6FD' : 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
                     <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', background: s === 'active' ? '#EAF0FD' : '#F1F3F6', color: s === 'active' ? '#1747B3' : '#5B6676' }}>
                       <Icon d={ICONS.device} />
@@ -201,13 +226,9 @@ export function Devices() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <h3 style={{ fontSize: 17 }}>Affecter le boîtier à un espace</h3>
-                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>
-                    {cur.space
-                      ? 'Changer d’espace ou désaffecter rescelle le boîtier : il faudra le desceller à nouveau.'
-                      : 'Le boîtier est scellé : il ne mesure rien tant qu’il n’est pas affecté puis descellé.'}
-                  </p>
+                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Le boîtier est scellé : il ne mesure rien tant qu’il n’est pas affecté puis descellé.</p>
                 </div>
-                {assignForm(cur.space && <Button variant="g" onClick={() => setChanging(false)}>Annuler</Button>)}
+                <AssignForm key={cur.id} {...pick} busy={busy === 'assign'} onAssign={assign} />
               </div>
             )}
 
@@ -215,15 +236,15 @@ export function Devices() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <h3 style={{ fontSize: 17 }}>Desceller le boîtier</h3>
-                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Le boîtier est affecté et scellé. Descellez-le pour qu’il mesure la présence dans cet espace.</p>
+                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Descellez-le pour qu’il mesure la présence dans cet espace.</p>
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 120px) minmax(0, 1fr)', gap: '8px 14px', margin: 0 }}>
                   <dt className="muted">Espace</dt><dd style={{ margin: 0, fontWeight: 500 }}>{where}</dd>
                   {space && <><dt className="muted">Type</dt><dd style={{ margin: 0 }}>{SPACE_TYPES[space.type]}</dd></>}
                 </dl>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <Button variant="p" onClick={() => dialog.current.showModal()}><Icon d={ICONS.lock} />Desceller</Button>
-                  <Button variant="g" onClick={() => setChanging(true)}>Changer d’espace</Button>
+                  <Button variant="p" onClick={() => openConfirm('unseal')}><Icon d={ICONS.lock} />Desceller</Button>
+                  <Button variant="g" onClick={() => openConfirm('move')}>Changer d’espace</Button>
                 </div>
               </div>
             )}
@@ -231,28 +252,11 @@ export function Devices() {
             {step === 2 && (
               <>
                 <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 160px) minmax(0, 1fr)', gap: '10px 14px', margin: 0 }}>
-                  <dt className="muted">Espace</dt><dd style={{ margin: 0, fontWeight: 500 }}>{where}</dd>
                   <dt className="muted">État de l’espace</dt><dd style={{ margin: 0 }}>{space ? <StatusBadge state={space.space_state} releaseAt={space.current_reservation?.release_at} /> : 'Inconnu'}</dd>
                 </dl>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 10, border: '1px solid #E4E8EE' }}>
-                  <h3 style={{ fontSize: 14 }}>Maintenance</h3>
-                  <p className="muted" style={{ margin: 0, lineHeight: 1.55, maxWidth: 620 }}>
-                    Mettre le boîtier en maintenance le rescelle : il ne mesure plus la présence et aucune réservation de l’espace n’est libérée automatiquement. Pour le remettre en service, il faudra le desceller à nouveau.
-                  </p>
-                  {confirmSeal ? (
-                    <div role="group" aria-label="Confirmer la mise en maintenance" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, background: '#FDF6EE', color: '#8A4A0E', fontSize: 13 }}>
-                      <span style={{ flex: 1, minWidth: 200 }}>Les réservations de l’espace sont conservées.</span>
-                      <Button onClick={() => setConfirmSeal(false)}>Annuler</Button>
-                      <Button variant="d" busy={busy === 'seal'} onClick={seal}>Mettre en maintenance</Button>
-                    </div>
-                  ) : (
-                    <div><Button onClick={() => setConfirmSeal(true)}>Mettre en maintenance</Button></div>
-                  )}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 16, borderRadius: 10, border: '1px solid #E4E8EE' }}>
-                  <h3 style={{ fontSize: 14 }}>Changer d’espace</h3>
-                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Changer d’espace ou désaffecter rescelle le boîtier : il faudra le desceller à nouveau.</p>
-                  {assignForm()}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  <Button onClick={() => openConfirm('seal')}>Mettre en maintenance</Button>
+                  <Button onClick={() => openConfirm('move')}>Changer d’espace</Button>
                 </div>
               </>
             )}
@@ -260,18 +264,19 @@ export function Devices() {
         </section>
       </div>
 
-      <dialog ref={dialog} className="modal" aria-labelledby="unseal-h">
-        <form onSubmit={(e) => { e.preventDefault(); unseal() }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <h2 id="unseal-h" style={{ fontSize: 18 }}>Desceller le boîtier ?</h2>
-          <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>
-            Le boîtier <span className="num">{cur.id}</span> va mesurer la présence dans {cur.space?.name}. Une réservation sans présence détectée pourra alors être libérée automatiquement.
-          </p>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={() => dialog.current.close()}>Annuler</Button>
-            <Button variant="p" type="submit" busy={busy === 'unseal'}>Desceller</Button>
-          </div>
-        </form>
-      </dialog>
+      <LocalConfirmDialog open={ask === 'unseal'} title="Desceller le boîtier ?" confirmLabel="Desceller"
+        busy={busy === 'unseal'} onConfirm={unseal} onCancel={() => setAsk(null)}>
+        <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier mesurera la présence dans {cur.space?.name}.</p>
+      </LocalConfirmDialog>
+      <LocalConfirmDialog open={ask === 'seal'} title="Mettre en maintenance ?" confirmLabel="Mettre en maintenance" danger
+        busy={busy === 'seal'} onConfirm={seal} onCancel={() => setAsk(null)}>
+        <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier sera rescellé.</p>
+      </LocalConfirmDialog>
+      <LocalConfirmDialog open={ask === 'move'} title="Changer d’espace" confirmLabel={moveTo ? 'Affecter' : 'Désaffecter'}
+        busy={busy === 'assign'} onConfirm={move} onCancel={() => setAsk(null)}>
+        <SpaceSelect {...pick} value={moveTo} onChange={setMoveTo} />
+        {!sealed && <p className="muted" style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>Le boîtier sera rescellé.</p>}
+      </LocalConfirmDialog>
     </>
   )
 }
