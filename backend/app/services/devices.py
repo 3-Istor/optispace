@@ -2,7 +2,8 @@
 from datetime import datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
@@ -79,32 +80,48 @@ def state_payload(db: Session, device: Device, now: datetime) -> dict:
     }
 
 
-def ingest(db: Session, data: TelemetryIn, now: datetime) -> dict:
-    """Apply one telemetry message; returns the response body `{accepted, code, state}`."""
-    if data.ts is not None and data.ts - now > MAX_CLOCK_SKEW:
-        raise DomainError(422, "CLOCK_SKEW")
-    # ponytail: two concurrent copies of one event both miss this lookup and the loser gets a 500
-    # from the unique constraint; catch IntegrityError and answer as a replay if retries overlap.
-    previous = db.scalar(select(Observation).where(
+def _previous(db: Session, data: TelemetryIn) -> Observation | None:
+    return db.scalar(select(Observation).where(
         Observation.device_id == data.device_id, Observation.boot_id == data.boot_id, Observation.seq == data.seq,
     ))
-    if previous is not None:
-        stored = (previous.kind, previous.presence, previous.target, previous.source,
-                  previous.observed_at if previous.clock_synced else None)
-        if stored != (data.kind, data.presence, data.target, data.source, data.ts):
-            raise DomainError(409, "DUPLICATE_EVENT_CONFLICT")
-        return {"accepted": True, "code": None, "state": state_payload(db, db.get(Device, data.device_id), now)}
+
+
+def _replay(db: Session, data: TelemetryIn, previous: Observation, now: datetime) -> dict:
+    stored = (previous.kind, previous.presence, previous.target, previous.source,
+              previous.observed_at if previous.clock_synced else None)
+    if stored != (data.kind, data.presence, data.target, data.source, data.ts):
+        raise DomainError(409, "DUPLICATE_EVENT_CONFLICT")
+    return {"accepted": True, "code": None, "state": state_payload(db, db.get(Device, data.device_id), now)}
+
+
+def ingest(db: Session, data: TelemetryIn, now: datetime) -> dict:
+    """Apply one telemetry message; returns the response body `{accepted, code, state}`.
+    `observed_at` keeps the device time for history and insights; the state uses the receipt time."""
+    if data.ts is not None and data.ts - now > MAX_CLOCK_SKEW:
+        raise DomainError(422, "CLOCK_SKEW")
+    if (previous := _previous(db, data)) is not None:
+        return _replay(db, data, previous, now)
 
     device = register_or_touch(db, data.device_id, data.firmware_version, now)
     if device.seal != SealState.UNSEALED or device.space_id is None:
         return {"accepted": False, "code": "DEVICE_SEALED", "state": state_payload(db, device, now)}
 
-    observed_at = data.ts or now
-    db.add(Observation(
-        device_id=device.id, space_id=device.space_id, boot_id=data.boot_id, seq=data.seq, kind=data.kind,
-        presence=data.presence, target=data.target, observed_at=observed_at, received_at=now,
-        clock_synced=data.ts is not None, source=data.source,
+    # Within a boot, seq orders the events whatever the device clock says.
+    newest = db.scalar(select(func.max(Observation.seq)).where(
+        Observation.device_id == device.id, Observation.boot_id == data.boot_id,
     ))
-    occupancy.apply_observation(db, device.space_id, data.presence, observed_at)
+    try:
+        with db.begin_nested():
+            db.add(Observation(
+                device_id=device.id, space_id=device.space_id, boot_id=data.boot_id, seq=data.seq, kind=data.kind,
+                presence=data.presence, target=data.target, observed_at=data.ts or now, received_at=now,
+                clock_synced=data.ts is not None, source=data.source,
+            ))
+    except IntegrityError:  # a concurrent copy of this event was stored first
+        if (previous := _previous(db, data)) is None:
+            raise
+        return _replay(db, data, previous, now)
+    if newest is None or data.seq > newest:
+        occupancy.apply_observation(db, device.space_id, data.presence, now)
     absence.evaluate_space(db, device.space_id, now)
     return {"accepted": True, "code": None, "state": state_payload(db, device, now)}

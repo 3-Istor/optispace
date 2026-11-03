@@ -4,9 +4,10 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from sqlalchemy import func, select
 
-from app.models import Device, Observation, Space, SpaceStatus
-from app.models.enums import Presence, SealState, SpaceType
-from app.services import absence
+from app.models import AbsenceEpisode, Device, Notification, Observation, Space, SpaceStatus
+from app.models.enums import EpisodeOutcome, NotificationType, Presence, ReservationStatus, SealState, SpaceType
+from app.services import absence, devices
+from app.testkit import at, book, iso, make_space
 
 NOW = datetime(2026, 11, 2, 9, 0, tzinfo=timezone.utc)
 SEC = timedelta(seconds=1)
@@ -172,12 +173,79 @@ def test_valid_updates_status_and_returns_state(post, db, monkeypatch):
 
 def test_older_observation_archived(post, db):
     space = installed(db)
-    post(body(seq=1, presence="present"))
+    post(body(seq=2, presence="present"))
 
-    assert post(body(seq=2, presence="absent", ts="2026-11-02T08:59:50Z")).status_code == 200
+    # sent before seq 2 by the same boot, received after it
+    assert post(body(seq=1, presence="absent", ts="2026-11-02T08:59:50Z")).status_code == 200
 
     assert count(db, Observation) == 2
     assert db.get(SpaceStatus, space.id).occupancy == Presence.PRESENT
+
+
+def test_state_follows_seq_not_the_device_clock(post, db):
+    space = installed(db)
+    post(body(seq=1, presence="present"))
+
+    # the clock stepped back (NTP correction): seq still says this one is newer
+    post(body(seq=2, presence="absent", ts="2026-11-02T08:59:50Z"))
+
+    assert db.get(SpaceStatus, space.id).occupancy == Presence.ABSENT
+
+
+def stream(post, frozen_clock, space, presence, start, end, ahead):
+    """A heartbeat every 10 s of server time from `start` to `end` included, from a device clock `ahead`."""
+    when = start
+    while when <= end:
+        frozen_clock.now = when
+        response = post(body(device_id=f"esp32-{space.id.hex[:12].upper()}", seq=int(when.timestamp()),
+                             presence=presence, ts=iso(when + ahead)))
+        assert response.json()["accepted"] is True
+        when += 10 * SEC
+
+
+def test_device_clock_ahead_going_silent_is_unknown(client, post, db, frozen_clock):
+    space = make_space(db)
+    reservation = book(db, space, at("10:00"), at("11:00"))
+    stream(post, frozen_clock, space, "absent", at("10:00"), at("10:09:20"), 50 * SEC)
+    frozen_clock.now = at("10:10")
+
+    [listed] = client.get("/api/v1/spaces").json()
+
+    assert (listed["space_state"], listed["occupancy_fresh_at"]) == ("unknown", iso(at("10:09:20")))
+    db.expire_all()
+    assert reservation.status == ReservationStatus.ACTIVE
+    assert [e.outcome for e in db.scalars(select(AbsenceEpisode))] == [EpisodeOutcome.RELEASE_BLOCKED]
+
+
+def test_device_clock_ahead_absence_run_starts_on_receipt(post, db, frozen_clock):
+    space = make_space(db)
+    reservation = book(db, space, at("10:00"), at("11:00"))
+    stream(post, frozen_clock, space, "unknown", at("10:00"), at("10:01:50"), SEC)
+
+    stream(post, frozen_clock, space, "absent", at("10:02"), at("10:12"), SEC)
+
+    db.expire_all()
+    assert (reservation.status, reservation.released_at) == (ReservationStatus.RELEASED, at("10:12"))
+    [episode] = db.scalars(select(AbsenceEpisode)).all()
+    assert (episode.opened_at, episode.outcome) == (at("10:02"), EpisodeOutcome.RELEASED)
+    sent = db.scalars(select(Notification.type).order_by(Notification.created_at)).all()
+    assert sent == [NotificationType.ABSENCE_WARNING, NotificationType.RELEASED]
+
+
+def test_concurrent_copy_answered_as_replay(post, db, monkeypatch):
+    installed(db)
+    assert post(body()).status_code == 200
+    real = devices._previous
+
+    def missed(db, data):  # the copy looked before the first one committed
+        monkeypatch.setattr(devices, "_previous", real)
+        return None
+
+    monkeypatch.setattr(devices, "_previous", missed)
+    response = post(body())
+
+    assert (response.status_code, response.json()["accepted"]) == (200, True)
+    assert count(db, Observation) == 1
 
 
 def test_ts_null_uses_received_at(post, db, frozen_clock):

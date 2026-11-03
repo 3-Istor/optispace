@@ -25,19 +25,21 @@ def effective_occupancy(status: SpaceStatus | None, device: Device | None, now: 
     return status.occupancy
 
 
-def apply_observation(db: Session, space_id: UUID, presence: Presence, observed_at: datetime) -> None:
-    """Update space_status with a valid observation; one older than the current state changes nothing."""
-    status = db.get(SpaceStatus, space_id)
+def apply_observation(db: Session, space_id: UUID, presence: Presence, received_at: datetime) -> None:
+    """Update space_status with a valid observation. Times are the server's receipt, never the device
+    clock, which may be off; an observation received before the current state changes nothing."""
+    # Row lock: concurrent telemetry of one space updates its status one after the other on PostgreSQL.
+    status = db.get(SpaceStatus, space_id, with_for_update=True, populate_existing=True)
     if status is None:
         db.add(SpaceStatus(
-            space_id=space_id, occupancy=presence, occupancy_since=observed_at, last_observation_at=observed_at,
+            space_id=space_id, occupancy=presence, occupancy_since=received_at, last_observation_at=received_at,
         ))
-    elif observed_at >= status.last_observation_at:
+    elif received_at >= status.last_observation_at:
         # A data gap counts as unknown, so the same value after it starts a new run.
-        if presence != status.occupancy or observed_at - status.last_observation_at >= STALE_AFTER:
-            status.occupancy_since = observed_at
+        if presence != status.occupancy or received_at - status.last_observation_at >= STALE_AFTER:
+            status.occupancy_since = received_at
         status.occupancy = presence
-        status.last_observation_at = observed_at
+        status.last_observation_at = received_at
     db.flush()  # sessions do not autoflush: later reads in this request must see it
 
 
