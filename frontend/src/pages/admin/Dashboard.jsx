@@ -60,7 +60,8 @@ export function Dashboard() {
   const loadInsights = useCallback(async () => {
     if (!spaceId) return null
     const from = fromParis(toParis(new Date(Date.now() - (PERIODS[period][1] - 1) * 864e5)).date, '00:00')
-    const to = new Date(Math.floor(Date.now() / 6e4) * 6e4)
+    // At least one minute after from: "Aujourd’hui" just after midnight would otherwise send from == to.
+    const to = new Date(Math.max(+from + 6e4, Math.floor(Date.now() / 6e4) * 6e4))
     const q = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
     return { key: `${spaceId}|${period}`, ...(await api.get(`/spaces/${spaceId}/insights?${q}`)) }
   }, [spaceId, period])
