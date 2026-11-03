@@ -4,6 +4,7 @@ import { errorText, floorLabel, NOTIFICATIONS, SPACE_TYPES } from '../messages.j
 import { dayLabel, fmtLongDay, fmtTime, fromParis, toParis } from '../time.js'
 import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../ui/Icon.jsx'
 import { Loader } from '../ui/Loader.jsx'
@@ -44,6 +45,7 @@ export function MyReservations({ me }) {
   const { data, error, refresh } = usePolling(load, 5000)
   const [edit, setEdit] = useState(null)
   const [busyId, setBusyId] = useState(null)
+  const [cancelling, setCancelling] = useState(null) // reservation awaiting the cancel confirmation
 
   if (!data) return error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement de vos réservations" />
 
@@ -101,7 +103,7 @@ export function MyReservations({ me }) {
             <span style={{ display: 'flex', gap: 6 }}>
               <Button onClick={() => setEdit(r)} aria-label={`Modifier la réservation de ${spaceName(r)}`}>Modifier</Button>
               <Button variant="g" busy={busyId === r.id} aria-label={`Annuler la réservation de ${spaceName(r)}`}
-                onClick={() => run(r.id, () => api.del(`/reservations/${r.id}`), `Réservation de ${spaceName(r)} annulée.`)}>Annuler</Button>
+                onClick={() => setCancelling(r)}>Annuler</Button>
             </span>
           )}
         </div>
@@ -154,6 +156,13 @@ export function MyReservations({ me }) {
         </div>
       </div>
 
+      <ConfirmDialog open={!!cancelling} title="Annuler cette réservation ?" confirmLabel="Annuler la réservation" cancelLabel="Garder" danger
+        busy={!!cancelling && busyId === cancelling.id} onCancel={() => setCancelling(null)}
+        onConfirm={() => run(cancelling.id, () => api.del(`/reservations/${cancelling.id}`), `Réservation de ${spaceName(cancelling)} annulée.`)
+          .then(() => setCancelling(null))}>
+        {cancelling && `${spaceLabel(cancelling)}, ${fmtLongDay(cancelling.start_at).toLowerCase()}, ${fmtTime(cancelling.start_at)} à ${fmtTime(cancelling.end_at)}.`}
+      </ConfirmDialog>
+
       {edit && (
         <EditReservation reservation={edit} spaces={Object.values(data.spaces)} name={spaceLabel(edit)}
           onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh() }} />
@@ -171,15 +180,20 @@ function EditReservation({ reservation: r, spaces, name, onClose, onSaved }) {
     start: toParis(new Date(r.start_at)).time, end: toParis(new Date(r.end_at)).time,
   }))
   const [busy, setBusy] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const close = () => ref.current.close() // fires onClose, like Escape
 
   useEffect(() => { if (!ref.current.open) ref.current.showModal() }, [])
 
-  async function save(e) {
-    e.preventDefault()
+  // [start, end] of the form; the submit only opens the confirmation, whose Enregistrer calls save().
+  const slot = () => {
     const start = fromParis(f.date, f.start)
-    let end = fromParis(f.date, f.end)
-    if (end <= start) end = new Date(+end + 864e5) // ends after midnight
+    const end = fromParis(f.date, f.end)
+    return [start, end <= start ? new Date(+end + 864e5) : end] // ends after midnight
+  }
+
+  async function save() {
+    const [start, end] = slot()
     setBusy(true)
     try {
       await api.patch(`/reservations/${r.id}`, started
@@ -190,13 +204,19 @@ function EditReservation({ reservation: r, spaces, name, onClose, onSaved }) {
     } catch (err) {
       toast(errorText(err), 'err')
       setBusy(false)
+      setConfirming(false)
     }
   }
 
   const field = (key) => ({ value: f[key], onChange: (e) => setF({ ...f, [key]: e.target.value }) })
+  const summary = () => {
+    const s = spaces.find((x) => x.id === f.space_id)
+    const [start, end] = slot()
+    return `${s ? `${s.name} · ${floorLabel(s.floor)}` : name}, ${fmtLongDay(start).toLowerCase()}, ${fmtTime(start)} à ${fmtTime(end)}.`
+  }
   return (
     <dialog ref={ref} className="drawer" aria-labelledby="edit-h" onClose={onClose}>
-      <form className="drawer-form" onSubmit={save}>
+      <form className="drawer-form" onSubmit={(e) => { e.preventDefault(); setConfirming(true) }}>
         <div className="drawer-h">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <h2 id="edit-h" style={{ fontSize: 17 }}>Modifier la réservation</h2>
@@ -232,6 +252,10 @@ function EditReservation({ reservation: r, spaces, name, onClose, onSaved }) {
           <Button variant="p" type="submit" busy={busy}>Enregistrer</Button>
         </div>
       </form>
+      <ConfirmDialog open={confirming} title="Enregistrer les modifications ?" confirmLabel="Enregistrer" cancelLabel="Retour"
+        busy={busy} onConfirm={save} onCancel={() => setConfirming(false)}>
+        {confirming && summary()}
+      </ConfirmDialog>
     </dialog>
   )
 }

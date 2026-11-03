@@ -2,9 +2,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api.js'
 import { errorText, floorLabel, SPACE_TYPES } from '../messages.js'
 import { useRoute } from '../router.jsx'
-import { ceilTime, fmtDuration, fmtTime, fromParis, nextSlot, toParis } from '../time.js'
+import { ceilTime, fmtDuration, fmtLongDay, fmtTime, fromParis, nextSlot, toParis } from '../time.js'
 import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
+import { ConfirmDialog } from '../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../ui/EmptyState.jsx'
 import { Loader } from '../ui/Loader.jsx'
 import { PageHeader } from '../ui/Shell.jsx'
@@ -33,6 +34,7 @@ export function Reserve({ me }) {
   const [booked, setBooked] = useState([]) // ids booked here for the current criteria
   const [alertSet, setAlertSet] = useState(false)
   const [busyId, setBusyId] = useState(null)
+  const [pending, setPending] = useState(null) // space awaiting the booking confirmation
 
   const set = (patch) => {
     setC((prev) => ({ ...prev, ...patch }))
@@ -76,7 +78,8 @@ export function Reserve({ me }) {
     .sort((a, b) => isFree(b) - isFree(a) || a.name.localeCompare(b.name, 'fr'))
   const freeCount = shown.filter(isFree).length
 
-  async function book(s) {
+  async function book() {
+    const s = pending
     setBusyId(s.id)
     try {
       await api.post('/reservations', { space_id: s.id, start_at: startAt, end_at: endAt })
@@ -85,6 +88,7 @@ export function Reserve({ me }) {
     } catch (e) {
       toast(errorText(e), 'err')
     }
+    setPending(null)
     setBusyId(null)
     refresh()
   }
@@ -144,7 +148,7 @@ export function Reserve({ me }) {
               )}
             </div>
             <Button variant={bookable ? 'p' : 's'} disabled={!bookable} busy={busyId === s.id} style={{ minWidth: 112 }}
-              aria-label={bookable ? `Réserver ${s.name}` : undefined} onClick={() => book(s)}>
+              aria-label={bookable ? `Réserver ${s.name}` : undefined} onClick={() => setPending(s)}>
               {mine ? 'Réservée' : bookable ? 'Réserver' : 'Indisponible'}
             </Button>
           </article>
@@ -212,6 +216,18 @@ export function Reserve({ me }) {
       </section>
 
       <section aria-label="Résultats" className="stack">{results}</section>
+
+      <ConfirmDialog open={!!pending} title="Réserver cet espace ?" confirmLabel="Confirmer la réservation" cancelLabel="Retour"
+        busy={!!busyId} onConfirm={book} onCancel={() => setPending(null)}>
+        {pending && startAt && (
+          <dl className="summary">
+            <dt>Espace</dt><dd>{pending.name} · {floorLabel(pending.floor)}</dd>
+            <dt>Jour</dt><dd>{fmtLongDay(startAt)}</dd>
+            <dt>Horaire</dt><dd className="num">{fmtTime(startAt)} à {fmtTime(endAt)}</dd>
+            <dt>Durée</dt><dd>{fmtDuration(c.dur)}</dd>
+          </dl>
+        )}
+      </ConfirmDialog>
     </>
   )
 }
