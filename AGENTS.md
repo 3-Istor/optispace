@@ -123,6 +123,8 @@ missed the session. 2. **Done**: tickets, PRs, commits, checks and results.
 change, why it blocks, how to check the fix. 5. **Development blockers**:
 missing decision, teammate's work, failing check. 6. **Decisions and spec
 changes**: each one with its reason and the PR (spec in `3-Istor/iot-doc`).
+Save it in `3-Istor/iot-doc` as `session/<member>/<YYYY-MM-DD>-<TICKET>.md`,
+from `session/TEMPLATE.md` there.
 
 ## Platform services
 
