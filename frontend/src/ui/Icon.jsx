@@ -5,6 +5,7 @@ export const ICONS = {
   warn: 'M12 4l9 16H3zM12 10v4M12 17v.5',
   lock: 'M7 11h10a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2zM8 11V8a4 4 0 0 1 8 0v3',
   close: 'M6 6l12 12M18 6L6 18',
+  menu: 'M4 7h16M4 12h16M4 17h16',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-4-4',
   calendar: 'M7 5h10a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2zM5 10h14M9 3v4M15 3v4',
   dashboard: 'M3 13h4v7H3zM10 4h4v16h-4zM17 9h4v11h-4z',

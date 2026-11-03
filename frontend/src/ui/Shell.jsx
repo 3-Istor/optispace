@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useRef, useState } from 'react'
 import { Link, useRoute } from '../router.jsx'
 import { Bell } from './Bell.jsx'
 import { Icon, ICONS } from './Icon.jsx'
@@ -54,36 +54,55 @@ export function Shell({ me, children }) {
   return (
     <MeContext.Provider value={me}>
       <div className="shell">
-        <aside className="side">
-          <div className="side-in">
-            <Link to="/admin" className="brand" style={{ padding: '2px 6px' }}>
-              <img src="/3istor.png" alt="3istor" style={{ height: 30 }} />
-              <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
-                <span className="brand-name">OptiSpace</span>
-                <span style={{ fontSize: 11, color: '#5B6676' }}>Facility management</span>
-              </span>
-            </Link>
-            <nav aria-label="Navigation" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {FM_NAV.map(([title, items]) => (
-                <div className="side-group" key={title}>
-                  <span className="side-title">{title}</span>
-                  {items.map(([to, label, d]) => <NavLink key={to} to={to}><Icon d={d} />{label}</NavLink>)}
-                </div>
-              ))}
-            </nav>
-            <div className="side-user">
-              <span className="avatar" aria-hidden="true">{initials(name)}</span>
-              <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0, flex: 1 }}>
-                <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
-                <span style={{ fontSize: 11, color: '#5B6676' }}>Facility manager</span>
-              </span>
-              <Logout />
-            </div>
-          </div>
-        </aside>
+        <Sidebar name={name} />
         <main className="shell-main">{children}</main>
       </div>
     </MeContext.Provider>
+  )
+}
+
+// Under 960px (app.css) the sidebar folds into a top bar whose Menu button shows the links.
+function Sidebar({ name }) {
+  const [open, setOpen] = useState(false)
+  const button = useRef(null)
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape' && open) { setOpen(false); button.current.focus() }
+  }
+  return (
+    <aside className="side" onKeyDown={onKeyDown}>
+      <div className="side-in">
+        <div className="side-top">
+          <Link to="/admin" className="brand" style={{ padding: '2px 6px' }}>
+            <img src="/3istor.png" alt="3istor" style={{ height: 30 }} />
+            <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
+              <span className="brand-name">OptiSpace</span>
+              <span style={{ fontSize: 11, color: '#5B6676' }}>Facility management</span>
+            </span>
+          </Link>
+          <button ref={button} type="button" className="btn btn-s side-menu" aria-expanded={open} aria-controls="side-nav"
+            onClick={() => setOpen(!open)}><Icon d={open ? ICONS.close : ICONS.menu} />Menu</button>
+        </div>
+        <div id="side-nav" className={open ? 'side-nav open' : 'side-nav'}>
+          <nav aria-label="Navigation" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
+            onClick={(e) => e.target.closest('a') && setOpen(false)}>
+            {FM_NAV.map(([title, items]) => (
+              <div className="side-group" key={title}>
+                <span className="side-title">{title}</span>
+                {items.map(([to, label, d]) => <NavLink key={to} to={to}><Icon d={d} />{label}</NavLink>)}
+              </div>
+            ))}
+          </nav>
+          <div className="side-user">
+            <span className="avatar" aria-hidden="true">{initials(name)}</span>
+            <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0, flex: 1 }}>
+              <span style={{ fontSize: 13, fontWeight: 500 }}>{name}</span>
+              <span style={{ fontSize: 11, color: '#5B6676' }}>Facility manager</span>
+            </span>
+            <Logout />
+          </div>
+        </div>
+      </div>
+    </aside>
   )
 }
 
