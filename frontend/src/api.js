@@ -1,5 +1,5 @@
 // Calls the backend under /api/v1 with relative URLs; the gateway adds the user's token.
-// Usage: api.get('/spaces?type=meeting_room'), api.post('/reservations', body).
+// Usage: api.get('/spaces?type=meeting_room'), api.post('/reservations', body), api.del(path, body?).
 
 export class ApiError extends Error {
   constructor(status, code) {
@@ -34,5 +34,5 @@ export const api = {
   get: (path) => request('GET', path),
   post: (path, body) => request('POST', path, body),
   patch: (path, body) => request('PATCH', path, body),
-  del: (path) => request('DELETE', path),
+  del: (path, body) => request('DELETE', path, body),
 }

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
 import { errorText, floorLabel, NOTIFICATIONS, SPACE_TYPES } from '../messages.js'
-import { enablePush } from '../push.js'
+import { disablePush, enablePush } from '../push.js'
 import { dayLabel, fmtLongDay, fmtTime, fromParis, toParis } from '../time.js'
 import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
@@ -82,6 +82,7 @@ export function MyReservations({ me, setMe }) {
       // Permission prompt first, while the click still counts as a user gesture.
       if (key === 'notify_push' && on) await enablePush().catch(() => false)
       setMe(await api.patch('/me', { [key]: on }))
+      if (key === 'notify_push' && !on) await disablePush().catch(() => {})
     } catch (e) {
       toast(errorText(e), 'err')
     }
