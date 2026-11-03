@@ -59,11 +59,14 @@ button.ntf:hover{background:#F8F9FB}
 .line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #EEF1F5}
 .line:last-child{border-bottom:0}
 
-/* Toast */
-.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(12px);display:flex;align-items:center;gap:10px;width:max-content;max-width:min(560px,calc(100% - 32px));padding:12px 16px;border-radius:10px;background:#0E1726;color:#FFFFFF;font-size:14px;box-shadow:0 10px 30px rgba(14,23,38,.25);transition:opacity .2s ease,transform .2s ease;z-index:60;opacity:0;pointer-events:none;box-sizing:border-box}
-.toast.on{opacity:1;transform:translateX(-50%)}
+/* Toasts, newest at the bottom */
+.toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:8px;width:max-content;max-width:min(560px,calc(100% - 32px));pointer-events:none}
+.toast{display:flex;align-items:center;gap:10px;padding:8px 8px 8px 16px;border-radius:10px;background:#0E1726;color:#FFFFFF;font-size:14px;line-height:1.45;box-shadow:0 10px 30px rgba(14,23,38,.25);pointer-events:auto;box-sizing:border-box;animation:toast .2s ease}
 .toast i{width:8px;height:8px;border-radius:50%;flex:none;background:#7FD3A4}
 .toast-err i{background:#F08A8E}
+.toast-x{flex:none;width:28px;height:28px;border:0;border-radius:6px;background:transparent;color:#C9D0DA;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.toast-x:hover{background:rgba(255,255,255,.12);color:#FFFFFF}
+@keyframes toast{from{opacity:0;transform:translateY(12px)}}
 
 /* Drawer (native <dialog>) */
 dialog.drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);max-width:100%;height:100%;max-height:none;border:0;padding:0;background:#FFFFFF;color:inherit;box-shadow:-20px 0 50px rgba(14,23,38,.15)}

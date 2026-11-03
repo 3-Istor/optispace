@@ -41,9 +41,10 @@ export function Bell({ me }) {
     if (me.notify_push && pushSupported() && Notification.permission === 'granted') enablePush().catch(() => {})
   }, [me.notify_push])
 
-  // <details> does not close on outside click or Escape by itself.
+  // <details> does not close on outside click or Escape by itself. composedPath, not contains():
+  // a clicked button React already removed (Plus tard, Activer) is no longer inside the menu.
   useEffect(() => {
-    const onClick = (e) => { if (ref.current?.open && !ref.current.contains(e.target)) ref.current.open = false }
+    const onClick = (e) => { if (ref.current?.open && !e.composedPath().includes(ref.current)) ref.current.open = false }
     const onKey = (e) => {
       if (e.key !== 'Escape' || !ref.current?.open) return
       ref.current.open = false
