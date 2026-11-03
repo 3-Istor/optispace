@@ -122,6 +122,30 @@ def test_period_after_now_is_cut(db, salle):
     assert result["period"] == {"from": iso(at("09:00")), "to": iso(at("10:30"))}
 
 
+def test_no_elapsed_minute_is_no_data(client, db, claims, frozen_clock, salle):
+    # "Today" just after midnight: valid as sent, nothing elapsed yet.
+    frozen_clock.now = at("00:00:30", day=3)
+    claims["groups"] = FM
+
+    response = client.get(f"/api/v1/spaces/{salle.id}/insights",
+                          params={"from": iso(at("00:00", day=3)), "to": iso(at("00:01", day=3))})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["kpis"] == {
+        "period_min": 0, "observed_min": 0, "unknown_min": 0, "occupied_min": 0, "occupied_reserved_min": 0,
+        "occupied_unreserved_min": 0, "occupancy_pct": None, "reserved_initial_min": 0, "reserved_initial_pct": None,
+        "no_show_count": 0, "evaluated_count": 0, "not_evaluated_count": 0, "no_show_pct": None,
+        "released_min": 0, "releases_succeeded": 0, "releases_failed": 0, "coverage_pct": None,
+    }
+    assert (body["status"], body["no_shows"], body["warnings"]) == ("no_data", [], [])
+    assert body["period"] == {"from": iso(at("00:00", day=3)), "to": iso(at("00:00", day=3))}
+    assert body["summary"]["text"] == (
+        "Pour Salle A, de 00:00 à 00:00, l'occupation ne peut pas être évaluée faute d'observations. "
+        "Aucune réservation n'a pu être évaluée pour les no-shows."
+    )
+
+
 def test_insights_access_and_errors(client, db, claims, salle):
     url = f"/api/v1/spaces/{salle.id}/insights"
     period = {"from": iso(at("09:00")), "to": iso(at("10:00"))}

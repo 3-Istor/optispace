@@ -40,15 +40,14 @@ def _s(n: int) -> str:
 
 def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datetime) -> dict:
     """`kpis`, `summary` (mode "template_fallback"), `no_shows`, `recommendations` and `warnings`.
-    The period is cut at the current minute: later minutes are not observed yet."""
+    The period is cut at the current minute: later minutes are not observed yet, and a period
+    with no elapsed minute is `no_data`."""
     space = db.get(Space, space_id)
     if space is None:
         raise DomainError(404, "SPACE_NOT_FOUND")
-    if any(t.second or t.microsecond for t in (frm, to)):
+    if any(t.second or t.microsecond for t in (frm, to)) or frm >= to:
         raise DomainError(400, "INVALID_PERIOD")
-    to = min(to, now.replace(second=0, microsecond=0))
-    if frm >= to:
-        raise DomainError(400, "INVALID_PERIOD")
+    to = max(frm, min(to, now.replace(second=0, microsecond=0)))
 
     total = (to - frm) // MINUTE
 
@@ -72,7 +71,7 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     reservations = db.scalars(select(Reservation).where(
         Reservation.space_id == space.id, Reservation.status != ReservationStatus.CANCELLED,
         Reservation.start_at < to, Reservation.end_at > frm,
-    ).order_by(Reservation.start_at)).all()
+    ).order_by(Reservation.start_at)).all() if total else []
     episodes = defaultdict(list)
     for e in db.scalars(select(AbsenceEpisode).where(AbsenceEpisode.reservation_id.in_([r.id for r in reservations]))):
         episodes[e.reservation_id].append(e)
@@ -147,6 +146,7 @@ def _summary(name: str, frm: datetime, to: datetime, k: dict) -> list[tuple[str,
     if ok or failed:
         facts.append(("RELEASE", f"{freed} minute{_s(freed)} libérée{_s(freed)} "
                                  f"({ok} libération{_s(ok)} réussie{_s(ok)}, {failed} échouée{_s(failed)})."))
-    facts.append(("COVERAGE", "Les observations couvrent toute la période." if not u
-                  else f"Les observations couvrent {_pct(v, total)} % de la période ({u} minute{_s(u)} inconnue{_s(u)})."))
+    if total:  # no elapsed minute: nothing to cover
+        facts.append(("COVERAGE", "Les observations couvrent toute la période." if not u
+                      else f"Les observations couvrent {_pct(v, total)} % de la période ({u} minute{_s(u)} inconnue{_s(u)})."))
     return facts
