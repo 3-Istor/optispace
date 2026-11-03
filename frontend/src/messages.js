@@ -13,11 +13,27 @@ const ERRORS = {
   SPACE_NOT_FOUND: 'Cet espace n’existe plus. Actualisez la page.',
   SPACE_HAS_DEVICE: 'Cet espace a déjà un boîtier.',
   INVALID_SETTINGS: 'Chaque durée minimale doit être inférieure ou égale à la durée maximale.',
+  INVALID_SPACE: 'La durée minimale de l’espace doit être inférieure ou égale à sa durée maximale.',
+  INVALID_PERIOD: 'Cette période doit couvrir au moins une minute écoulée.',
+  RESERVATION_NOT_FOUND: 'Cette réservation n’existe plus. Actualisez la page.',
+  ALERT_NOT_FOUND: 'Cette alerte n’existe plus. Actualisez la page.',
+  NOTIFICATION_NOT_FOUND: 'Cette notification n’existe plus. Actualisez la page.',
+  INVALID_PUSH_ENDPOINT: 'Le service de notification de ce navigateur n’est pas pris en charge.',
+  // api.js gives this code to a 422 whose detail is FastAPI's list of field errors.
+  HTTP_422: 'Données invalides.',
   NETWORK: 'Pas de connexion. Réessayez dans quelques instants.',
 }
 
 // Text for an ApiError (or anything thrown); unknown codes get a generic message.
 export const errorText = (error) => ERRORS[error?.code] ?? 'Une erreur est survenue. Réessayez dans quelques instants.'
+
+// GET /spaces/{id}/insights `warnings` codes; Dashboard.jsx shows unknown ones as is.
+export const WARNINGS = {
+  MISSING_SENSOR_DATA: 'Données de présence manquantes sur une partie de la période.',
+  RESERVATIONS_UNAVAILABLE: 'Réservations indisponibles.',
+  SIMULATED_DATA: 'Données simulées.',
+  PARTIAL_COVERAGE: 'Couverture partielle des mesures.',
+}
 
 // Notification `params`: space_name, plus `at` (ABSENCE_WARNING release time, RELEASED time,
 // DEVICE_OFFLINE since) or space_type, start_at, end_at (SPACE_AVAILABLE); times are UTC ISO.
