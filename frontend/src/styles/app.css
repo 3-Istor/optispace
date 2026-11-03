@@ -123,3 +123,8 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
   .err{padding:40px 20px}
   .err h1{font-size:24px}
 }
+
+/* Space form drawer: wider, short fields two per row, one per row on phones */
+dialog.drawer-wide{width:600px}
+.pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:640px){dialog.drawer-wide{width:100%}.pair{grid-template-columns:minmax(0,1fr)}}

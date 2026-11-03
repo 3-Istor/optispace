@@ -74,27 +74,27 @@ export function Settings() {
   return (
     <>
       {header}
-      <Block title="Délai d’absence" text="S’applique à tous les espaces. Quand personne n’est détecté au début d’une réservation, ou pendant ce délai après un départ, le réservant est prévenu ; sans présence au bout de ce délai, le reste de la réservation est libéré. Un changement vaut pour les absences détectées ensuite.">
-        <Row title="Délai avant libération" hint="Par défaut 10 minutes" last>
+      <Block title="Délai d’absence" text="Avant notification et libération.">
+        <Row title="Délai avant libération" hint="Par défaut 10 min" last>
           <Stepper label="Délai avant libération" value={draft.absence_delay_min} text={`${draft.absence_delay_min} min`}
             step={1} min={1} max={60} onChange={set('absence_delay_min')} />
         </Row>
       </Block>
 
-      <Block title="Durées de réservation" text="Bornes proposées aux employés. Les créneaux se réservent par pas de 5 minutes. Une durée propre à un espace reste possible depuis sa fiche.">
+      <Block title="Durées de réservation" text="Bornes par défaut, par type d’espace.">
         {TYPES.map(([title, lo, hi, [dLo, dHi]], i) => {
           const wrong = draft[lo] >= draft[hi]
           return (
             <div key={lo} style={{ display: 'flex', flexDirection: 'column', padding: '4px 0 8px', borderTop: i ? '1px solid #E4E8EE' : 0 }}>
               <h3 style={{ fontSize: 14, paddingTop: 8 }}>{title}</h3>
-              <Row title="Durée minimum" hint={`Par défaut ${fmtDuration(dLo)}, par pas de 5 minutes`}>
+              <Row title="Durée minimum" hint={`Par défaut ${fmtDuration(dLo)}`}>
                 <Stepper label={`${title}, durée minimum`} value={draft[lo]} text={fmtDuration(draft[lo])} step={5} min={5} max={480} onChange={set(lo)} />
               </Row>
-              <Row title="Durée maximum" hint={`Par défaut ${fmtDuration(dHi)}, par pas de 5 minutes`} last>
+              <Row title="Durée maximum" hint={`Par défaut ${fmtDuration(dHi)}`} last>
                 <Stepper label={`${title}, durée maximum`} value={draft[hi]} text={fmtDuration(draft[hi])} step={5} min={5} max={480} onChange={set(hi)} />
               </Row>
-              <p role="status" style={{ margin: '10px 0 0', fontSize: 13, color: wrong ? '#B4232A' : '#5B6676' }}>
-                {wrong ? 'La durée minimum doit être inférieure à la durée maximum.' : `Réservable de ${fmtDuration(draft[lo])} à ${fmtDuration(draft[hi])}.`}
+              <p role="status" style={{ margin: wrong ? '10px 0 0' : 0, fontSize: 13, color: '#B4232A' }}>
+                {wrong && 'La durée minimum doit être inférieure à la durée maximum.'}
               </p>
             </div>
           )

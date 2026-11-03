@@ -319,7 +319,7 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
 
   const title = isNew ? 'Ajouter un espace' : 'Modifier l’espace'
   return (
-    <dialog ref={ref} className="drawer" aria-labelledby="sf-h" onClose={onClose} style={{ width: 'min(480px, 100%)' }}>
+    <dialog ref={ref} className="drawer drawer-wide" aria-labelledby="sf-h" onClose={onClose}>
       <form className="drawer-form" onSubmit={save}>
         <div className="drawer-h">
           <h2 id="sf-h" style={{ fontSize: 17 }}>{title}</h2>
@@ -330,19 +330,15 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
             <input className="input" value={f.name} maxLength={80} placeholder="Ex. Cervin" aria-invalid={err && !f.name.trim() ? true : undefined}
               onChange={(e) => set({ name: e.target.value })} style={{ width: '100%', borderColor: err && !f.name.trim() ? '#D63F45' : undefined }} />
           </label>
-          <div className="field" role="group" aria-labelledby="sf-type">
-            <span className="lbl" id="sf-type">Type</span>
-            <div className="seg" style={{ alignSelf: 'flex-start' }}>
-              {Object.entries(SPACE_TYPES).map(([t, label]) => (
-                <button key={t} type="button" aria-pressed={f.type === t} onClick={() => set({ type: t })}>{label}</button>
-              ))}
+          <div className="pair">
+            <div className="field" role="group" aria-labelledby="sf-type">
+              <span className="lbl" id="sf-type">Type</span>
+              <div className="seg" style={{ alignSelf: 'flex-start' }}>
+                {Object.entries(SPACE_TYPES).map(([t, label]) => (
+                  <button key={t} type="button" aria-pressed={f.type === t} onClick={() => set({ type: t })}>{label}</button>
+                ))}
+              </div>
             </div>
-          </div>
-          <label className="field"><span className="lbl">Description</span>
-            <textarea className="input" rows={2} value={f.description} onChange={(e) => set({ description: e.target.value })}
-              style={{ width: '100%', height: 'auto', padding: '10px 12px', lineHeight: 1.5, resize: 'vertical' }} />
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 12 }}>
             <label className="field"><span className="lbl">Capacité</span>
               <input className="input num" type="number" min={1} step={1} required value={f.capacity}
                 onChange={(e) => set({ capacity: e.target.value })} style={{ width: '100%' }} />
@@ -352,7 +348,20 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
                 {[...new Set([...FLOORS, f.floor])].sort((a, b) => a - b).map((n) => <option key={n} value={n}>{floorLabel(n)}</option>)}
               </select>
             </label>
+            <div className="field">
+              <span className="lbl">Statut</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 10, height: 36 }}>
+                <button type="button" role="switch" className="tog" aria-checked={f.is_active} aria-label="Espace actif"
+                  style={{ background: f.is_active ? '#1E56D6' : '#C9D0DA' }} onClick={() => set({ is_active: !f.is_active })}><span /></button>
+                <span style={{ fontWeight: 500 }}>{f.is_active ? 'Actif' : 'Hors service'}</span>
+              </span>
+            </div>
           </div>
+          {!f.is_active && <span className="muted" style={{ fontSize: 12, lineHeight: 1.45, marginTop: -6 }}>Un espace hors service n’apparaît plus dans la recherche et n’accepte plus de réservation. Les réservations existantes sont conservées.</span>}
+          <label className="field"><span className="lbl">Description</span>
+            <textarea className="input" rows={2} value={f.description} onChange={(e) => set({ description: e.target.value })}
+              style={{ width: '100%', height: 'auto', padding: '10px 12px', lineHeight: 1.5, resize: 'vertical' }} />
+          </label>
           <div className="field" role="group" aria-labelledby="sf-eq">
             <span className="lbl" id="sf-eq">Équipements</span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
@@ -367,7 +376,7 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
               <span className="lbl" id="sf-dur">Durées de réservation</span>
               <span className="muted" style={{ fontSize: 12 }}>Par défaut pour ce type : {fmtDuration(dMin)} à {fmtDuration(dMax)}</span>
             </span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 18px' }}>
+            <div className="pair">
               {[['min_duration_min', 'Minimum', min], ['max_duration_min', 'Maximum', max]].map(([key, label, v]) => (
                 <span key={key} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 13, minWidth: 64 }}>{label}</span>
@@ -378,14 +387,6 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
             {custom
               ? <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => set({ min_duration_min: null, max_duration_min: null })}>Revenir aux durées du type</button>
               : <span className="muted" style={{ fontSize: 12 }}>Suit les durées du type, réglables dans Paramètres.</span>}
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingTop: 4 }}>
-            <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <span style={{ fontWeight: 500 }}>{f.is_active ? 'Actif' : 'Hors service'}</span>
-              <span className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>Un espace hors service n’apparaît plus dans la recherche et n’accepte plus de réservation. Les réservations existantes sont conservées.</span>
-            </span>
-            <button type="button" role="switch" className="tog" aria-checked={f.is_active} aria-label="Espace actif"
-              style={{ background: f.is_active ? '#1E56D6' : '#C9D0DA' }} onClick={() => set({ is_active: !f.is_active })}><span /></button>
           </div>
           <span role="alert" style={{ fontSize: 13, color: '#B4232A' }}>{err}</span>
         </div>
