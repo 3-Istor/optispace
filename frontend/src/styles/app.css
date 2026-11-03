@@ -7,20 +7,16 @@ body{font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#0E1726}
 .icon-btn{width:30px;height:30px;padding:0}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
-/* Employee top bar */
+/* Top bar of the standalone error page */
 .topbar{position:sticky;top:0;z-index:10;background:rgba(251,251,252,.86);backdrop-filter:blur(16px) saturate(160%);-webkit-backdrop-filter:blur(16px) saturate(160%);border-bottom:1px solid #E4E8EE}
 .topbar-in{max-width:1240px;margin:0 auto;padding:0 32px;min-height:58px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px}
 .brand{display:flex;align-items:center;gap:10px;color:#0E1726}
 .brand:hover{color:#0E1726}
 .brand img{height:28px;width:auto;display:block}
 .brand-name{font-family:'Sora',sans-serif;font-size:15px;font-weight:500}
-.topnav{display:flex;gap:4px}
-.user{margin-left:auto;display:flex;align-items:center;gap:10px}
-.user-name{font-size:13px;font-weight:500}
 .avatar{width:30px;height:30px;border-radius:50%;background:#E7ECF4;color:#1747B3;font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none}
-.page{max-width:1240px;margin:0 auto;padding:28px 32px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:22px}
 
-/* Facility manager sidebar (.shell/.side collapse at 960px in design-system.css) */
+/* Sidebar (.shell/.side collapse at 960px in design-system.css) */
 .shell{display:flex;min-height:100vh}
 .side{width:244px;flex:none;align-self:stretch;background:#FBFBFC;border-right:1px solid #E4E8EE}
 .side-in{position:sticky;top:0;height:100vh;box-sizing:border-box;display:flex;flex-direction:column;gap:22px;padding:18px 12px}
@@ -120,9 +116,7 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
 }
 @media (max-width:640px){
   .topbar-in{padding:0 16px;gap:4px 12px}
-  .topnav{order:3;width:100%;padding-bottom:8px}
-  .user-name{display:none}
-  .page,.shell-main{padding:20px 16px 48px}
+  .shell-main{padding:20px 16px 48px}
   .bell .menu{position:fixed;top:64px;left:16px;right:16px;width:auto;max-width:none}
   .err{padding:40px 20px}
   .err h1{font-size:24px}
