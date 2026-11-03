@@ -221,3 +221,23 @@ def test_space_booked_on_the_slot_does_not_trigger(client, db, claims, frozen_cl
 
     # the released reservation ends at its released_at
     assert _available(db) == [(freed.user_id, _params("Salle 3", "10:20", "11:00"))]
+
+
+def test_one_notification_per_user_and_space(db):
+    """Several matching alerts of one user (repeated searches) give one SPACE_AVAILABLE, the earliest slot."""
+    space = make_space(db, "Salle 1", SpaceType.MEETING_ROOM, 6)
+    user = make_user(db, "joe")
+    for start, end in (("10:30", "11:30"), ("10:20", "10:50"), ("10:30", "11:30")):
+        db.add(AvailabilityAlert(user_id=user.id, start_at=at(start), end_at=at(end),
+                                 space_type=SpaceType.MEETING_ROOM, min_capacity=4))
+    db.commit()
+
+    alerts.on_freed(db, space, at("10:20"), at("11:00"), at("10:20"))
+    alerts.on_space_available(db, make_space(db, "Salle 2", SpaceType.MEETING_ROOM, 6), at("10:20"))
+    db.commit()
+
+    params = [(n.space_id, n.params["start_at"], n.params["end_at"]) for n in db.scalars(select(Notification))]
+    assert sorted(params, key=str) == sorted([
+        (space.id, iso(at("10:20")), iso(at("10:50"))),
+        (db.scalar(select(Notification.space_id).where(Notification.space_id != space.id)), iso(at("10:20")), iso(at("10:50"))),
+    ], key=str)

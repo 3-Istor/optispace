@@ -85,9 +85,11 @@ def on_freed(db: Session, space: Space, start_at: datetime, end_at: datetime, no
         AvailabilityAlert.status == AlertStatus.ACTIVE,
         AvailabilityAlert.start_at < end_at,
         AvailabilityAlert.end_at > start_at,
-    )).all()
+    ).order_by(AvailabilityAlert.start_at)).all()
+    notified = set()  # one notification per user and space: repeated searches must not spam
     for alert in overlapping:
-        if _matches(alert, space):
+        if _matches(alert, space) and alert.user_id not in notified:
+            notified.add(alert.user_id)
             _notify(db, alert, space, max(start_at, alert.start_at), min(end_at, alert.end_at))
 
 
@@ -97,11 +99,14 @@ def on_space_available(db: Session, space: Space, now: datetime, before=None) ->
     if not space.is_active:
         return
     _expire(db, now)
-    for alert in db.scalars(select(AvailabilityAlert).where(AvailabilityAlert.status == AlertStatus.ACTIVE)).all():
-        if not _matches(alert, space) or (before and before.is_active and _matches(alert, before)):
+    notified = set()  # one notification per user and space, the earliest free slot
+    for alert in db.scalars(select(AvailabilityAlert).where(
+        AvailabilityAlert.status == AlertStatus.ACTIVE).order_by(AvailabilityAlert.start_at)).all():
+        if alert.user_id in notified or not _matches(alert, space) or (before and before.is_active and _matches(alert, before)):
             continue
         start_at = max(now, alert.start_at)
         if not booking._overlaps(db, space.id, start_at, alert.end_at):
+            notified.add(alert.user_id)
             _notify(db, alert, space, start_at, alert.end_at)
 
 
