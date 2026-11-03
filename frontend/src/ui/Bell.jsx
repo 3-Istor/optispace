@@ -32,9 +32,22 @@ function pushCardWanted(me) {
 // Bell with unread count and the notification menu (Notifications.dc.html), polled every 5 s.
 export function Bell({ me }) {
   const ref = useRef(null)
-  const { data = [], refresh } = usePolling(fetchNotifications, 5000)
+  const { data: loaded, refresh } = usePolling(fetchNotifications, 5000)
+  const data = loaded ?? []
   const [card, setCard] = useState(() => pushCardWanted(me))
   const unread = data.filter((n) => !n.read_at)
+  const seen = useRef(null)
+
+  // A new unread notification also pops a toast; the first load only records what is already there.
+  useEffect(() => {
+    if (!loaded) return
+    const fresh = seen.current ? unread.filter((n) => !seen.current.has(n.id)) : []
+    seen.current = new Set(data.map((n) => n.id))
+    fresh.forEach((n) => {
+      const t = NOTIFICATIONS[n.type]
+      if (t) toast(`${t.title} : ${t.text(n.params ?? {})}`)
+    })
+  }, [loaded])
 
   // Permission given earlier: make sure this browser's subscription is registered.
   useEffect(() => {
