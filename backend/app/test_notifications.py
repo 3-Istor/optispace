@@ -135,7 +135,8 @@ def test_push_subscription_routes(client, db, settings_env):
     settings_env(VAPID_PUBLIC_KEY="BPublic")
     assert client.get("/api/v1/push/vapid-public-key").json() == {"key": "BPublic"}
 
-    body = {"endpoint": "https://push.example/abc", "expirationTime": None, "keys": {"p256dh": "p1", "auth": "a1"}}
+    body = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc", "expirationTime": None,
+            "keys": {"p256dh": "p1", "auth": "a1"}}
     assert client.post("/api/v1/push-subscriptions", json=body).status_code == 201
     body["keys"] = {"p256dh": "p2", "auth": "a2"}
     assert client.post("/api/v1/push-subscriptions", json=body).status_code == 201
@@ -146,3 +147,27 @@ def test_push_subscription_routes(client, db, settings_env):
 
     assert response.status_code == 204
     assert db.scalar(select(func.count()).select_from(PushSubscription)) == 0
+
+
+@pytest.mark.parametrize("endpoint, accepted", [
+    ("https://fcm.googleapis.com/fcm/send/abc", True),
+    ("https://updates.push.services.mozilla.com/wpush/v2/abc", True),
+    ("https://web.push.apple.com/abc", True),
+    ("https://db5p.notify.windows.com/w/?token=abc", True),
+    ("http://fcm.googleapis.com/fcm/send/abc", False),  # not https
+    ("https://169.254.169.254/latest/meta-data", False),
+    ("https://fcm.googleapis.com.evil.example/abc", False),
+    ("https://evilnotify.windows.com/abc", False),
+    ("https://fcm.googleapis.com@backend.svc/abc", False),  # the host is after the @
+    ("not a url", False),
+])
+def test_push_subscription_endpoint_allow_list(client, db, endpoint, accepted):
+    body = {"endpoint": endpoint, "keys": {"p256dh": "p1", "auth": "a1"}}
+
+    response = client.post("/api/v1/push-subscriptions", json=body)
+
+    if accepted:
+        assert response.status_code == 201
+    else:
+        assert (response.status_code, response.json()) == (422, {"detail": "INVALID_PUSH_ENDPOINT"})
+        assert db.scalar(select(func.count()).select_from(PushSubscription)) == 0
