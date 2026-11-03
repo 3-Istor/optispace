@@ -14,7 +14,6 @@ import { toast } from '../ui/Toast.jsx'
 // Spec §3 type defaults as [min, max, initial] minutes, used until /spaces gives each space's
 // effective min/max (employees cannot read /settings). The server still judges: 422 INVALID_SLOT.
 const DURATIONS = { meeting_room: [30, 180, 60], individual_booth: [15, 60, 30] }
-const ABSENCE_DELAY_MIN = 10
 const CAPACITIES = [[0, 'Tous'], [4, '4+'], [8, '8+'], [12, '12+']]
 
 // A SPACE_AVAILABLE notification links here with type, start_at and end_at.
@@ -28,7 +27,7 @@ function initialCriteria(query) {
   return { type, date, time, dur: asked > 0 ? Math.min(hi, Math.max(lo, asked)) : dflt, cap: 0, floor: '', eq: [] }
 }
 
-export function Reserve() {
+export function Reserve({ me }) {
   const { query } = useRoute()
   const [c, setC] = useState(() => initialCriteria(query))
   const [booked, setBooked] = useState([]) // ids booked here for the current criteria
@@ -199,7 +198,7 @@ export function Reserve() {
         )}
         <span className="muted" style={{ fontSize: 12, marginLeft: 'auto', maxWidth: 230, lineHeight: 1.45 }}>
           {c.type === 'meeting_room' ? 'Salles de réunion' : 'Bulles individuelles'} : de {fmtDuration(lo)} à {fmtDuration(hi)}, par pas de 5 min.
-          Sans présence détectée, la réservation est libérée au bout de {ABSENCE_DELAY_MIN} min.
+          Sans présence détectée, la réservation est libérée au bout de {me.absence_delay_min ?? 10} min.
         </span>
         {equipment.length > 0 && (
           <div role="group" aria-labelledby="eq-l" style={{ flexBasis: '100%', display: 'flex', flexWrap: 'wrap', gap: 6, paddingTop: 12, borderTop: '1px solid #EEF1F5' }}>
