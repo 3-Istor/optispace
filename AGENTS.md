@@ -1,14 +1,14 @@
-# App name
+# OptiSpace
 
 <!-- Read by coding agents at the start of every session (Claude Code through
      CLAUDE.md, Codex, Cursor, Copilot). Keep it under 150 lines, and only write
      what an agent cannot work out by reading the repo. Fill in the three lines
      below when the app is created. -->
 
-To fill in: what this app does, for whom, and what it does not do.
+Employees book meeting rooms and individual booths; ESP32 presence sensors release no-show bookings, and facility managers run spaces, devices and a dashboard (no support console, multi-site or floor plan yet).
 
-- Tickets: to fill in (tool, project key, URL), or `none yet`
-- Docs: to fill in (`docs/` in this repo, or the docs repository and path), or `none yet`
+- Tickets: Jira `https://3istors.atlassian.net`, project `IOT`
+- Docs: repo `3-Istor/iot-doc`, `software/specification_application.md`
 
 A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 (Vite) frontend served by nginx, and PostgreSQL. The CNP platform
@@ -73,12 +73,18 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
   input and output, `services/` for business logic, `models/` for SQLAlchemy
   models. Create a layer the first time it is needed instead of growing
   `main.py`. The target layout is in `README.md`.
-- Database access goes through a `Depends(get_db)` dependency that yields a
-  `SessionLocal()` session. Add `get_db` to `app/database.py` when the first
-  route needs it. Never open a session at module level.
-- Errors raise `HTTPException` with a precise status code. The body stays
-  `{"detail": "..."}`.
-- Every new endpoint gets a test in `backend/app/test_*.py`, using `TestClient`.
+- Database access goes through the `Depends(get_db)` dependency of
+  `app/database.py`, which yields a `SessionLocal()` session. Never open a
+  session at module level.
+- Errors: routers raise `HTTPException`, services raise
+  `DomainError(status, code)` (`app/errors.py`). The body stays
+  `{"detail": "<CODE>"}`.
+- "Now" comes only from `app.clock.now()` (aware UTC, patched in tests).
+  Datetimes are stored and compared as aware UTC.
+- The user is `Depends(get_app_user)`, facility managers are
+  `Depends(require_fm)` (`app/security.py`).
+- Every new endpoint gets a test in `backend/app/test_*.py`, using `TestClient`
+  and the shared fixtures of `app/conftest.py`.
 - Access control is enforced in the backend. Hiding a button in React is not
   access control.
 - The browser bundle is public: no secret, token or internal URL in frontend code.

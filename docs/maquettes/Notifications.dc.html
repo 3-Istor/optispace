@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Centre de notifications</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+.bell{position:relative}
+.bell>summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#3A4555;border:1px solid #DCE1E8;background:#FFFFFF;position:relative;transition:background-color .15s ease}
+.bell>summary::-webkit-details-marker{display:none}
+.bell>summary:hover{background:#F6F7F9}
+.bell .cnt{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#D63F45;color:#FFFFFF;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #F6F7F9}
+.bell .menu{position:absolute;right:0;top:44px;width:360px;background:#FFFFFF;border:1px solid #E4E8EE;border-radius:12px;box-shadow:0 16px 40px rgba(14,23,38,.14);z-index:50;overflow:hidden;animation:fd .18s ease-out;text-align:left}
+.ntf{display:flex;gap:12px;padding:12px 16px;border-top:1px solid #EEF1F5}
+.ntf i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+</helmet>
+<div style="min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9; padding: 40px 48px 64px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+  <header style="display: flex; flex-direction: column; gap: 6px; max-width: 760px"><span style="font-size: 12px; color: #8A94A3">Composant partagé · en-tête des deux rôles</span><h1 style="font-size: 26px">Centre de notifications</h1><p class="muted" style="margin: 0; line-height: 1.55">Une cloche avec un compteur de non-lues dans l’en-tête. Au clic, une liste déroulante. À la première visite, une carte propose d’activer les notifications du navigateur.</p></header>
+  <div class="cols" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start">
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="font-size: 15px">Employé</h2>
+      <div class="card" style="overflow: visible">
+        <div style="height: 58px; display: flex; align-items: center; gap: 16px; padding: 0 18px; border-bottom: 1px solid #E4E8EE"><img src="img/3istor.png" alt="" style="height: 26px"><span style="font-family: 'Sora', sans-serif; font-weight: 500">OptiSpace</span><span style="flex: 1"></span><span style="position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #BCD0F7; background: #EAF0FD; color: #1747B3; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="num" style="position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; background: #D63F45; color: #FFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF">3</span></span><span style="width: 30px; height: 30px; border-radius: 50%; background: #E7ECF4; color: #1747B3; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">LB</span></div>
+        <div style="padding: 14px 18px 18px; display: flex; justify-content: flex-end"><div class="bell" style="width: 360px"><div class="menu" style="position: static; animation: none"><div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px"><span style="font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 500">Notifications</span><a href="#" style="font-size: 12px">Tout marquer comme lu</a></div><div style="margin: 0 12px 12px; padding: 12px; border-radius: 10px; background: #F3F6FD; border: 1px solid #DCE6FA; display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 500">Activer les notifications du navigateur</span><span class="muted" style="font-size: 12px; line-height: 1.45">Soyez prévenu d’une absence ou d’une libération même quand OptiSpace est fermé.</span><span style="display: flex; gap: 8px"><button type="button" class="btn btn-p" style="height: 30px; font-size: 13px">Activer</button><button type="button" class="btn btn-g" style="height: 30px; font-size: 13px">Plus tard</button></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #D9771F"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Absence détectée</span><span class="num muted" style="font-size: 12px">14:00</span></span><span style="font-size: 13px; line-height: 1.45">Personne n’est détecté dans Atlas. Sans présence, la réservation sera libérée à 14:10.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #8A94A3"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Réservation libérée</span><span class="num muted" style="font-size: 12px">14:10</span></span><span style="font-size: 13px; line-height: 1.45">Votre réservation d’Atlas a été libérée à 14:10.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #1A8F4E"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Espace disponible</span><span class="num muted" style="font-size: 12px">14:11</span></span><span style="font-size: 13px; line-height: 1.45">Atlas est disponible de 14:10 à 15:00.</span></span></div></div></div></div>
+      </div>
+      <ul class="muted" style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6"><li>Absence détectée, réservation libérée, espace disponible</li><li>Un clic ouvre la réservation ou l’espace concerné</li></ul>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 12px">
+      <h2 style="font-size: 15px">Facility manager</h2>
+      <div class="card" style="overflow: visible">
+        <div style="height: 58px; display: flex; align-items: center; gap: 12px; padding: 0 18px; border-bottom: 1px solid #E4E8EE"><span style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 500">Tableau de bord</span><span style="flex: 1"></span><span style="position: relative; width: 36px; height: 36px; border-radius: 8px; border: 1px solid #BCD0F7; background: #EAF0FD; color: #1747B3; display: flex; align-items: center; justify-content: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="num" style="position: absolute; top: -5px; right: -5px; min-width: 18px; height: 18px; border-radius: 9px; background: #D63F45; color: #FFF; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF">2</span></span></div>
+        <div style="padding: 14px 18px 18px; display: flex; justify-content: flex-end"><div class="bell" style="width: 360px"><div class="menu" style="position: static; animation: none"><div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px"><span style="font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 500">Notifications</span><a href="#" style="font-size: 12px">Tout marquer comme lu</a></div><div class="ntf" style="background: #FBFCFE"><i style="background: #D63F45"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier hors ligne</span><span class="num muted" style="font-size: 12px">09:13</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas est hors ligne depuis 09:12.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #2F6FE0"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier rescellé</span><span class="num muted" style="font-size: 12px">08:40</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas a été rescellé.</span></span></div><div class="ntf" style="background: #FFFFFF"><i style="background: #8A94A3"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Réservation libérée</span><span class="num muted" style="font-size: 12px">hier</span></span><span style="font-size: 13px; line-height: 1.45">La réservation d’Atlas a été libérée à 14:10.</span></span></div></div></div></div>
+      </div>
+      <ul class="muted" style="margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6"><li>En plus pour le Facility manager : boîtier hors ligne, boîtier rescellé</li><li>Un clic ouvre la fiche du boîtier</li></ul>
+    </section>
+  </div>
+  <section style="display: flex; flex-direction: column; gap: 12px">
+    <h2 style="font-size: 15px">Première visite</h2>
+    <div class="cols" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start">
+      <div class="card" style="padding: 18px 20px; display: flex; gap: 14px; align-items: flex-start; box-shadow: 0 12px 30px rgba(14,23,38,0.08)">
+        <span style="width: 36px; height: 36px; border-radius: 9px; background: #EAF0FD; color: #1747B3; display: flex; align-items: center; justify-content: center; flex: none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg></span>
+        <div style="display: flex; flex-direction: column; gap: 8px; flex: 1"><span style="font-weight: 500">Activer les notifications du navigateur</span><span class="muted" style="font-size: 13px; line-height: 1.5">Soyez prévenu d’une absence détectée ou d’une salle qui se libère, même quand OptiSpace est fermé. Vous pourrez changer d’avis depuis votre profil.</span><span style="display: flex; gap: 8px; margin-top: 4px"><button type="button" class="btn btn-p">Activer</button><button type="button" class="btn btn-g">Plus tard</button></span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div class="card" style="padding: 12px 14px; display: flex; gap: 12px; align-items: center; max-width: 380px; box-shadow: 0 12px 30px rgba(14,23,38,0.1)"><img src="img/3istor.png" alt="" style="height: 26px"><span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 12px; font-weight: 600">OptiSpace</span><span style="font-size: 13px; line-height: 1.4">Personne n’est détecté dans Atlas. Sans présence, la réservation sera libérée à 14:10.</span></span></div>
+        <span class="muted" style="font-size: 12px">Aperçu d’une notification du navigateur</span>
+      </div>
+    </div>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1150}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

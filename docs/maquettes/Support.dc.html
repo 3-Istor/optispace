@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Console support</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+<style>
+.snav{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;border:0;background:transparent;color:#C9D1DD;font:inherit;font-size:14px;font-weight:500;cursor:pointer;width:100%;box-sizing:border-box;transition:background-color .15s ease}
+.snav:hover{background:#18233A}
+.snav[aria-current="true"]{background:#1F2E4D;color:#FFFFFF}
+.pill{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;white-space:nowrap}
+.tl li{position:relative;padding:0 0 16px 22px}
+.tl li::before{content:"";position:absolute;left:5px;top:6px;width:7px;height:7px;border-radius:50%;background:var(--c,#C9D0DA)}
+.tl li::after{content:"";position:absolute;left:8px;top:16px;bottom:0;width:1px;background:#E4E8EE}
+.tl li:last-child::after{display:none}
+</style>
+</helmet>
+<div class="shell" style="display: flex; min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9">
+<aside class="side" style="width: 232px; flex: none; align-self: stretch; background: #0E1726; color: #C9D1DD"><div class="side" style="position: sticky; top: 0; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; padding: 18px 12px"><div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px"><img src="img/3istor-clair.png" alt="3istor" style="height: 30px; width: auto; display: block"><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 500; color: #FFFFFF">OptiSpace</span><span style="font-size: 11px; color: #8E9AAD">Console support 3istor</span></span></div><nav aria-label="Navigation support" style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #6E7B90; padding: 0 10px 4px">Support</span><button type="button" class="snav" aria-current="{{nav_tickets}}" onClick="{{go_tickets}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg><span style="flex: 1; text-align: left">Tickets</span><span class="num" style="font-size: 12px; color: #8E9AAD">{{navn_tickets}}</span></button><button type="button" class="snav" aria-current="{{nav_kb}}" onClick="{{go_kb}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg><span style="flex: 1; text-align: left">Procédures et FAQ</span><span class="num" style="font-size: 12px; color: #8E9AAD">{{navn_kb}}</span></button><span style="font-size: 11px; color: #6E7B90; padding: 14px 10px 4px">Parc</span><span class="snav" style="cursor: default"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg><span style="flex: 1">Boîtiers déployés</span><span class="num" style="font-size: 12px; color: #8E9AAD">1 284</span></span><span class="snav" style="cursor: default"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 11h18M11 4v16"></path></svg><span style="flex: 1">Clients et sites</span><span class="num" style="font-size: 12px; color: #8E9AAD">37</span></span></nav><div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 6px 0; border-top: 1px solid #1F2A3C"><span style="width: 30px; height: 30px; border-radius: 50%; background: #1F2E4D; color: #A9C4FF; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">NB</span><span style="display: flex; flex-direction: column; line-height: 1.25; flex: 1"><span style="font-size: 13px; color: #FFFFFF; font-weight: 500">Newfel</span><span style="font-size: 11px; color: #8E9AAD">Équipe maintenance</span></span><a href="Main.dc.html" class="btn btn-g" style="width: 30px; height: 30px; padding: 0; color: #C9D1DD" aria-label="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"></path></svg></a></div></div></aside><main style="flex: 1; min-width: 0; padding: 26px 32px 56px; box-sizing: border-box">
+<sc-if value="{{isTickets}}" hint-placeholder-val="{{true}}">
+<div style="display: flex; flex-direction: column; gap: 18px">
+  <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px">
+    <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: #8A94A3">Support / Tickets · données de démonstration</span><h1 style="font-size: 24px">Tickets</h1></div>
+    <div style="display: flex; gap: 10px; align-items: center"><div class="seg" role="group" aria-label="Filtre"><sc-for list="{{views}}" as="v" hint-placeholder-count="4"><button type="button" aria-pressed="{{v.on}}" onClick="{{v.pick}}">{{v.l}} <span class="num" style="color: #8A94A3; margin-left: 2px">{{v.n}}</span></button></sc-for></div><button type="button" class="btn btn-p" onClick="{{openNew}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Créer un ticket</button></div>
+  </header>
+  <section class="cols" aria-label="Indicateurs" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+    <sc-for list="{{stats}}" as="k" hint-placeholder-count="4"><div class="card" style="padding: 14px 16px; display: flex; flex-direction: column; gap: 6px"><span class="lbl">{{k.l}}</span><span class="num" style="font-family: 'Sora', sans-serif; font-size: 22px">{{k.v}}</span></div></sc-for>
+  </section>
+  <div class="cols" style="display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 16px; align-items: start">
+    <section class="card" aria-label="File des tickets" style="overflow: hidden">
+      <div style="padding: 10px 12px; border-bottom: 1px solid #E4E8EE; position: relative"><span style="position: absolute; left: 22px; top: 20px; color: #8A94A3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg></span><input class="input" type="search" placeholder="Ticket, client, boîtier" aria-label="Rechercher un ticket" value="{{q}}" onChange="{{onQ}}" style="width: 100%; padding-left: 34px"></div>
+      <ul role="listbox" aria-label="Tickets" style="list-style: none; margin: 0; padding: 0">
+        <sc-for list="{{list}}" as="t" hint-placeholder-count="6">
+          <li role="option" class="row" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="padding: 12px 14px; border-bottom: 1px solid #EEF1F5; display: flex; flex-direction: column; gap: 6px">
+            <div style="display: flex; align-items: center; gap: 8px"><span class="num muted" style="font-size: 12px">{{t.id}}</span><span style="{{t.prioStyle}}">{{t.prio}}</span><span style="flex: 1"></span><span class="muted" style="font-size: 12px">{{t.age}}</span></div>
+            <span style="font-weight: 500; line-height: 1.35">{{t.title}}</span>
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 12px; color: #5B6676"><span>{{t.client}}</span><span class="num">{{t.dev}}</span><span style="flex: 1"></span><span class="st" style="font-size: 12px"><span class="dot" style="{{t.dot}}"></span>{{t.status}}</span></div>
+          </li>
+        </sc-for>
+      </ul>
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}"><p class="muted" style="margin: 0; padding: 26px; text-align: center">Aucun ticket dans cette vue.</p></sc-if>
+    </section>
+
+    <section class="card fade" aria-label="Détail du ticket" style="overflow: hidden">
+      <div style="padding: 18px 22px; border-bottom: 1px solid #E4E8EE; display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px"><span class="num muted" style="font-size: 13px">{{cur.id}}</span><span style="{{cur.prioStyle}}">{{cur.prio}}</span><span class="pill" style="background: #F1F3F6; color: #3A4555">{{cur.source}}</span><span style="flex: 1"></span>
+          <label class="lbl" for="stsel" style="margin-right: 4px">Statut</label><select id="stsel" class="input" value="{{cur.statusKey}}" onChange="{{onStatus}}" style="height: 32px"><option value="new">Nouveau</option><option value="doing">En cours</option><option value="wait">En attente client</option><option value="done">Résolu</option></select>
+        </div>
+        <h2 style="font-size: 18px; line-height: 1.3">{{cur.title}}</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: #5B6676"><span>{{cur.client}}</span><span>{{cur.space}}</span><span class="num">{{cur.dev}}</span><span>Assigné : <strong style="color: #0E1726; font-weight: 500">{{cur.assignee}}</strong></span><sc-if value="{{cur.canTake}}" hint-placeholder-val="{{false}}"><button type="button" class="btn btn-g" onClick="{{take}}" style="height: 24px; padding: 0 6px; font-size: 13px; color: #1E56D6">M’attribuer</button></sc-if></div>
+      </div>
+      <div class="cols" style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 260px); gap: 0">
+        <div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 18px; border-right: 1px solid #EEF1F5">
+          <p style="margin: 0; line-height: 1.6">{{cur.desc}}</p>
+          <sc-if value="{{cur.hasKb}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; background: #F3F6FD; border: 1px solid #DCE6FA"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E56D6" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"></path></svg><span style="display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.5"><span style="font-weight: 500">Article lié : {{cur.kbTitle}}</span><span class="muted">{{cur.kbFix}}</span><button type="button" class="btn btn-g" onClick="{{openKb}}" style="height: 26px; padding: 0 6px; align-self: flex-start; color: #1E56D6">Ouvrir la procédure</button></span></div>
+          </sc-if>
+          <div style="display: flex; flex-direction: column; gap: 10px"><h3 style="font-size: 14px">Historique</h3>
+            <ol class="tl" style="list-style: none; margin: 0; padding: 0">
+              <sc-for list="{{cur.events}}" as="e" hint-placeholder-count="4"><li style="{{e.style}}"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px">{{e.t}}</span><span class="muted num" style="font-size: 12px">{{e.when}} · {{e.who}}</span></div></li></sc-for>
+            </ol>
+          </div>
+          <form onSubmit="{{sendReply}}" style="display: flex; flex-direction: column; gap: 8px">
+            <label for="reply" class="lbl">Répondre au Facility manager</label>
+            <textarea id="reply" class="input" rows="3" value="{{reply}}" onChange="{{onReply}}" placeholder="Votre message, visible par le client" style="height: auto; padding: 10px 12px; resize: vertical; line-height: 1.5"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 8px"><button type="button" class="btn btn-s" onClick="{{noteOnly}}" disabled="{{replyEmpty}}">Note interne</button><button type="submit" class="btn btn-p" disabled="{{replyEmpty}}">Envoyer</button></div>
+          </form>
+        </div>
+        <aside style="padding: 18px 20px; display: flex; flex-direction: column; gap: 16px; background: #FBFBFC">
+          <h3 style="font-size: 14px">Télémétrie du boîtier</h3>
+          <dl style="display: grid; grid-template-columns: 1fr auto; gap: 8px 10px; margin: 0; font-size: 13px">
+            <sc-for list="{{cur.tele}}" as="m" hint-placeholder-count="5"><dt class="muted">{{m.k}}</dt><dd class="num" style="{{m.style}}">{{m.v}}</dd></sc-for>
+          </dl>
+          <div style="display: flex; flex-direction: column; gap: 8px; padding-top: 14px; border-top: 1px solid #E4E8EE"><span class="lbl">Actions à distance</span>
+            <sc-for list="{{actions}}" as="a" hint-placeholder-count="4"><button type="button" class="btn btn-s" onClick="{{a.run}}" disabled="{{a.off}}" style="justify-content: flex-start; width: 100%"><sc-if value="{{a.busy}}" hint-placeholder-val="{{false}}"><span class="spin" style="border-color: rgba(30,86,214,.25); border-top-color: #1E56D6"></span></sc-if>{{a.l}}</button></sc-for>
+          </div>
+          <a href="#" class="btn btn-g" style="justify-content: flex-start; color: #1E56D6"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.6 2.6-2.4-.6-.6-2.4z"></path></svg>Planifier une intervention</a>
+        </aside>
+      </div>
+    </section>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{isKb}}" hint-placeholder-val="{{false}}">
+<div class="fade" style="display: flex; flex-direction: column; gap: 18px; max-width: 980px">
+  <header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px">
+    <div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: #8A94A3">Support / Procédures et FAQ</span><h1 style="font-size: 24px">Procédures et FAQ</h1></div>
+    <button type="button" class="btn btn-s" onClick="{{openNew}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Créer un ticket</button>
+  </header>
+  <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+    <div style="position: relative; flex: 1; min-width: 260px"><span style="position: absolute; left: 10px; top: 10px; color: #8A94A3"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.2-4.2"></path></svg></span><input class="input" type="search" placeholder="Symptôme, code d’erreur, composant" aria-label="Rechercher dans la base" value="{{kq}}" onChange="{{onKq}}" style="width: 100%; padding-left: 34px"></div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap"><sc-for list="{{cats}}" as="c" hint-placeholder-count="5"><button type="button" class="chip" aria-pressed="{{c.on}}" onClick="{{c.pick}}">{{c.l}}</button></sc-for></div>
+  </div>
+  <section class="card" style="overflow: hidden">
+    <sc-for list="{{articles}}" as="a" hint-placeholder-count="5">
+      <article style="border-bottom: 1px solid #EEF1F5">
+        <button type="button" onClick="{{a.toggle}}" aria-expanded="{{a.open}}" style="width: 100%; display: flex; align-items: center; gap: 14px; padding: 14px 18px; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; color: #0E1726">
+          <span class="pill" style="background: #F1F3F6; color: #3A4555; min-width: 92px; justify-content: center">{{a.cat}}</span>
+          <span style="display: flex; flex-direction: column; gap: 2px; flex: 1"><span style="font-weight: 500">{{a.t}}</span><span class="muted" style="font-size: 12px">{{a.meta}}</span></span>
+          <span style="{{a.chev}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6676" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 10l4 4 4-4"></path></svg></span>
+        </button>
+        <sc-if value="{{a.isOpen}}" hint-placeholder-val="{{false}}">
+          <div class="fade" style="padding: 0 18px 18px 124px; display: flex; flex-direction: column; gap: 12px">
+            <p class="muted" style="margin: 0; line-height: 1.55">{{a.cause}}</p>
+            <ol style="margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; line-height: 1.5"><sc-for list="{{a.steps}}" as="s" hint-placeholder-count="3"><li>{{s}}</li></sc-for></ol>
+            <div style="display: flex; gap: 8px"><button type="button" class="btn btn-s" onClick="{{a.newTicket}}">Créer un ticket avec cette procédure</button></div>
+          </div>
+        </sc-if>
+      </article>
+    </sc-for>
+    <sc-if value="{{kEmpty}}" hint-placeholder-val="{{false}}"><p class="muted" style="margin: 0; padding: 26px; text-align: center">Aucun article ne correspond. Créez un ticket pour documenter ce cas.</p></sc-if>
+  </section>
+</div>
+</sc-if>
+</main>
+<div style="{{scrim}}" onClick="{{closeNew}}" aria-hidden="true"></div>
+<form role="dialog" aria-label="Créer un ticket" aria-modal="true" onSubmit="{{createTicket}}" style="{{drawer}}">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid #E4E8EE"><h2 style="font-size: 17px">Créer un ticket</h2><button type="button" class="btn btn-g" onClick="{{closeNew}}" aria-label="Fermer" style="width: 32px; padding: 0">✕</button></div>
+  <div style="padding: 18px 22px; display: flex; flex-direction: column; gap: 14px; overflow: auto; flex: 1">
+    <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Titre</span><input class="input" value="{{nTitle}}" onChange="{{onNTitle}}" placeholder="Ex. Anneau éteint après une coupure réseau" style="{{nTitleStyle}}"></label>
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px">
+      <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Client et site</span><select class="input" style="width: 100%" value="{{nClient}}" onChange="{{onNClient}}"><sc-for list="{{clients}}" as="c" hint-placeholder-count="3"><option value="{{c}}">{{c}}</option></sc-for></select></label>
+      <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Boîtier</span><input class="input num" style="width: 100%" value="{{nDev}}" onChange="{{onNDev}}" placeholder="OS-XXXX-XXXX"></label>
+      <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Catégorie</span><select class="input" style="width: 100%" value="{{nCat}}" onChange="{{onNCat}}"><sc-for list="{{catNames}}" as="c" hint-placeholder-count="5"><option value="{{c}}">{{c}}</option></sc-for></select></label>
+      <div style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Priorité</span><div class="seg" role="group" aria-label="Priorité"><sc-for list="{{prios}}" as="p" hint-placeholder-count="3"><button type="button" aria-pressed="{{p.on}}" onClick="{{p.pick}}">{{p.l}}</button></sc-for></div></div>
+    </div>
+    <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Description</span><textarea class="input" rows="6" value="{{nDesc}}" onChange="{{onNDesc}}" placeholder="Comportement observé, comportement attendu, depuis quand" style="height: auto; padding: 10px 12px; line-height: 1.5; resize: vertical"></textarea></label>
+    <span role="alert" style="{{nErrStyle}}">Ajoutez un titre pour créer le ticket.</span>
+  </div>
+  <div style="display: flex; justify-content: flex-end; gap: 8px; padding: 14px 22px; border-top: 1px solid #E4E8EE"><button type="button" class="btn btn-s" onClick="{{closeNew}}">Annuler</button><button type="submit" class="btn btn-p">Créer le ticket</button></div>
+</form>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.KB = [
+      { id: 'kb1', cat: 'Anneau', t: 'L’anneau reste orange après un appui', meta: 'Firmware 2.3.x · 14 tickets liés', cause: 'Le boîtier n’a pas reçu l’accusé de réception du serveur après l’appui. Fréquent sur les réseaux Wi-Fi invités qui coupent les connexions longues.', steps: ['Vérifier dans la télémétrie que l’appui a bien été émis.', 'Relire les journaux : rechercher « ACK timeout ».', 'Forcer la mise à jour en 2.4.1, qui renvoie l’appui jusqu’à confirmation.', 'Si le site utilise un réseau invité, demander au client un SSID dédié aux boîtiers.'] },
+      { id: 'kb2', cat: 'Réseau', t: 'Boîtier hors ligne après une coupure électrique', meta: '9 tickets liés', cause: 'Après une coupure, le boîtier redémarre plus vite que la borne Wi-Fi et peut abandonner après trois tentatives.', steps: ['Attendre 10 minutes : une reconnexion automatique est tentée.', 'Lancer un redémarrage à distance si le boîtier répond au ping de gestion.', 'Sinon, demander au Facility manager un appui long de 10 secondes sur le bouton.'] },
+      { id: 'kb3', cat: 'Descellement', t: 'Le mot de passe de descellement est refusé', meta: '6 tickets liés', cause: 'Confusion fréquente entre le chiffre 0 et la lettre O sur les cartes de la première série, ou boîtier bloqué après cinq essais.', steps: ['Vérifier le numéro de série et la série de la carte (A ou B).', 'Si le boîtier est bloqué, générer un code de déblocage depuis la fiche boîtier.', 'Envoyer le code au Facility manager par le canal sécurisé, jamais par e-mail.'] },
+      { id: 'kb4', cat: 'Batterie', t: 'Batterie qui se vide en moins d’une semaine', meta: 'Firmware 2.3.9 · 4 tickets liés', cause: 'Un bug du firmware 2.3.9 garde la radio active en continu dans les bulles très sollicitées.', steps: ['Forcer la mise à jour en 2.4.1.', 'Recalibrer la jauge depuis les actions à distance.', 'Si la batterie reste sous 20 % après 48 h, planifier un échange.'] },
+      { id: 'kb5', cat: 'Bouton', t: 'Appuis détectés sans réservation en cours', meta: '3 tickets liés', cause: 'Le bouton peut être déclenché par une vibration forte (table bancale, mobilier déplacé) sur les boîtiers sans patin.', steps: ['Comparer les horaires des appuis aux réservations.', 'Augmenter le seuil d’appui depuis les actions à distance.', 'Envoyer des patins antivibration au site.'] }
+    ];
+    var T = [
+      { id: 'T-1048', prio: 'P1', title: 'Atlas reste orange alors que l’équipe a validé sa présence', client: 'Client pilote · Siège Bâtiment A', space: 'Atlas · 3e étage', dev: 'OS-A3F2-0098', source: 'Facility manager', st: 'new', age: '12 min', assignee: 'Non assigné', kb: 'kb1', desc: 'Depuis ce matin, la salle Atlas reste en attente de présence alors que les participants ont appuyé sur le boîtier. La réservation de 14:00 a été libérée automatiquement alors que la réunion avait lieu.', tele: [['Dernier signal', 'il y a 40 s'], ['Firmware', '2.3.9', 1], ['Batterie', '82 %'], ['Signal Wi-Fi', '−71 dBm', 1], ['Appuis sans accusé', '6 aujourd’hui', 1]] },
+      { id: 'T-1047', prio: 'P2', title: 'Agora hors ligne depuis 09:12', client: 'Client pilote · Siège Bâtiment A', space: 'Agora · RDC', dev: 'OS-A3F2-0087', source: 'Détection automatique', st: 'doing', age: '5 h', assignee: 'Newfel', kb: 'kb2', desc: 'Le boîtier n’envoie plus de signal depuis 09:12. Une coupure électrique a été signalée au RDC ce matin.', tele: [['Dernier signal', '09:12', 1], ['Firmware', '2.4.1'], ['Batterie', '64 %'], ['Signal Wi-Fi', 'aucun', 1], ['Redémarrages 24 h', '3', 1]] },
+      { id: 'T-1045', prio: 'P2', title: 'Batterie de la bulle B-07 à 12 % une semaine après la recharge', client: 'Client pilote · Siège Bâtiment A', space: 'Bulle B-07 · 2e étage', dev: 'OS-B1C0-0034', source: 'Détection automatique', st: 'doing', age: '1 j', assignee: 'Joe', kb: 'kb4', desc: 'La consommation est quatre fois supérieure à la moyenne des bulles du site.', tele: [['Dernier signal', 'il y a 2 min'], ['Firmware', '2.3.9', 1], ['Batterie', '12 %', 1], ['Signal Wi-Fi', '−58 dBm'], ['Appuis 7 j', '312']] },
+      { id: 'T-1043', prio: 'P3', title: 'Mot de passe de descellement refusé sur un nouveau boîtier', client: 'Client B · Campus Nord', space: 'Non affecté', dev: 'OS-A3F2-0151', source: 'Facility manager', st: 'wait', age: '2 j', assignee: 'Raphaël', kb: 'kb3', desc: 'Le Facility manager indique que le mot de passe imprimé sur la carte est refusé. Quatre essais ont déjà été faits.', tele: [['Dernier signal', 'il y a 1 min'], ['Firmware', '2.4.1'], ['État', 'Scellé'], ['Essais restants', '1', 1], ['Série carte', 'A']] },
+      { id: 'T-1040', prio: 'P3', title: 'Appuis enregistrés la nuit dans la salle Cervin', client: 'Client pilote · Siège Bâtiment A', space: 'Cervin · 3e étage', dev: 'OS-A3F2-0120', source: 'Détection automatique', st: 'done', age: '4 j', assignee: 'Brian', kb: 'kb5', desc: 'Trois appuis enregistrés entre 02:00 et 03:00 sans réservation, pendant le passage de l’équipe de ménage.', tele: [['Dernier signal', 'il y a 30 s'], ['Firmware', '2.4.1'], ['Batterie', '91 %'], ['Seuil d’appui', 'renforcé'], ['Appuis nocturnes 3 j', '0']] }
+    ];
+    var EV = {
+      'T-1048': [['Ticket créé par Camille Martin depuis l’espace Facility manager', '14:20', 'Client'], ['6 appuis sans accusé de réception détectés', '14:21', 'Système']],
+      'T-1047': [['Boîtier hors ligne détecté', '09:17', 'Système'], ['Ticket attribué à Newfel', '09:40', 'Newfel'], ['Redémarrage à distance sans réponse', '10:05', 'Newfel']],
+      'T-1045': [['Consommation anormale détectée', 'hier 16:02', 'Système'], ['Mise à jour 2.4.1 programmée cette nuit', 'hier 17:30', 'Joe']],
+      'T-1043': [['Ticket créé par le Facility manager', 'mar. 10:14', 'Client'], ['Demande de photo de la carte envoyée', 'mar. 11:02', 'Raphaël']],
+      'T-1040': [['Appuis nocturnes détectés', 'ven. 08:00', 'Système'], ['Seuil d’appui renforcé à distance', 'ven. 09:12', 'Brian'], ['Résolu : aucun appui depuis 3 nuits', 'lun. 09:00', 'Brian']]
+    };
+    T.forEach(function (t) { t.events = (EV[t.id] || []).map(function (e) { return { t: e[0], when: e[1], who: e[2] }; }); });
+    this.state = { nav: 'tickets', view: 'open', sel: 0, q: '', tickets: T, reply: '', busy: '', kq: '', kcat: 'Tous', kopen: 'kb1', newOpen: false, nTitle: '', nClient: 'Client pilote · Siège Bâtiment A', nDev: '', nCat: 'Anneau', nPrio: 'P2', nDesc: '', nErr: false };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state;
+    var STL = { new: ['Nouveau', '#1E56D6'], doing: ['En cours', '#D9771F'], wait: ['En attente client', '#8A94A3'], done: ['Résolu', '#1A8F4E'] };
+    var PR = { P1: 'background: #FCEBEC; color: #B4232A', P2: 'background: #FDF2E6; color: #A35A12', P3: 'background: #F1F3F6; color: #3A4555' };
+    function set(o) { self.setState(o); }
+    var T = s.tickets;
+    var q = s.q.trim().toLowerCase();
+    var filt = T.map(function (t, i) { return { t: t, i: i }; }).filter(function (x) {
+      var t = x.t;
+      if (s.view === 'open' && t.st === 'done') return false;
+      if (s.view === 'mine' && (t.assignee !== 'Newfel' || t.st === 'done')) return false;
+      if (s.view === 'done' && t.st !== 'done') return false;
+      if (q && (t.id + t.title + t.client + t.dev).toLowerCase().indexOf(q) === -1) return false;
+      return true;
+    });
+    var selIdx = filt.some(function (x) { return x.i === s.sel; }) ? s.sel : (filt[0] ? filt[0].i : 0);
+    var c = T[selIdx];
+    var kb = this.KB.filter(function (k) { return k.id === c.kb; })[0];
+    function now() { var d = new Date(); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+    function upd(fn) { var arr = T.map(function (t) { return Object.assign({}, t, { events: t.events.slice(), tele: t.tele.slice() }); }); fn(arr[selIdx]); set({ tickets: arr }); }
+    var ACT = [['reboot', 'Redémarrer le boîtier', 'Redémarrage effectué, boîtier reconnecté en 38 s'], ['logs', 'Relire les journaux', 'Journaux récupérés : 6 « ACK timeout » depuis 08:02'], ['fw', 'Forcer la mise à jour 2.4.1', 'Mise à jour 2.4.1 installée et vérifiée'], ['reseal', 'Resceller pour maintenance', 'Boîtier rescellé, le Facility manager a été prévenu']];
+    var CATS = ['Anneau', 'Réseau', 'Descellement', 'Batterie', 'Bouton'];
+    var kq = s.kq.trim().toLowerCase();
+    var arts = this.KB.filter(function (k) { return (s.kcat === 'Tous' || k.cat === s.kcat) && (!kq || (k.t + k.cause + k.cat).toLowerCase().indexOf(kq) !== -1); });
+    function openNewWith(o) { set(Object.assign({ newOpen: true, nErr: false }, o || {})); }
+    var openN = T.filter(function (t) { return t.st !== 'done'; }).length;
+    return {
+      nav_tickets: s.nav === 'tickets' ? 'true' : 'false', nav_kb: s.nav === 'kb' ? 'true' : 'false',
+      go_tickets: function () { set({ nav: 'tickets' }); }, go_kb: function () { set({ nav: 'kb' }); },
+      navn_tickets: openN, navn_kb: this.KB.length,
+      isTickets: s.nav === 'tickets', isKb: s.nav === 'kb',
+      views: [['open', 'Ouverts', openN], ['mine', 'Les miens', T.filter(function (t) { return t.assignee === 'Newfel' && t.st !== 'done'; }).length], ['done', 'Résolus', T.filter(function (t) { return t.st === 'done'; }).length]].map(function (v) { return { l: v[1], n: v[2], on: s.view === v[0] ? 'true' : 'false', pick: function () { set({ view: v[0] }); } }; }),
+      stats: [{ l: 'Tickets ouverts', v: String(openN) }, { l: 'Délai de première réponse', v: '18 min' }, { l: 'Résolus à distance', v: '72 %' }, { l: 'Boîtiers hors ligne', v: '3 sur 1 284' }],
+      q: s.q, onQ: function (e) { set({ q: e.target.value }); },
+      list: filt.map(function (x) { var t = x.t; return { id: t.id, prio: t.prio, prioStyle: 'display: inline-flex; height: 20px; padding: 0 6px; border-radius: 5px; font-size: 11px; font-weight: 600; align-items: center; ' + PR[t.prio], age: t.age, title: t.title, client: t.client.split(' · ')[0], dev: t.dev, status: STL[t.st][0], dot: 'background: ' + STL[t.st][1], sel: x.i === selIdx ? 'true' : 'false', pick: function () { set({ sel: x.i, reply: '' }); } }; }),
+      empty: filt.length === 0,
+      cur: { id: c.id, prio: c.prio, prioStyle: 'display: inline-flex; height: 22px; padding: 0 7px; border-radius: 6px; font-size: 12px; font-weight: 600; align-items: center; ' + PR[c.prio], source: c.source, statusKey: c.st, title: c.title, client: c.client, space: c.space, dev: c.dev, assignee: c.assignee, canTake: c.assignee !== 'Newfel', desc: c.desc, hasKb: !!kb, kbTitle: kb ? kb.t : '', kbFix: kb ? kb.steps[kb.steps.length > 2 ? 2 : 0] : '',
+        events: c.events.map(function (e) { var col = e.who === 'Système' ? '#8A94A3' : (e.who === 'Client' ? '#D9771F' : '#1E56D6'); return { t: e.t, when: e.when, who: e.who, style: '--c: ' + col }; }),
+        tele: c.tele.map(function (m) { return { k: m[0], v: m[1], style: 'margin: 0; text-align: right; font-weight: 500; color: ' + (m[2] ? '#B4232A' : '#0E1726') }; }) },
+      onStatus: function (e) { var v = e.target.value; upd(function (t) { t.st = v; t.events.push({ t: 'Statut passé à « ' + STL[v][0] + ' »', when: now(), who: 'Newfel' }); }); },
+      take: function () { upd(function (t) { t.assignee = 'Newfel'; if (t.st === 'new') t.st = 'doing'; t.events.push({ t: 'Ticket attribué à Newfel', when: now(), who: 'Newfel' }); }); },
+      openKb: function () { set({ nav: 'kb', kopen: c.kb, kcat: 'Tous', kq: '' }); },
+      reply: s.reply, onReply: function (e) { set({ reply: e.target.value }); }, replyEmpty: !s.reply.trim(),
+      sendReply: function (e) { e.preventDefault(); var m = s.reply.trim(); if (!m) return; upd(function (t) { t.events.push({ t: 'Réponse envoyée : « ' + m + ' »', when: now(), who: 'Newfel' }); if (t.st === 'new') t.st = 'doing'; }); self.setState({ reply: '' }); },
+      noteOnly: function () { var m = s.reply.trim(); if (!m) return; upd(function (t) { t.events.push({ t: 'Note interne : ' + m, when: now(), who: 'Newfel' }); }); self.setState({ reply: '' }); },
+      actions: ACT.map(function (a) { return { l: s.busy === a[0] ? 'En cours' : a[1], busy: s.busy === a[0], off: !!s.busy || c.st === 'done',
+        run: function () { set({ busy: a[0] }); clearTimeout(self.t); self.t = setTimeout(function () {
+          var arr = self.state.tickets.map(function (t) { return Object.assign({}, t, { events: t.events.slice() }); });
+          arr[selIdx].events.push({ t: a[2], when: now(), who: 'Newfel' });
+          self.setState({ tickets: arr, busy: '' }); }, 1300); } }; }),
+      kq: s.kq, onKq: function (e) { set({ kq: e.target.value }); },
+      cats: ['Tous'].concat(CATS).map(function (k) { return { l: k, on: s.kcat === k ? 'true' : 'false', pick: function () { set({ kcat: k }); } }; }),
+      articles: arts.map(function (k) { var open = s.kopen === k.id; return { cat: k.cat, t: k.t, meta: k.meta, cause: k.cause, steps: k.steps, isOpen: open, open: open ? 'true' : 'false', chev: 'display: flex; transition: transform .2s ease; transform: rotate(' + (open ? 180 : 0) + 'deg)', toggle: function () { set({ kopen: open ? '' : k.id }); },
+        newTicket: function () { openNewWith({ nTitle: k.t, nCat: k.cat, nDesc: 'Procédure suivie : ' + k.steps.join(' ') }); } }; }),
+      kEmpty: arts.length === 0,
+      openNew: function () { openNewWith({ nTitle: '', nDesc: '', nDev: '' }); }, closeNew: function () { set({ newOpen: false }); },
+      scrim: 'position: fixed; inset: 0; background: rgba(14,23,38,0.28); z-index: 40; transition: opacity .2s ease; ' + (s.newOpen ? 'opacity: 1' : 'opacity: 0; pointer-events: none'),
+      drawer: 'position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100%); background: #FFFFFF; z-index: 41; display: flex; flex-direction: column; box-shadow: -20px 0 50px rgba(14,23,38,0.15); transition: transform .25s cubic-bezier(.2,.8,.2,1); transform: translateX(' + (s.newOpen ? '0' : '105%') + ')',
+      nTitle: s.nTitle, onNTitle: function (e) { set({ nTitle: e.target.value, nErr: false }); }, nTitleStyle: s.nErr ? 'border-color: #D63F45' : '',
+      clients: ['Client pilote · Siège Bâtiment A', 'Client B · Campus Nord', 'Client C · Tour Ouest'], nClient: s.nClient, onNClient: function (e) { set({ nClient: e.target.value }); },
+      nDev: s.nDev, onNDev: function (e) { set({ nDev: e.target.value }); },
+      catNames: CATS, nCat: s.nCat, onNCat: function (e) { set({ nCat: e.target.value }); },
+      prios: ['P1', 'P2', 'P3'].map(function (p) { return { l: p, on: s.nPrio === p ? 'true' : 'false', pick: function () { set({ nPrio: p }); } }; }),
+      nDesc: s.nDesc, onNDesc: function (e) { set({ nDesc: e.target.value }); },
+      nErrStyle: s.nErr ? 'font-size: 13px; color: #B4232A' : 'display: none',
+      createTicket: function (e) {
+        e.preventDefault();
+        if (!s.nTitle.trim()) { set({ nErr: true }); return; }
+        var id = 'T-' + (1049 + T.length - 5);
+        var kbm = self.KB.filter(function (k) { return k.cat === s.nCat; })[0];
+        var t = { id: id, prio: s.nPrio, title: s.nTitle.trim(), client: s.nClient, space: 'À préciser', dev: s.nDev || 'Non renseigné', source: 'Équipe 3istor', st: 'new', age: 'à l’instant', assignee: 'Non assigné', kb: kbm ? kbm.id : '', desc: s.nDesc || 'Pas de description.', tele: [['Dernier signal', 'en attente'], ['Firmware', 'en attente']], events: [{ t: 'Ticket créé par Newfel', when: now(), who: 'Newfel' }] };
+        var arr = [t].concat(T);
+        set({ tickets: arr, sel: 0, newOpen: false, nav: 'tickets', view: 'open', q: '' });
+      }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

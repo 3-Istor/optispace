@@ -1,0 +1,23 @@
+import uuid
+from datetime import datetime
+
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app import clock
+from app.database import Base
+
+
+class AppUser(Base):
+    __tablename__ = "app_user"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    # The token's `sub`: stable, unlike the e-mail address or the username.
+    keycloak_sub: Mapped[str] = mapped_column(unique=True)
+    email: Mapped[str | None]
+    display_name: Mapped[str | None]
+    phone: Mapped[str | None]
+    notify_push: Mapped[bool] = mapped_column(default=True)
+    notify_in_app: Mapped[bool] = mapped_column(default=True)
+    alert_device_offline: Mapped[bool] = mapped_column(default=True)
+    alert_device_sealed: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())

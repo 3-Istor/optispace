@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Paramètres des espaces</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+.bell{position:relative}
+.bell>summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#3A4555;border:1px solid #DCE1E8;background:#FFFFFF;position:relative;transition:background-color .15s ease}
+.bell>summary::-webkit-details-marker{display:none}
+.bell>summary:hover{background:#F6F7F9}
+.bell .cnt{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#D63F45;color:#FFFFFF;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #F6F7F9}
+.bell .menu{position:absolute;right:0;top:44px;width:360px;background:#FFFFFF;border:1px solid #E4E8EE;border-radius:12px;box-shadow:0 16px 40px rgba(14,23,38,.14);z-index:50;overflow:hidden;animation:fd .18s ease-out;text-align:left}
+.ntf{display:flex;gap:12px;padding:12px 16px;border-top:1px solid #EEF1F5}
+.ntf i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+</helmet>
+<div class="shell" style="display: flex; min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9">
+<aside class="side" style="width: 244px; flex: none; align-self: stretch; background: #FBFBFC; border-right: 1px solid #E4E8EE"><div class="side" style="position: sticky; top: 0; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; padding: 18px 12px"><a href="AdminDashboard.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 2px 6px; color: #0E1726"><img src="img/3istor.png" alt="3istor" style="height: 30px; width: auto; display: block"><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 500">OptiSpace</span><span style="font-size: 11px; color: #5B6676">Facility management</span></span></a><span style="font-size: 12px; color: #5B6676; padding: 0 8px">Siège · Bâtiment A</span><nav aria-label="Navigation" style="display: flex; flex-direction: column; gap: 18px"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Pilotage</span><a class="nav-i" href="AdminDashboard.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h4v7H3zM10 4h4v16h-4zM17 9h4v11h-4z"></path></svg>Tableau de bord</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Espaces</span><a class="nav-i" href="AdminSalles.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 11h18M11 4v16"></path></svg>Salles et bulles</a><a class="nav-i" href="AdminBoitier.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg>Boîtiers</a><a class="nav-i" href="AdminReglages.dc.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Paramètres</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Compte</span><a class="nav-i" href="AdminProfil.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"></path></svg>Profil</a></div></nav><div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 6px 0; border-top: 1px solid #E4E8EE"><span style="width: 30px; height: 30px; border-radius: 50%; background: #E7ECF4; color: #1747B3; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">CM</span><span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1"><span style="font-size: 13px; font-weight: 500">Camille Martin</span><span style="font-size: 11px; color: #5B6676">Facility manager</span></span><a href="Main.dc.html" class="btn btn-g" style="width: 30px; height: 30px; padding: 0" aria-label="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"></path></svg></a></div></div></aside><main style="flex: 1; min-width: 0; padding: 26px 36px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px"><header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: #8A94A3">Espaces / Paramètres</span><h1 style="font-size: 24px">Paramètres des espaces</h1></div><div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><details class="bell"><summary aria-label="Notifications, 2 non lues"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="cnt num">2</span></summary><div class="menu"><div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px"><span style="font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 500">Notifications</span><a href="#" style="font-size: 12px">Tout marquer comme lu</a></div><div style="margin: 0 12px 12px; padding: 12px; border-radius: 10px; background: #F3F6FD; border: 1px solid #DCE6FA; display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 500">Activer les notifications du navigateur</span><span class="muted" style="font-size: 12px; line-height: 1.45">Soyez prévenu d’une absence ou d’une libération même quand OptiSpace est fermé.</span><span style="display: flex; gap: 8px"><button type="button" class="btn btn-p" style="height: 30px; font-size: 13px">Activer</button><button type="button" class="btn btn-g" style="height: 30px; font-size: 13px">Plus tard</button></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #D63F45"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier hors ligne</span><span class="num muted" style="font-size: 12px">09:13</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas est hors ligne depuis 09:12.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #2F6FE0"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier rescellé</span><span class="num muted" style="font-size: 12px">08:40</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas a été rescellé.</span></span></div><div class="ntf" style="background: #FFFFFF"><i style="background: #8A94A3"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Réservation libérée</span><span class="num muted" style="font-size: 12px">hier</span></span><span style="font-size: 13px; line-height: 1.45">La réservation d’Atlas a été libérée à 14:10.</span></span></div></div></details></div></header><section class="card cols" style="display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 28px; padding: 22px 24px">
+  <div style="display: flex; flex-direction: column; gap: 6px"><h2 style="font-size: 15px">Délai d’absence</h2><p class="muted" style="margin: 0; font-size: 13px; line-height: 1.55">S’applique à tous les espaces du site. Passé ce délai sans présence détectée, le reste de la réservation est libéré et l’organisateur est prévenu.</p></div>
+  <div style="display: flex; flex-direction: column"><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0;">
+  <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Délai avant libération</span><span class="muted" style="font-size: 12px">Par défaut 10 minutes</span></span>
+  <span style="display: flex; align-items: center; gap: 8px"><button type="button" class="step" aria-label="Diminuer" onClick="{{delay.dec}}" disabled="{{delay.minHit}}">−</button><span class="num" style="min-width: 74px; text-align: center; font-weight: 500">{{delay.text}}</span><button type="button" class="step" aria-label="Augmenter" onClick="{{delay.inc}}" disabled="{{delay.maxHit}}">+</button></span>
+</div></div>
+</section><section class="card cols" style="display: grid; grid-template-columns: minmax(0, 280px) minmax(0, 1fr); gap: 28px; padding: 22px 24px">
+  <div style="display: flex; flex-direction: column; gap: 6px"><h2 style="font-size: 15px">Durées de réservation</h2><p class="muted" style="margin: 0; font-size: 13px; line-height: 1.55">Bornes proposées aux employés. Les créneaux se réservent sur des multiples de 5 minutes. Une durée propre à un espace reste possible depuis sa fiche.</p></div>
+  <div style="display: flex; flex-direction: column"><div style="display: flex; flex-direction: column; gap: 2px; padding: 4px 0 8px"><span style="display: flex; align-items: center; gap: 8px; font-weight: 500; padding-top: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6676" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M7 10h10M7 14h6"></path></svg>Salles de réunion</span><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #EEF1F5;">
+  <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Durée minimum</span><span class="muted" style="font-size: 12px">Par pas de 5 minutes</span></span>
+  <span style="display: flex; align-items: center; gap: 8px"><button type="button" class="step" aria-label="Diminuer" onClick="{{roommin.dec}}" disabled="{{roommin.minHit}}">−</button><span class="num" style="min-width: 74px; text-align: center; font-weight: 500">{{roommin.text}}</span><button type="button" class="step" aria-label="Augmenter" onClick="{{roommin.inc}}" disabled="{{roommin.maxHit}}">+</button></span>
+</div><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0;">
+  <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Durée maximum</span><span class="muted" style="font-size: 12px">Par pas de 5 minutes</span></span>
+  <span style="display: flex; align-items: center; gap: 8px"><button type="button" class="step" aria-label="Diminuer" onClick="{{roommax.dec}}" disabled="{{roommax.minHit}}">−</button><span class="num" style="min-width: 74px; text-align: center; font-weight: 500">{{roommax.text}}</span><button type="button" class="step" aria-label="Augmenter" onClick="{{roommax.inc}}" disabled="{{roommax.maxHit}}">+</button></span>
+</div><p role="status" style="{{roomMsgStyle}}">{{roomMsg}}</p></div><div style="height: 1px; background: #E4E8EE; margin: 6px 0"></div><div style="display: flex; flex-direction: column; gap: 2px; padding: 4px 0 8px"><span style="display: flex; align-items: center; gap: 8px; font-weight: 500; padding-top: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6676" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"></rect></svg>Bulles individuelles</span><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #EEF1F5;">
+  <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Durée minimum</span><span class="muted" style="font-size: 12px">Par pas de 5 minutes</span></span>
+  <span style="display: flex; align-items: center; gap: 8px"><button type="button" class="step" aria-label="Diminuer" onClick="{{bubblemin.dec}}" disabled="{{bubblemin.minHit}}">−</button><span class="num" style="min-width: 74px; text-align: center; font-weight: 500">{{bubblemin.text}}</span><button type="button" class="step" aria-label="Augmenter" onClick="{{bubblemin.inc}}" disabled="{{bubblemin.maxHit}}">+</button></span>
+</div><div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 0;">
+  <span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 500">Durée maximum</span><span class="muted" style="font-size: 12px">Par pas de 5 minutes</span></span>
+  <span style="display: flex; align-items: center; gap: 8px"><button type="button" class="step" aria-label="Diminuer" onClick="{{bubblemax.dec}}" disabled="{{bubblemax.minHit}}">−</button><span class="num" style="min-width: 74px; text-align: center; font-weight: 500">{{bubblemax.text}}</span><button type="button" class="step" aria-label="Augmenter" onClick="{{bubblemax.inc}}" disabled="{{bubblemax.maxHit}}">+</button></span>
+</div><p role="status" style="{{bubbleMsgStyle}}">{{bubbleMsg}}</p></div></div>
+</section>
+<div aria-live="polite" style="{{barStyle}}">
+  <span style="font-size: 14px">{{barText}}</span>
+  <span style="display: flex; gap: 8px"><button type="button" class="btn btn-s" onClick="{{discard}}" disabled="{{clean}}">Annuler</button><button type="button" class="btn btn-p" onClick="{{save}}" disabled="{{saveOff}}">Enregistrer</button></span>
+</div>
+</main></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.DEF = { delay: 10, roommin: 30, roommax: 180, bubblemin: 15, bubblemax: 60 };
+    this.state = { saved: Object.assign({}, this.DEF), draft: Object.assign({}, this.DEF), savedAt: '' };
+  }
+  renderVals() {
+    var self = this, s = this.state, d = s.draft;
+    function fmt(m) { var h = Math.floor(m / 60), r = m % 60; return h ? (h + ' h' + (r ? ' ' + ('0' + r).slice(-2) : '')) : r + ' min'; }
+    function set(k, v) { var n = Object.assign({}, d); n[k] = v; self.setState({ draft: n, savedAt: '' }); }
+    function num(k, step, lo, hi, f) { var v = d[k]; return { text: (f || fmt)(v), dec: function () { set(k, Math.max(lo, v - step)); }, inc: function () { set(k, Math.min(hi, v + step)); }, minHit: v <= lo, maxHit: v >= hi }; }
+    var dirty = JSON.stringify(d) !== JSON.stringify(s.saved);
+    var badR = d.roommin >= d.roommax, badB = d.bubblemin >= d.bubblemax;
+    function msg(min, max, bad) { return bad ? 'La durée minimum doit être inférieure à la durée maximum.' : 'Réservable de ' + fmt(min) + ' à ' + fmt(max) + '.'; }
+    function mst(bad) { return 'margin: 10px 0 0; font-size: 13px; color: ' + (bad ? '#B4232A' : '#5B6676'); }
+    return {
+      delay: num('delay', 1, 2, 30, function (v) { return v + ' min'; }),
+      roommin: num('roommin', 5, 5, 480), roommax: num('roommax', 5, 5, 480), bubblemin: num('bubblemin', 5, 5, 240), bubblemax: num('bubblemax', 5, 5, 240),
+      roomMsg: msg(d.roommin, d.roommax, badR), roomMsgStyle: mst(badR), bubbleMsg: msg(d.bubblemin, d.bubblemax, badB), bubbleMsgStyle: mst(badB),
+      barStyle: 'position: sticky; bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; border-radius: 10px; background: #0E1726; color: #FFFFFF; box-shadow: 0 10px 30px rgba(14,23,38,0.2); transition: opacity .2s ease, transform .2s ease; ' + (dirty || s.savedAt ? 'opacity: 1; transform: none' : 'opacity: 0; transform: translateY(8px); pointer-events: none'),
+      barText: s.savedAt ? 'Paramètres enregistrés à ' + s.savedAt + ' (prototype : rien n’est envoyé)' : (badR || badB ? 'Corrigez les durées incohérentes avant d’enregistrer' : 'Modifications non enregistrées'),
+      clean: !dirty, saveOff: !dirty || badR || badB,
+      discard: function () { self.setState({ draft: Object.assign({}, s.saved), savedAt: '' }); },
+      save: function () { var n = new Date(); self.setState({ saved: Object.assign({}, d), savedAt: ('0' + n.getHours()).slice(-2) + ':' + ('0' + n.getMinutes()).slice(-2) }); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

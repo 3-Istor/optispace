@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Connexion</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+.bell{position:relative}
+.bell>summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#3A4555;border:1px solid #DCE1E8;background:#FFFFFF;position:relative;transition:background-color .15s ease}
+.bell>summary::-webkit-details-marker{display:none}
+.bell>summary:hover{background:#F6F7F9}
+.bell .cnt{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#D63F45;color:#FFFFFF;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #F6F7F9}
+.bell .menu{position:absolute;right:0;top:44px;width:360px;background:#FFFFFF;border:1px solid #E4E8EE;border-radius:12px;box-shadow:0 16px 40px rgba(14,23,38,.14);z-index:50;overflow:hidden;animation:fd .18s ease-out;text-align:left}
+.ntf{display:flex;gap:12px;padding:12px 16px;border-top:1px solid #EEF1F5}
+.ntf i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+<style>
+.bgdots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(14,23,38,0.10) 1px,transparent 1.4px);background-size:22px 22px}
+.bgspot{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(30,86,214,0.55) 1.2px,transparent 1.7px);background-size:22px 22px;-webkit-mask-image:radial-gradient(220px circle at var(--mx,-500px) var(--my,-500px),#000 0%,rgba(0,0,0,0.35) 45%,transparent 75%);mask-image:radial-gradient(220px circle at var(--mx,-500px) var(--my,-500px),#000 0%,rgba(0,0,0,0.35) 45%,transparent 75%)}
+.bgfade{position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 45%,#F6F7F9 30%,rgba(246,247,249,0) 100%)}
+</style>
+</helmet>
+<div ref="{{setRoot}}" style="position: relative; min-height: 100vh; overflow: hidden; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9; display: flex; flex-direction: column">
+  <div class="bgdots" aria-hidden="true"></div>
+  <div class="bgfade" aria-hidden="true"></div>
+  <div class="bgspot" aria-hidden="true"></div>
+  <main style="position: relative; flex: 1; display: flex; align-items: center; justify-content: center; padding: 48px 20px">
+    <div style="width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 28px">
+      <a href="LandingI.dc.html" style="display: flex; align-items: center; gap: 10px; color: #0E1726; align-self: center"><img src="img/3istor.png" alt="3istor" style="height: 38px; width: auto; display: block"><span style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 500">OptiSpace</span></a>
+      <section class="card" style="padding: 28px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 2px rgba(14,23,38,0.04), 0 12px 32px rgba(14,23,38,0.06)">
+        <div style="display: flex; flex-direction: column; gap: 6px"><h1 style="font-size: 22px">Bienvenue sur OptiSpace</h1><p class="muted" style="margin: 0; line-height: 1.5">Connectez-vous avec le compte de votre entreprise.</p></div>
+        <a href="#" class="btn btn-p" onClick="{{go}}" style="height: 42px">{{cta}}</a>
+        <a href="#" class="btn btn-s" onClick="{{goSignup}}" style="height: 42px">Créer un compte</a>
+        <p class="muted" style="margin: 0; font-size: 12px; line-height: 1.5; display: flex; gap: 8px; align-items: flex-start"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8A94A3" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg><span>Vous serez redirigé vers la page d’authentification sécurisée (Keycloak).</span></p>
+      </section>
+      <p class="muted" style="margin: 0; font-size: 12px; line-height: 1.6; text-align: center">Aperçu de la maquette : <a href="EmployeRecherche.dc.html">espace employé</a> · <a href="AdminDashboard.dc.html">espace Facility manager</a> · <a href="Support.dc.html">console support</a></p>
+    </div>
+  </main>
+  <footer style="position: relative; display: flex; justify-content: center; gap: 18px; padding: 18px; font-size: 12px; color: #8A94A3"><span>OptiSpace par 3istor</span><a href="#" style="color: #5B6676">Confidentialité</a><a href="#" style="color: #5B6676">Aide</a></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    var self = this;
+    this.state = { email: '', pwd: '', err: '', busy: false };
+    this.m = { x: -500, y: -500, tx: -500, ty: -500 };
+    this.setRoot = function (el) { if (el && el !== self.root) { self.root = el; } };
+  }
+  componentDidMount() {
+    var self = this, reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    this.onMove = function (e) {
+      if (!self.root) return; var r = self.root.getBoundingClientRect();
+      self.m.tx = e.clientX - r.left; self.m.ty = e.clientY - r.top;
+      if (reduce) { self.m.x = self.m.tx; self.m.y = self.m.ty; paint(); return; }
+      if (!self.raf) self.raf = requestAnimationFrame(step);
+    };
+    function paint() { self.root.style.setProperty('--mx', self.m.x.toFixed(1) + 'px'); self.root.style.setProperty('--my', self.m.y.toFixed(1) + 'px'); }
+    function step() {
+      var m = self.m; if (m.x < -400) { m.x = m.tx; m.y = m.ty; }
+      m.x += (m.tx - m.x) * 0.14; m.y += (m.ty - m.y) * 0.14; paint();
+      self.raf = (Math.abs(m.tx - m.x) > 0.4 || Math.abs(m.ty - m.y) > 0.4) ? requestAnimationFrame(step) : 0;
+    }
+    window.addEventListener('pointermove', this.onMove, { passive: true });
+  }
+  componentWillUnmount() { window.removeEventListener('pointermove', this.onMove); cancelAnimationFrame(this.raf); clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state;
+    return {
+      setRoot: this.setRoot, cta: s.busy ? 'Redirection vers Keycloak' : 'Se connecter',
+      go: function (e) { e.preventDefault(); self.setState({ busy: true }); clearTimeout(self.t); self.t = setTimeout(function () { self.setState({ busy: false }); }, 1600); },
+      goSignup: function (e) { e.preventDefault(); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

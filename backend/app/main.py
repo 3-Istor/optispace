@@ -3,9 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import check_database_connection, is_database_enabled
+from app.errors import DomainError, domain_error_handler
+from app.routers import alerts, devices, insights, me, notifications, push, reservations, spaces, telemetry
+from app.routers import settings as settings_routes
 
 settings = get_settings()
-app = FastAPI(title="Cloud Native Template API")
+app = FastAPI(title="OptiSpace API")
+app.add_exception_handler(DomainError, domain_error_handler)
+for module in (
+    me, settings_routes, spaces, reservations, alerts, notifications, push, devices, insights, telemetry,
+):
+    app.include_router(module.router, prefix="/api/v1")
 
 app.add_middleware(
     CORSMiddleware,

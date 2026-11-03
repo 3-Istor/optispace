@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>OptiSpace · Boîtiers</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Sora:wght@400;500&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F6F7F9;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:'Sora',system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:-0.02em;color:#0E1726}
+a{color:#1E56D6;text-decoration:none}a:hover{color:#1747B3}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:#5B6676}
+.btn{height:36px;padding:0 14px;border-radius:8px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;white-space:nowrap;transition:background-color .15s ease,border-color .15s ease,transform .1s ease-out,opacity .15s ease;text-decoration:none;box-sizing:border-box}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-p{background:#1E56D6;color:#FFFFFF;border:1px solid #1E56D6}.btn-p:hover{background:#1A4CC0;color:#FFFFFF}
+.btn-s{background:#FFFFFF;color:#0E1726;border:1px solid #DCE1E8}.btn-s:hover{background:#F6F7F9;color:#0E1726}
+.btn-g{background:transparent;color:#3A4555;border:1px solid transparent}.btn-g:hover{background:#EEF1F5}
+.btn-d{background:#FFFFFF;color:#B4232A;border:1px solid #F0C9CB}.btn-d:hover{background:#FDF3F3}
+.card{background:#FFFFFF;border:1px solid #E4E8EE;border-radius:10px}
+.lbl{font-size:12px;color:#5B6676;font-weight:500}
+.input{height:36px;border:1px solid #DCE1E8;border-radius:8px;padding:0 12px;font:inherit;font-size:14px;background:#FFFFFF;color:#0E1726;outline:none;box-sizing:border-box;transition:border-color .15s ease,box-shadow .15s ease}
+.input:focus{border-color:#1E56D6;box-shadow:0 0 0 3px rgba(30,86,214,.14)}
+.seg{display:inline-flex;background:#EEF1F5;border-radius:8px;padding:3px;gap:2px}
+.seg button{height:30px;padding:0 12px;border:0;border-radius:6px;background:transparent;font:inherit;font-size:13px;font-weight:500;color:#5B6676;cursor:pointer;transition:background-color .15s ease,color .15s ease;white-space:nowrap}
+.seg button[aria-pressed="true"]{background:#FFFFFF;color:#0E1726;box-shadow:0 1px 2px rgba(14,23,38,.1)}
+.nav-i{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:7px;color:#3A4555;font-size:14px;font-weight:500;transition:background-color .15s ease}
+.nav-i:hover{background:#EEF1F5;color:#0E1726}
+.nav-i[aria-current="page"]{background:#EAF0FD;color:#1747B3}
+.st{display:inline-flex;align-items:center;gap:7px;font-size:13px;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-size:12px;font-weight:500;color:#5B6676;padding:10px 14px;border-bottom:1px solid #E4E8EE;white-space:nowrap}
+.tbl td{padding:12px 14px;border-bottom:1px solid #EEF1F5;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.row{cursor:pointer;transition:background-color .12s ease}.row:hover{background:#F8F9FB}
+.row[aria-selected="true"]{background:#F3F6FD}
+.tog{position:relative;width:34px;height:20px;border-radius:999px;border:0;padding:0;cursor:pointer;transition:background-color .15s ease;flex:none}
+.tog span{position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#FFFFFF;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:transform .18s cubic-bezier(.2,.8,.2,1)}
+.tog[aria-checked="true"] span{transform:translateX(14px)}
+.step{width:28px;height:28px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:16px;color:#0E1726;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background-color .15s ease}
+.step:hover{background:#F6F7F9}.step:disabled{opacity:.4;cursor:not-allowed}
+.chip{height:30px;padding:0 11px;border-radius:7px;border:1px solid #DCE1E8;background:#FFFFFF;font:inherit;font-size:13px;color:#3A4555;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease}
+.chip[aria-pressed="true"]{background:#EAF0FD;border-color:#BCD0F7;color:#1747B3}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#FFFFFF;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fade{animation:fd .25s ease-out}
+.bell{position:relative}
+.bell>summary{list-style:none;cursor:pointer;width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#3A4555;border:1px solid #DCE1E8;background:#FFFFFF;position:relative;transition:background-color .15s ease}
+.bell>summary::-webkit-details-marker{display:none}
+.bell>summary:hover{background:#F6F7F9}
+.bell .cnt{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;border-radius:9px;background:#D63F45;color:#FFFFFF;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #F6F7F9}
+.bell .menu{position:absolute;right:0;top:44px;width:360px;background:#FFFFFF;border:1px solid #E4E8EE;border-radius:12px;box-shadow:0 16px 40px rgba(14,23,38,.14);z-index:50;overflow:hidden;animation:fd .18s ease-out;text-align:left}
+.ntf{display:flex;gap:12px;padding:12px 16px;border-top:1px solid #EEF1F5}
+.ntf i{width:8px;height:8px;border-radius:50%;margin-top:6px;flex:none}
+@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #1E56D6;outline-offset:2px}
+@media (max-width: 960px){.shell{flex-direction:column !important}.side{position:static !important;width:100% !important;height:auto !important;border-right:0 !important;border-bottom:1px solid #E4E8EE}.cols{grid-template-columns:1fr !important}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+</helmet>
+<div class="shell" style="display: flex; min-height: 100vh; font-family: 'DM Sans', system-ui, sans-serif; font-size: 14px; color: #0E1726; background: #F6F7F9">
+<aside class="side" style="width: 244px; flex: none; align-self: stretch; background: #FBFBFC; border-right: 1px solid #E4E8EE"><div class="side" style="position: sticky; top: 0; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px; padding: 18px 12px"><a href="AdminDashboard.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 2px 6px; color: #0E1726"><img src="img/3istor.png" alt="3istor" style="height: 30px; width: auto; display: block"><span style="display: flex; flex-direction: column; line-height: 1.2"><span style="font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 500">OptiSpace</span><span style="font-size: 11px; color: #5B6676">Facility management</span></span></a><span style="font-size: 12px; color: #5B6676; padding: 0 8px">Siège · Bâtiment A</span><nav aria-label="Navigation" style="display: flex; flex-direction: column; gap: 18px"><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Pilotage</span><a class="nav-i" href="AdminDashboard.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 13h4v7H3zM10 4h4v16h-4zM17 9h4v11h-4z"></path></svg>Tableau de bord</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Espaces</span><a class="nav-i" href="AdminSalles.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 11h18M11 4v16"></path></svg>Salles et bulles</a><a class="nav-i" href="AdminBoitier.dc.html" aria-current="page"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg>Boîtiers</a><a class="nav-i" href="AdminReglages.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="17" r="2"></circle></svg>Paramètres</a></div><div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; color: #8A94A3; padding: 0 10px 4px; letter-spacing: 0.02em">Compte</span><a class="nav-i" href="AdminProfil.dc.html"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"></circle><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"></path></svg>Profil</a></div></nav><div style="margin-top: auto; display: flex; align-items: center; gap: 10px; padding: 10px 6px 0; border-top: 1px solid #E4E8EE"><span style="width: 30px; height: 30px; border-radius: 50%; background: #E7ECF4; color: #1747B3; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center">CM</span><span style="display: flex; flex-direction: column; line-height: 1.25; min-width: 0; flex: 1"><span style="font-size: 13px; font-weight: 500">Camille Martin</span><span style="font-size: 11px; color: #5B6676">Facility manager</span></span><a href="Main.dc.html" class="btn btn-g" style="width: 30px; height: 30px; padding: 0" aria-label="Déconnexion"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h5v16h-5M10 8l-4 4 4 4M6 12h10"></path></svg></a></div></div></aside><main style="flex: 1; min-width: 0; padding: 26px 36px 56px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px"><header style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px"><div style="display: flex; flex-direction: column; gap: 6px"><span style="font-size: 12px; color: #8A94A3">Espaces / Boîtiers</span><h1 style="font-size: 24px">Boîtiers</h1></div><div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px"><span class="muted" style="font-size: 13px">6 boîtiers sur ce site</span><details class="bell"><summary aria-label="Notifications, 2 non lues"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"></path><path d="M10 20.5a2 2 0 0 0 4 0"></path></svg><span class="cnt num">2</span></summary><div class="menu"><div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px"><span style="font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 500">Notifications</span><a href="#" style="font-size: 12px">Tout marquer comme lu</a></div><div style="margin: 0 12px 12px; padding: 12px; border-radius: 10px; background: #F3F6FD; border: 1px solid #DCE6FA; display: flex; flex-direction: column; gap: 8px"><span style="font-size: 13px; font-weight: 500">Activer les notifications du navigateur</span><span class="muted" style="font-size: 12px; line-height: 1.45">Soyez prévenu d’une absence ou d’une libération même quand OptiSpace est fermé.</span><span style="display: flex; gap: 8px"><button type="button" class="btn btn-p" style="height: 30px; font-size: 13px">Activer</button><button type="button" class="btn btn-g" style="height: 30px; font-size: 13px">Plus tard</button></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #D63F45"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier hors ligne</span><span class="num muted" style="font-size: 12px">09:13</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas est hors ligne depuis 09:12.</span></span></div><div class="ntf" style="background: #FBFCFE"><i style="background: #2F6FE0"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Boîtier rescellé</span><span class="num muted" style="font-size: 12px">08:40</span></span><span style="font-size: 13px; line-height: 1.45">Le boîtier d’Atlas a été rescellé.</span></span></div><div class="ntf" style="background: #FFFFFF"><i style="background: #8A94A3"></i><span style="display: flex; flex-direction: column; gap: 3px; flex: 1"><span style="display: flex; justify-content: space-between; gap: 8px"><span style="font-size: 12px; font-weight: 600; color: #3A4555">Réservation libérée</span><span class="num muted" style="font-size: 12px">hier</span></span><span style="font-size: 13px; line-height: 1.45">La réservation d’Atlas a été libérée à 14:10.</span></span></div></div></details></div></header>
+<div class="cols" style="display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 20px; align-items: start">
+  <section class="card" aria-label="Liste des boîtiers" style="overflow: hidden">
+    <div style="display: flex; gap: 6px; padding: 12px; border-bottom: 1px solid #EEF1F5; flex-wrap: wrap">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="4">
+        <button type="button" class="chip" aria-pressed="{{f.on}}" onClick="{{f.pick}}">{{f.label}} <span class="num" style="color: #8A94A3">{{f.n}}</span></button>
+      </sc-for>
+    </div>
+    <ul role="listbox" aria-label="Boîtiers" style="list-style: none; margin: 0; padding: 4px 0">
+      <sc-for list="{{devices}}" as="d" hint-placeholder-count="6">
+        <li role="option" class="row" aria-selected="{{d.sel}}" onClick="{{d.pick}}" style="display: flex; align-items: center; gap: 12px; padding: 11px 14px">
+          <span style="{{d.iconStyle}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="3"></rect><circle cx="12" cy="12" r="3.2"></circle></svg></span>
+          <span style="display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.3">
+            <span class="num" style="font-size: 12.5px; font-weight: 500">{{d.id}}</span>
+            <span style="font-size: 12px; color: #5B6676; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{d.where}}</span>
+          </span>
+          <span class="st" style="font-size: 12px; color: #3A4555"><span class="dot" style="{{d.dot}}"></span>{{d.state}}</span>
+        </li>
+      </sc-for>
+    </ul>
+    <p class="muted" style="margin: 0; padding: 12px 14px; border-top: 1px solid #EEF1F5; font-size: 12px; line-height: 1.5">Les boîtiers apparaissent ici dès leur première connexion au réseau du site.</p>
+  </section>
+
+  <section class="card fade" aria-label="Détail du boîtier" style="overflow: hidden">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 20px 24px; border-bottom: 1px solid #E4E8EE">
+      <svg width="54" height="54" viewBox="0 0 54 54" aria-hidden="true" style="flex: none">
+        <rect x="1" y="1" width="52" height="52" rx="12" fill="#F7F8FA" stroke="#DCE1E8"></rect>
+        <rect x="8" y="8" width="38" height="38" rx="9" fill="#0E1726"></rect>
+        <circle cx="27" cy="27" r="9" fill="none" stroke="{{ringColor}}" stroke-width="3" style="transition: stroke .3s ease"></circle>
+      </svg>
+      <div style="display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 220px">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h2 class="num" style="font-size: 18px">{{cur.id}}</h2><span class="st" style="font-size: 12px; padding: 3px 9px; border-radius: 6px; background: #F1F3F6; color: #3A4555"><span class="dot" style="{{cur.dot}}"></span>{{cur.state}}</span></div>
+        <span class="muted" style="font-size: 13px">{{cur.where}}</span>
+      </div>
+      <dl style="display: grid; grid-template-columns: repeat(2, auto); gap: 4px 26px; margin: 0; font-size: 12px">
+        <dt class="muted">Dernière connexion</dt><dt class="muted">Firmware</dt>
+        <dd class="num" style="{{cur.seenStyle}}">{{cur.seen}}</dd><dd class="num" style="margin: 0; font-size: 13px; font-weight: 500">{{cur.fw}}</dd>
+      </dl>
+    </div>
+
+    <sc-if value="{{showFlow}}" hint-placeholder-val="{{true}}">
+      <div>
+        <ol aria-label="Étapes de mise en service" style="list-style: none; margin: 0; padding: 16px 24px; display: flex; gap: 6px; flex-wrap: wrap; border-bottom: 1px solid #EEF1F5">
+          <sc-for list="{{steps}}" as="s" hint-placeholder-count="3">
+            <li style="display: flex; align-items: center; gap: 8px; font-size: 13px; padding-right: 10px"><span style="{{s.badge}}">{{s.mark}}</span><span style="{{s.text}}">{{s.label}}</span><span style="{{s.line}}"></span></li>
+          </sc-for>
+        </ol>
+        <div style="padding: 26px 24px 28px; min-height: 260px; box-sizing: border-box">
+          <sc-if value="{{isAssign}}" hint-placeholder-val="{{true}}">
+            <div class="fade" style="display: flex; flex-direction: column; gap: 18px; max-width: 560px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><h3 style="font-size: 17px">Affecter le boîtier à un espace</h3><p class="muted" style="margin: 0; line-height: 1.55">Le boîtier est scellé : son anneau est bleu et il ne mesure rien tant qu’il n’est pas affecté puis descellé.</p></div>
+              <div style="display: flex; flex-direction: column; gap: 8px"><span class="lbl">Type d’espace</span>
+                <div class="seg" role="group" aria-label="Type d’espace">
+                  <button type="button" aria-pressed="{{typeRoom}}" onClick="{{pickRoom}}">Salle de réunion</button>
+                  <button type="button" aria-pressed="{{typeBubble}}" onClick="{{pickBubble}}">Bulle individuelle</button>
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 8px"><label for="sp" class="lbl">Espace</label>
+                <select id="sp" class="input" value="{{space}}" onChange="{{onSpace}}" style="max-width: 360px">
+                  <sc-for list="{{spaceOptions}}" as="o" hint-placeholder-count="4"><option value="{{o}}">{{o}}</option></sc-for>
+                </select>
+              </div>
+              <div><button type="button" class="btn btn-p" onClick="{{doAssign}}">Affecter</button></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isUnseal}}" hint-placeholder-val="{{false}}">
+            <div class="fade" style="display: flex; flex-direction: column; gap: 16px; max-width: 560px">
+              <div style="display: flex; flex-direction: column; gap: 6px"><h3 style="font-size: 17px">{{unsealTitle}}</h3><p class="muted" style="margin: 0; line-height: 1.55">{{unsealText}}</p></div>
+              <dl style="display: grid; grid-template-columns: 120px 1fr; gap: 8px 14px; margin: 0; font-size: 14px"><dt class="muted">Espace</dt><dd style="margin: 0; font-weight: 500">{{space}}</dd><dt class="muted">Type</dt><dd style="margin: 0">{{typeLabel}}</dd></dl>
+              <div style="display: flex; gap: 8px"><button type="button" class="btn btn-p" onClick="{{askUnseal}}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 7.6-1.7"></path></svg>Desceller</button><sc-if value="{{canChange}}" hint-placeholder-val="{{true}}"><button type="button" class="btn btn-g" onClick="{{backAssign}}">Changer d’espace</button></sc-if></div>
+            </div>
+          </sc-if>
+          <sc-if value="{{isDone}}" hint-placeholder-val="{{false}}">
+            <div role="status" class="fade" style="display: flex; flex-direction: column; gap: 14px; max-width: 560px">
+              <div style="display: flex; gap: 10px; align-items: center; padding: 12px 14px; border-radius: 8px; background: #EEF8F2; color: #156B3C"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A8F4E" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.2 4.2L19 7"></path></svg><span>Boîtier actif dans {{space}}. Il mesure la présence et l’espace est réservable.</span></div>
+              <div style="display: flex; gap: 8px"><a href="AdminSalles.dc.html" class="btn btn-s">Voir l’espace</a></div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{showActive}}" hint-placeholder-val="{{false}}">
+      <div class="fade" style="padding: 24px; display: flex; flex-direction: column; gap: 18px">
+        <sc-if value="{{isOffline}}" hint-placeholder-val="{{false}}">
+          <div role="alert" style="display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 8px; background: #FCEFEF; color: #8E1F25; font-size: 14px; line-height: 1.5"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D63F45" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"></path><path d="M12 10v4M12 17v.5"></path></svg><span>Le boîtier n’a plus donné de nouvelles depuis plus de 30 secondes. Dernière connexion à {{cur.seen}}. L’espace passe en « Présence à vérifier » tant qu’il est hors ligne.</span></div>
+        </sc-if>
+        <dl style="display: grid; grid-template-columns: 160px 1fr; gap: 10px 14px; margin: 0; font-size: 14px">
+          <dt class="muted">Espace</dt><dd style="margin: 0; font-weight: 500">{{cur.where}}</dd>
+          <dt class="muted">Anneau</dt><dd style="margin: 0"><span class="st"><span class="dot" style="{{cur.ringDot}}"></span>{{cur.ring}}</span></dd>
+        </dl>
+        <div style="display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 10px; border: 1px solid #E4E8EE">
+          <span style="display: flex; align-items: center; gap: 8px; font-weight: 500"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5B6676" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5a4 4 0 0 0-5 5L4 16l4 4 5.5-5.5a4 4 0 0 0 5-5l-2.6 2.6-2.4-.6-.6-2.4z"></path></svg>Maintenance</span>
+          <p class="muted" style="margin: 0; line-height: 1.55; max-width: 620px">Mettre le boîtier en maintenance le rescelle : l’espace passe hors service et le boîtier ne mesure plus rien. Pour le remettre en service, il faudra le desceller à nouveau.</p>
+          <sc-if value="{{confirmMaint}}" hint-placeholder-val="{{false}}">
+            <div class="fade" style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #FDF6EE; color: #8A4A0E; font-size: 13px">Les réservations à venir de cet espace seront annulées et leurs organisateurs prévenus.<span style="flex: 1"></span><button type="button" class="btn btn-s" onClick="{{cancelMaint}}">Annuler</button><button type="button" class="btn btn-d" onClick="{{doMaint}}">Mettre en maintenance</button></div>
+          </sc-if>
+          <div><button type="button" class="btn btn-s" onClick="{{askMaint}}" disabled="{{confirmMaint}}">Mettre en maintenance</button></div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+</div>
+
+<div style="{{scrim}}" aria-hidden="true"></div>
+<div role="dialog" aria-modal="true" aria-labelledby="kc-title" style="{{modal}}">
+  <form onSubmit="{{confirmPw}}" class="card" style="width: min(400px, calc(100% - 32px)); padding: 24px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 24px 60px rgba(14,23,38,.25)">
+    <div style="display: flex; flex-direction: column; gap: 6px"><h2 id="kc-title" style="font-size: 18px">Confirmez votre mot de passe</h2><p class="muted" style="margin: 0; font-size: 13px; line-height: 1.5">Desceller un boîtier est une action sensible. Saisissez le mot de passe de votre compte pour continuer.</p></div>
+    <label style="display: flex; flex-direction: column; gap: 6px"><span class="lbl">Mot de passe de camille.martin@entreprise.com</span><input class="input" type="password" autocomplete="current-password" value="{{pw}}" onChange="{{onPw}}" style="{{pwStyle}}"></label>
+    <span role="alert" style="{{errStyle}}">{{err}}</span>
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px"><span class="muted" style="font-size: 12px">Authentification Keycloak</span><span style="display: flex; gap: 8px"><button type="button" class="btn btn-s" onClick="{{closeModal}}">Annuler</button><button type="submit" class="btn btn-p" disabled="{{busy}}"><sc-if value="{{busy}}" hint-placeholder-val="{{false}}"><span class="spin"></span></sc-if>Continuer</button></span></div>
+  </form>
+</div>
+</main></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.DEV = [
+      { id: 'esp32-24A1B2C3D4E5', st: 'new', seen: 'il y a 4 s' },
+      { id: 'esp32-24A1B2C3D512', st: 'sealed', seen: 'il y a 2 s', space: 'Mont-Blanc · 3e étage', type: 'room' },
+      { id: 'esp32-24A1B2C3D498', st: 'active', seen: 'il y a 1 s', space: 'Atlas · 3e étage', type: 'room', ring: 'busy' },
+      { id: 'esp32-24A1B2C3D501', st: 'active', seen: 'il y a 3 s', space: 'Everest · 4e étage', type: 'room', ring: 'wait' },
+      { id: 'esp32-24A1B2C3D531', st: 'active', seen: 'il y a 2 s', space: 'Bulle B-03 · 2e étage', type: 'bubble', ring: 'free' },
+      { id: 'esp32-24A1B2C3D487', st: 'offline', seen: '09:12', space: 'Agora · RDC', type: 'room', ring: 'blue' }
+    ];
+    this.state = { sel: 0, filter: 'all', step: 'assign', type: 'room', space: 'Cervin · 3e étage', modal: false, pw: '', err: '', busy: false, confirmMaint: false, ov: {} };
+  }
+  componentWillUnmount() { clearTimeout(this.t); }
+  renderVals() {
+    var self = this, s = this.state;
+    var ST = { new: ['Scellé, non affecté', '#2F6FE0'], sealed: ['Scellé', '#2F6FE0'], active: ['Actif', '#1A8F4E'], offline: ['Hors ligne', '#D63F45'] };
+    var RING = { free: ['Vert · Libre', '#1A8F4E'], wait: ['Orange · Réservée, en attente de présence', '#D9771F'], busy: ['Rouge · Occupée', '#D63F45'], blue: ['Bleu · incident', '#2F6FE0'] };
+    var SPACES = { room: ['Cervin · 3e étage', 'Vercors · 3e étage', 'Mont-Blanc · 3e étage'], bubble: ['Bulle B-01 · 2e étage', 'Bulle B-05 · 2e étage'] };
+    var all = this.DEV.map(function (d) { return Object.assign({}, d, s.ov[d.id] || {}); });
+    function lab(d) { return d.st === 'new' && d.space ? 'Scellé' : ST[d.st][0]; }
+    var cur = all[s.sel];
+    function go(o) { self.setState(o); }
+    function setOv(id, o) { var ov = Object.assign({}, s.ov); ov[id] = Object.assign({}, ov[id] || {}, o); return ov; }
+    var sealed = cur.st === 'new' || cur.st === 'sealed';
+    var showFlow = sealed || s.step === 'done';
+    var step = cur.st === 'new' ? (s.step === 'unseal' ? 'unseal' : 'assign') : (cur.st === 'sealed' ? 'unseal' : (s.step === 'done' ? 'done' : ''));
+    var order = ['assign', 'unseal', 'done'];
+    var si = order.indexOf(step);
+    var counts = { all: all.length, sealed: all.filter(function (d) { return d.st === 'new' || d.st === 'sealed'; }).length, active: all.filter(function (d) { return d.st === 'active'; }).length, offline: all.filter(function (d) { return d.st === 'offline'; }).length };
+    var spaceNow = cur.space || s.space;
+    return {
+      filters: [['all', 'Tous'], ['sealed', 'Scellés'], ['active', 'Actifs'], ['offline', 'Hors ligne']].map(function (f) { return { label: f[1], n: counts[f[0]], on: s.filter === f[0] ? 'true' : 'false', pick: function () { go({ filter: f[0] }); } }; }),
+      devices: all.map(function (d, i) { return { d: d, i: i }; }).filter(function (x) {
+        var st = x.d.st; if (s.filter === 'sealed') return st === 'new' || st === 'sealed'; if (s.filter === 'active') return st === 'active'; if (s.filter === 'offline') return st === 'offline'; return true;
+      }).map(function (x) {
+        var d = x.d;
+        return { id: d.id, where: d.space || 'Non affecté', state: lab(d), sel: x.i === s.sel ? 'true' : 'false', dot: 'background: ' + ST[d.st][1],
+          iconStyle: 'width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex: none; background: ' + (d.st === 'active' ? '#EAF0FD' : '#F1F3F6') + '; color: ' + (d.st === 'active' ? '#1747B3' : '#5B6676'),
+          pick: function () { go({ sel: x.i, step: d.st === 'new' ? 'assign' : '', confirmMaint: false, modal: false, type: d.type || 'room', space: d.space || SPACES.room[0] }); } };
+      }),
+      cur: { id: cur.id, state: lab(cur), dot: 'background: ' + ST[cur.st][1], where: cur.space || 'Non affecté', fw: '0.3.0', seen: cur.seen,
+        seenStyle: 'margin: 0; font-size: 13px; font-weight: 500; color: ' + (cur.st === 'offline' ? '#B4232A' : '#0E1726'),
+        ring: cur.ring ? RING[cur.ring][0] : 'Bleu · scellé', ringDot: 'background: ' + (cur.ring ? RING[cur.ring][1] : '#2F6FE0') },
+      ringColor: sealed ? '#2F6FE0' : (cur.ring ? RING[cur.ring][1] : '#1A8F4E'),
+      showFlow: showFlow, showActive: !showFlow, isOffline: cur.st === 'offline',
+      steps: ['Affecter', 'Desceller', 'Actif'].map(function (l, i) {
+        var done = i < si || step === 'done', now = i === si && step !== 'done';
+        if (step === 'done' && i === 2) { done = true; }
+        return { label: l, mark: done ? '✓' : String(i + 1),
+          badge: 'width: 22px; height: 22px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; ' + (done ? 'background: #1E56D6; color: #FFFFFF' : now ? 'background: #EAF0FD; color: #1747B3; box-shadow: inset 0 0 0 1px #BCD0F7' : 'background: #F1F3F6; color: #8A94A3'),
+          text: now ? 'font-weight: 500; color: #0E1726' : (done ? 'color: #3A4555' : 'color: #8A94A3'),
+          line: i < 2 ? 'width: 22px; height: 1px; background: ' + (done ? '#BCD0F7' : '#E4E8EE') + '; margin-left: 4px' : 'display: none' };
+      }),
+      isAssign: step === 'assign', isUnseal: step === 'unseal', isDone: step === 'done',
+      typeRoom: s.type === 'room' ? 'true' : 'false', typeBubble: s.type === 'bubble' ? 'true' : 'false',
+      pickRoom: function () { go({ type: 'room', space: SPACES.room[0] }); }, pickBubble: function () { go({ type: 'bubble', space: SPACES.bubble[0] }); },
+      space: spaceNow, spaceOptions: SPACES[s.type], onSpace: function (e) { go({ space: e.target.value }); },
+      doAssign: function () { go({ step: 'unseal', ov: setOv(cur.id, { space: s.space, type: s.type, assigned: true }) }); },
+      typeLabel: (cur.type || s.type) === 'bubble' ? 'Bulle individuelle' : 'Salle de réunion',
+      unsealTitle: cur.st === 'sealed' ? 'Remettre le boîtier en service' : 'Desceller le boîtier',
+      unsealText: cur.st === 'sealed' ? 'Ce boîtier a été rescellé pour une maintenance. Descellez-le pour qu’il reprenne la mesure de présence.' : 'Le boîtier est affecté. Descellez-le pour qu’il commence à mesurer la présence.',
+      canChange: cur.st === 'new',
+      backAssign: function () { go({ step: 'assign' }); },
+      askUnseal: function () { go({ modal: true, pw: '', err: '' }); },
+      scrim: 'position: fixed; inset: 0; background: rgba(14,23,38,0.35); z-index: 60; transition: opacity .2s ease; ' + (s.modal ? 'opacity: 1' : 'opacity: 0; pointer-events: none'),
+      modal: 'position: fixed; inset: 0; z-index: 61; display: flex; align-items: center; justify-content: center; transition: opacity .2s ease, transform .2s ease; ' + (s.modal ? 'opacity: 1' : 'opacity: 0; pointer-events: none; transform: translateY(8px)'),
+      pw: s.pw, onPw: function (e) { go({ pw: e.target.value, err: '' }); }, pwStyle: s.err ? 'border-color: #D63F45' : '',
+      err: s.err, errStyle: s.err ? 'font-size: 13px; color: #B4232A; margin-top: -6px' : 'display: none', busy: s.busy,
+      closeModal: function () { go({ modal: false }); },
+      confirmPw: function (e) {
+        e.preventDefault(); if (s.busy) return;
+        if (!s.pw) { go({ err: 'Confirmez votre mot de passe pour continuer.' }); return; }
+        go({ busy: true });
+        self.t = setTimeout(function () { self.setState({ busy: false, modal: false, step: 'done', ov: setOv(cur.id, { st: 'active', ring: 'free', seen: 'il y a 1 s' }) }); }, 900);
+      },
+      confirmMaint: s.confirmMaint,
+      askMaint: function () { go({ confirmMaint: true }); }, cancelMaint: function () { go({ confirmMaint: false }); },
+      doMaint: function () { go({ confirmMaint: false, step: 'unseal', ov: setOv(cur.id, { st: 'sealed', ring: null }) }); }
+    };
+  }
+}
+
+</script>
+</body>
+</html>

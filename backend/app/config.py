@@ -12,6 +12,15 @@ class Settings(BaseSettings):
     db_user: str = "postgres"
     db_password: str = "postgres"
 
+    oidc_issuer: str = ""
+    fm_group: str = "project-admins"
+    # Local dev only, JSON claims {"sub", "email", "name", "groups"}: skips token checks.
+    dev_fake_user: str = ""
+    device_api_key: str = ""
+    vapid_public_key: str = ""
+    vapid_private_key: str = ""
+    vapid_subject: str = "mailto:support@3istor.com"
+
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), env_file_encoding="utf-8")
 
     @property
