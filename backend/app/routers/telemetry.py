@@ -10,6 +10,7 @@ from app import clock
 from app.config import get_settings
 from app.database import get_db
 from app.errors import DomainError
+from app.models.enums import Source
 from app.schemas.telemetry import SCHEMA, TelemetryIn, TelemetryOut
 from app.services import devices
 
@@ -53,6 +54,8 @@ router = APIRouter(tags=["telemetry"], route_class=TelemetryRoute)
 
 @router.post("/telemetry", response_model=TelemetryOut)
 def post_telemetry(body: TelemetryIn, db: Session = Depends(get_db)):
+    if body.source == Source.SIMULATED and not get_settings().allow_simulated_telemetry:
+        raise DomainError(422, "SIMULATED_NOT_ALLOWED")
     result = devices.ingest(db, body, clock.now())
     db.commit()
     return result

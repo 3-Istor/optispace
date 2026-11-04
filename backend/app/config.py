@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     # Local dev only, JSON claims {"sub", "email", "name", "groups"}: skips token checks. Ignored when oidc_issuer is set.
     dev_fake_user: str = ""
     device_api_key: str = ""
+    # Off by default so prod refuses simulator data; dev, tests and staging turn it on.
+    allow_simulated_telemetry: bool = False
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:support@3istor.com"

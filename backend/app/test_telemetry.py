@@ -125,6 +125,18 @@ def test_clock_skew_422(post, db):
     assert count(db, Observation) == 1
 
 
+def test_simulated_source_refused_unless_allowed(post, db, settings_env):
+    installed(db)
+
+    response = post(body(source="simulated"))
+    assert (response.status_code, response.json()) == (422, {"detail": "SIMULATED_NOT_ALLOWED"})
+    assert count(db, Observation) == 0
+
+    settings_env(DEVICE_API_KEY=KEY, ALLOW_SIMULATED_TELEMETRY="true")
+    assert post(body(source="simulated")).json()["accepted"] is True
+    assert count(db, Observation) == 1
+
+
 def test_replay_identical_ignored(post, db, frozen_clock):
     installed(db)
 

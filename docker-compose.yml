@@ -12,6 +12,7 @@ services:
         required: false
     environment:
       PYTHONUNBUFFERED: 1
+      ALLOW_SIMULATED_TELEMETRY: "true"
     depends_on:
       migrate:
         condition: service_completed_successfully
