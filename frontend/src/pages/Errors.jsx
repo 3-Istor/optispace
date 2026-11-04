@@ -22,6 +22,11 @@ const KINDS = {
     title: 'Votre session a expiré.',
     text: 'Pour protéger votre compte, la session a été fermée après une période d’inactivité. Reconnectez-vous pour continuer.',
   },
+  unauthenticated: {
+    code: 'IDENTITÉ NON TRANSMISE', icon: ICONS.lock, dot: '#E5484D', action: 'Réessayer',
+    title: 'OptiSpace ne sait pas qui vous êtes.',
+    text: 'Vous êtes connecté, mais votre identité n’est pas parvenue à l’application. Ce n’est pas de votre fait.',
+  },
   offline: {
     code: 'HORS CONNEXION', icon: ICONS.offline, dot: '#F08A24', action: 'Réessayer',
     title: 'Pas de connexion internet.',
@@ -29,7 +34,7 @@ const KINDS = {
   },
 }
 
-// kind: notFound | forbidden | server | session | offline. standalone: outside the Shell (before sign-in).
+// kind: notFound | forbidden | server | session | unauthenticated | offline. standalone: outside the Shell (before sign-in).
 export function ErrorPage({ kind, standalone = false }) {
   const e = KINDS[kind] ?? KINDS.server
   const action = { className: 'btn btn-p', style: { height: 42, padding: '0 22px', fontSize: 15 } }
