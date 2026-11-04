@@ -104,10 +104,6 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
 .err h1{font-size:30px;max-width:640px}
 .err p{margin:0;font-size:17px;line-height:1.6;color:#52627A;max-width:560px}
 
-/* Login (Main.dc.html) */
-.login{position:relative;min-height:100vh;overflow:hidden;display:flex;flex-direction:column;background:#F6F7F9}
-.bgdots{position:absolute;inset:0;background-image:radial-gradient(circle,rgba(14,23,38,.10) 1px,transparent 1.4px);background-size:22px 22px}
-.bgfade{position:absolute;inset:0;background:radial-gradient(60% 55% at 50% 45%,#F6F7F9 30%,rgba(246,247,249,0) 100%)}
 
 @media (max-width:960px){
   .side-in{position:static;height:auto;gap:14px;padding:10px 16px}

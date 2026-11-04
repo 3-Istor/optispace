@@ -6,7 +6,6 @@ import { Devices } from './pages/admin/Devices.jsx'
 import { Settings } from './pages/admin/Settings.jsx'
 import { Spaces } from './pages/admin/Spaces.jsx'
 import { ErrorPage } from './pages/Errors.jsx'
-import { Login } from './pages/Login.jsx'
 import { MyReservations } from './pages/MyReservations.jsx'
 import { Profile } from './pages/Profile.jsx'
 import { Reserve } from './pages/Reserve.jsx'
@@ -21,8 +20,26 @@ const FM_ROUTES = {
   '/admin': Dashboard, '/admin/spaces': Spaces, '/admin/devices': Devices, '/admin/settings': Settings, '/admin/profile': Profile,
 }
 
-// GET /me failure -> what to show; 401 means the gateway let us through without a session.
-const FAILURE = { 0: 'offline', 401: 'login', 403: 'forbidden' }
+// GET /me failure -> what to show. A 401 that survives one reload means the gateway does not pass the token.
+const FAILURE = { 0: 'offline', 401: 'unauthenticated', 403: 'forbidden' }
+const RELOADED = 'optispace.reloaded-on-401'
+
+// Keycloak signs users in before the app loads, so a reload is the whole login. The flag is cleared only by a
+// successful /me: parallel 401s (StrictMode runs effects twice) must not reload again.
+function reloadOnce() {
+  try {
+    if (sessionStorage.getItem(RELOADED)) return false
+    sessionStorage.setItem(RELOADED, '1')
+  } catch {
+    return false
+  }
+  location.reload()
+  return true
+}
+
+function forgetReload() {
+  try { sessionStorage.removeItem(RELOADED) } catch { /* storage blocked: nothing to forget */ }
+}
 
 export default function App() {
   const [me, setMe] = useState(null)
@@ -32,11 +49,13 @@ export default function App() {
   useEffect(() => {
     const expired = () => setFailure((f) => f ?? 'session')
     window.addEventListener('api:unauthorized', expired)
-    api.get('/me').then(setMe, (e) => setFailure(FAILURE[e.status] ?? 'server'))
+    api.get('/me').then((m) => { forgetReload(); setMe(m) }, (e) => {
+      if (e.status === 401 && reloadOnce()) return
+      setFailure(FAILURE[e.status] ?? 'server')
+    })
     return () => window.removeEventListener('api:unauthorized', expired)
   }, [])
 
-  if (failure === 'login') return <Login />
   if (failure) return <ErrorPage kind={failure} standalone />
   if (!me) return <Loader full label="Chargement de vos espaces" />
 
