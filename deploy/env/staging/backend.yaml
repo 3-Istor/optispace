@@ -2,7 +2,7 @@ environment: staging
 fullnameOverride: iot-optispace-backend-cnp-generic-app
 image:
   repository: ghcr.io/3-istor/optispace/backend
-  tag: 1.2.0-rc.1
+  tag: 1.2.0-rc.2
 replicaCount: 1
 secrets:
   vaultPath: project-iot/optispace/staging
@@ -20,7 +20,7 @@ auth:
   clientId: cnp-iot-optispace-stg
 # Replaces the whole env list of values-backend.yaml: copy its entries here too.
 env:
-  - name: OIDC_ISSUER
-    value: "https://auth.3istor.com/realms/iot"
-  - name: ALLOW_SIMULATED_TELEMETRY
-    value: "true"
+- name: OIDC_ISSUER
+  value: "https://auth.3istor.com/realms/iot"
+- name: ALLOW_SIMULATED_TELEMETRY
+  value: "true"
