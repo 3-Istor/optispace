@@ -1,0 +1,20 @@
+environment: staging
+fullnameOverride: iot-optispace-backend-cnp-generic-app
+image:
+  repository: ghcr.io/3-istor/optispace/backend
+  tag: 1.2.0-rc.1
+replicaCount: 1
+secrets:
+  vaultPath: project-iot/optispace/staging
+  vaultRole: iot-optispace-staging-role
+db:
+  instances: 1
+  backup:
+    enabled: false
+offhours:
+  enabled: true
+  sleepAt: 0 19 * * 1-5
+  wakeAt: 0 8 * * 1-5
+  timezone: Europe/Paris
+auth:
+  clientId: cnp-iot-optispace-stg
