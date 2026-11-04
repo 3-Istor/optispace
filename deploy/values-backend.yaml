@@ -32,6 +32,7 @@ auth:
   realm: "iot"
   clientId: "cnp-iot-optispace"
 
+# deploy/env/staging/backend.yaml replaces this list: report changes there.
 env:
   # Issuer of the gateway's JWT, checked by app/security.py.
   - name: OIDC_ISSUER

@@ -53,7 +53,10 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 ## Files the platform owns
 
 - `image.tag` in `deploy/*.yaml`: set by releases. Never edit it by hand.
-- `deploy/env/`: written by the CMP for staging and prod promotion.
+- `deploy/env/`: written by the CMP for staging and prod promotion. A
+  per-environment setting goes in its `env:` by hand; that list replaces the
+  one in `values-backend.yaml` entirely, so copy the shared entries too. A
+  commit on `main` applies it, no tag needed.
 - `deploy/security.yaml` (blocking level, set in the CMP) and
   `.github/workflows/security.yml` (the platform's scans). Accept a finding
   only through an entry in `deploy/security-exceptions.yaml` (`kind`, `id`,

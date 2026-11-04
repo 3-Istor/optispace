@@ -18,3 +18,9 @@ offhours:
   timezone: Europe/Paris
 auth:
   clientId: cnp-iot-optispace-stg
+# Replaces the whole env list of values-backend.yaml: copy its entries here too.
+env:
+  - name: OIDC_ISSUER
+    value: "https://auth.3istor.com/realms/iot"
+  - name: ALLOW_SIMULATED_TELEMETRY
+    value: "true"
