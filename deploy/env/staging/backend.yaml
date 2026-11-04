@@ -2,7 +2,7 @@ environment: staging
 fullnameOverride: iot-optispace-backend-cnp-generic-app
 image:
   repository: ghcr.io/3-istor/optispace/backend
-  tag: 1.2.0-rc.2
+  tag: 1.2.0-rc.3
 replicaCount: 1
 secrets:
   vaultPath: project-iot/optispace/staging
