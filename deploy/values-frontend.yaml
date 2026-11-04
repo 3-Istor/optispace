@@ -51,7 +51,7 @@ routes:
 ingress:
   enabled: true
   hostname: "optispace-iot.3istor.com"
-  sso_protected: false
+  sso_protected: true
   realm: "iot"
   # Every project gets its own connector and Gateway in <project>-system now
   # (D-06) — an app-level connector would be a second, redundant one, and the
