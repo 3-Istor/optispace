@@ -1,9 +1,6 @@
-# Keeps tests, local state and secrets out of the image (build context: backend/).
+# Keeps local state and secrets out of the image. Tests stay: CI runs them inside it.
 .env
 .venv
 **/__pycache__
 .pytest_cache
 *.db
-app/test_*.py
-app/conftest.py
-app/testkit.py
