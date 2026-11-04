@@ -20,3 +20,5 @@ class Device(Base):
     firmware_version: Mapped[str | None]
     first_seen_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())
     last_seen_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())
+    # DEVICE_OFFLINE was sent for the current silence when this is after last_seen_at.
+    offline_notified_at: Mapped[datetime | None]

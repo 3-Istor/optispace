@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     oidc_issuer: str = ""
     fm_group: str = "project-admins"
-    # Local dev only, JSON claims {"sub", "email", "name", "groups"}: skips token checks.
+    # Local dev only, JSON claims {"sub", "email", "name", "groups"}: skips token checks. Ignored when oidc_issuer is set.
     dev_fake_user: str = ""
     device_api_key: str = ""
     vapid_public_key: str = ""

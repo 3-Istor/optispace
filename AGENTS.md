@@ -1,10 +1,5 @@
 # OptiSpace
 
-<!-- Read by coding agents at the start of every session (Claude Code through
-     CLAUDE.md, Codex, Cursor, Copilot). Keep it under 150 lines, and only write
-     what an agent cannot work out by reading the repo. Fill in the three lines
-     below when the app is created. -->
-
 Employees book meeting rooms and individual booths; ESP32 presence sensors release no-show bookings, and facility managers run spaces, devices and a dashboard (no support console, multi-site or floor plan yet).
 
 - Tickets: Jira `https://3istors.atlassian.net`, project `IOT`
@@ -117,6 +112,19 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
    change also updates this file.
 5. To finish, show the `make check` output and the PR link, and update the
    ticket with the PR and its new status.
+6. End every work session or batch with a session report (rule below), even
+   when nobody asks for it.
+
+## Session report
+
+In the user's language: 1. **Context**, two or three lines for someone who
+missed the session. 2. **Done**: tickets, PRs, commits, checks and results.
+3. **Next**, in order. 4. **Platform blockers**: what the CNP platform must
+change, why it blocks, how to check the fix. 5. **Development blockers**:
+missing decision, teammate's work, failing check. 6. **Decisions and spec
+changes**: each one with its reason and the PR (spec in `3-Istor/iot-doc`).
+Save it in `3-Istor/iot-doc` as `session/<member>/<YYYY-MM-DD>-<TICKET>.md`,
+from `session/TEMPLATE.md` there.
 
 ## Platform services
 

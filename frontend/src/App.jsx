@@ -1,59 +1,53 @@
 import { useEffect, useState } from 'react'
+import { api } from './api.js'
+import { useRoute } from './router.jsx'
+import { Dashboard } from './pages/admin/Dashboard.jsx'
+import { Devices } from './pages/admin/Devices.jsx'
+import { Settings } from './pages/admin/Settings.jsx'
+import { Spaces } from './pages/admin/Spaces.jsx'
+import { ErrorPage } from './pages/Errors.jsx'
+import { Login } from './pages/Login.jsx'
+import { MyReservations } from './pages/MyReservations.jsx'
+import { Profile } from './pages/Profile.jsx'
+import { Reserve } from './pages/Reserve.jsx'
+import { Loader } from './ui/Loader.jsx'
+import { Shell } from './ui/Shell.jsx'
+import { Toaster } from './ui/Toast.jsx'
 
-function App() {
-  const [message, setMessage] = useState('Loading...')
-  const [dbStatus, setDbStatus] = useState(null)
-  const [error, setError] = useState(null)
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/hello').then(response => {
-        if (!response.ok) throw new Error('Backend unavailable')
-        return response.json()
-      }),
-      fetch('/api/db/status').then(response => {
-        if (!response.ok) throw new Error('Database status unavailable')
-        return response.json()
-      }),
-    ])
-      .then(([helloData, dbData]) => {
-        setMessage(helloData.message)
-        setDbStatus(dbData)
-      })
-      .catch(() => {
-        setError('Unable to reach the FastAPI backend')
-      })
-  }, [])
-
-  return (
-    <div className="container">
-      <header className="header">
-        <h1>Cloud Native Template</h1>
-        <p className="subtitle">React + FastAPI + Docker</p>
-      </header>
-
-      <main className="card">
-        <h2>Backend Message</h2>
-        {error ? (
-          <div className="error-message">
-            <p>{error}</p>
-            <small>Check that the backend is running on port 8000</small>
-          </div>
-        ) : (
-          <>
-            <p className="backend-message">{message}</p>
-            {dbStatus && (
-              <div className="db-status">
-                <p>DB enabled: {dbStatus.enabled ? 'yes' : 'no'}</p>
-                <p>DB type: {dbStatus.type ?? 'none'}</p>
-                <p>DB connected: {dbStatus.connected ? 'yes' : 'no'}</p>
-              </div>
-            )}
-          </>
-        )}
-      </main>
-    </div>
-  )
+// path -> page component, rendered as <Page me={me} setMe={setMe} />.
+const ROUTES = { '/': Reserve, '/reservations': MyReservations, '/profile': Profile }
+// Served to role facility_manager only (the backend enforces it anyway); /admin/* for others is a 403 page.
+const FM_ROUTES = {
+  '/admin': Dashboard, '/admin/spaces': Spaces, '/admin/devices': Devices, '/admin/settings': Settings, '/admin/profile': Profile,
 }
 
-export default App
+// GET /me failure -> what to show; 401 means the gateway let us through without a session.
+const FAILURE = { 0: 'offline', 401: 'login', 403: 'forbidden' }
+
+export default function App() {
+  const [me, setMe] = useState(null)
+  const [failure, setFailure] = useState(null)
+  const { path, url } = useRoute()
+
+  useEffect(() => {
+    const expired = () => setFailure((f) => f ?? 'session')
+    window.addEventListener('api:unauthorized', expired)
+    api.get('/me').then(setMe, (e) => setFailure(FAILURE[e.status] ?? 'server'))
+    return () => window.removeEventListener('api:unauthorized', expired)
+  }, [])
+
+  if (failure === 'login') return <Login />
+  if (failure) return <ErrorPage kind={failure} standalone />
+  if (!me) return <Loader full label="Chargement de vos espaces" />
+
+  const fm = me.role === 'facility_manager'
+  const Page = ROUTES[path] ?? (fm ? FM_ROUTES[path] : undefined)
+  return (
+    <Shell me={me}>
+      {Page
+        ? <Page key={url} me={me} setMe={setMe} />
+        : <ErrorPage kind={path.startsWith('/admin') && !fm ? 'forbidden' : 'notFound'} />}
+      <Toaster />
+    </Shell>
+  )
+}
