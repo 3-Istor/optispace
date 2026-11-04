@@ -9,11 +9,8 @@ __pycache__/
 *$py.class
 venv/
 .venv/
-env/
+/env/
 .env
-
-# Docker
-.dockerignore
 
 # Agents (personal, never shared)
 CLAUDE.local.md

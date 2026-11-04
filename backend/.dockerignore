@@ -1,0 +1,9 @@
+# Keeps tests, local state and secrets out of the image (build context: backend/).
+.env
+.venv
+**/__pycache__
+.pytest_cache
+*.db
+app/test_*.py
+app/conftest.py
+app/testkit.py
