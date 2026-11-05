@@ -13,14 +13,14 @@ db:
     enabled: false
 offhours:
   enabled: true
-  sleepAt: 0 19 * * 1-5
+  sleepAt: 0 23 * * 1-5
   wakeAt: 0 8 * * 1-5
   timezone: Europe/Paris
 auth:
   clientId: cnp-iot-optispace-stg
 # Replaces the whole env list of values-backend.yaml: copy its entries here too.
 env:
-- name: OIDC_ISSUER
-  value: "https://auth.3istor.com/realms/iot"
-- name: ALLOW_SIMULATED_TELEMETRY
-  value: "true"
+  - name: OIDC_ISSUER
+    value: "https://auth.3istor.com/realms/iot"
+  - name: ALLOW_SIMULATED_TELEMETRY
+    value: "true"

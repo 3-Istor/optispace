@@ -13,7 +13,7 @@ db:
     enabled: false
 offhours:
   enabled: true
-  sleepAt: 0 19 * * 1-5
+  sleepAt: 0 23 * * 1-5
   wakeAt: 0 8 * * 1-5
   timezone: Europe/Paris
 ingress:
