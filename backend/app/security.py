@@ -14,7 +14,11 @@ from app.models import AppUser
 
 @lru_cache
 def _jwks() -> jwt.PyJWKClient:
-    return jwt.PyJWKClient(f"{get_settings().oidc_issuer}/protocol/openid-connect/certs")
+    # Cloudflare in front of Keycloak answers 403 to urllib's default "Python-urllib" User-Agent.
+    return jwt.PyJWKClient(
+        f"{get_settings().oidc_issuer}/protocol/openid-connect/certs",
+        headers={"User-Agent": "optispace-backend"},
+    )
 
 
 def current_user(authorization: str = Header(default="")) -> dict:

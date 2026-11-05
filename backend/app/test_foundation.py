@@ -93,6 +93,13 @@ def test_current_user_verifies_the_token(monkeypatch, settings_env):
         assert (error.value.status_code, error.value.detail) == (401, "INVALID_TOKEN")
 
 
+def test_jwks_client_does_not_announce_python_urllib(settings_env):
+    settings_env(OIDC_ISSUER="https://auth.example.com/realms/iot")
+    security._jwks.cache_clear()
+
+    assert "Python-urllib" not in security._jwks().headers.get("User-Agent", "Python-urllib")
+
+
 def test_dev_fake_user_only_without_issuer(settings_env):
     fake = '{"sub": "dev", "groups": ["project-admins"]}'
 
