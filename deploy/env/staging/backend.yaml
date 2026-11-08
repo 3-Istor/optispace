@@ -19,6 +19,7 @@ offhours:
 auth:
   clientId: cnp-iot-optispace-stg
 # Replaces the whole env list of values-backend.yaml: copy its entries here too.
+  realm: iot-staging
 env:
   - name: OIDC_ISSUER
     value: "https://auth.3istor.com/realms/iot"

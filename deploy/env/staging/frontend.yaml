@@ -20,5 +20,7 @@ ingress:
   hostname: optispace-iot-staging.3istor.com
   oidc:
     clientID: cnp-iot-optispace-stg
+  realm: iot-staging
 auth:
   clientId: cnp-iot-optispace-stg
+  realm: iot-staging
