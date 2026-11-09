@@ -30,7 +30,7 @@ def post(client, settings_env):
 
 
 def installed(db, seal=SealState.UNSEALED):
-    space = Space(name="Bulle 2", type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
+    space = Space(organization="demo-a", name="Bulle 2", type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
     db.add(space)
     db.flush()
     db.add(Device(id=DEVICE, space_id=space.id, seal=seal, first_seen_at=NOW - 3600 * SEC, last_seen_at=NOW - 3600 * SEC))
@@ -105,7 +105,7 @@ def test_invalid_json_400(client, post):
 
 
 def test_other_routes_keep_fastapi_validation(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     assert client.patch("/api/v1/settings", json={"absence_delay_min": "x"}).status_code == 422
 

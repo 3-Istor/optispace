@@ -13,8 +13,10 @@ class Settings(BaseSettings):
     db_password: str = "postgres"
 
     oidc_issuer: str = ""
-    fm_group: str = "project-admins"
-    # Local dev only, JSON claims {"sub", "email", "name", "groups"}: skips token checks. Ignored when oidc_issuer is set.
+    fm_group: str = "facility-managers"
+    # Groups of the platform team: no company, no business data. Read as JSON from STAFF_GROUPS.
+    staff_groups: list[str] = ["project-admins", "project-members"]
+    # Local dev only, JSON claims {"sub", "email", "name", "groups", "organization"}: skips token checks. Ignored when oidc_issuer is set.
     dev_fake_user: str = ""
     device_api_key: str = ""
     # Off by default so prod refuses simulator data; dev, tests and staging turn it on.

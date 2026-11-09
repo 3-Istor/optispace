@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 
 from app import security
 from app.main import app
-from app.models import AppSettings, AppUser, Device, Reservation, Space, SpaceStatus
+from app.models import AppUser, OrgSettings, Device, Reservation, Space, SpaceStatus
 from app.models.enums import Presence, ReservationStatus, SealState, SpaceState, SpaceType
 from app.services import booking, occupancy
 
@@ -39,7 +39,7 @@ def test_me_creates_user_on_first_call(client, db):
 
 
 def test_me_includes_the_absence_delay(client, db):
-    db.get(AppSettings, 1).absence_delay_min = 7
+    db.add(OrgSettings(organization="demo-a", absence_delay_min=7))
     db.commit()
 
     assert client.get("/api/v1/me").json()["absence_delay_min"] == 7
@@ -47,7 +47,7 @@ def test_me_includes_the_absence_delay(client, db):
 
 
 def test_me_role_fm_from_group(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     assert client.get("/api/v1/me").json()["role"] == "facility_manager"
 
@@ -101,7 +101,7 @@ def test_jwks_client_does_not_announce_python_urllib(settings_env):
 
 
 def test_dev_fake_user_only_without_issuer(settings_env):
-    fake = '{"sub": "dev", "groups": ["project-admins"]}'
+    fake = '{"sub": "dev", "groups": ["facility-managers"]}'
 
     settings_env(DEV_FAKE_USER=fake, OIDC_ISSUER="")
     assert security.current_user("")["sub"] == "dev"
@@ -119,7 +119,7 @@ def test_settings_requires_fm(client):
 
 
 def test_settings_defaults(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     response = client.get("/api/v1/settings")
 
@@ -128,7 +128,7 @@ def test_settings_defaults(client, claims):
 
 
 def test_settings_patch_persists(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     response = client.patch("/api/v1/settings", json={"absence_delay_min": 1, "meeting_max_min": 240})
 
@@ -139,7 +139,7 @@ def test_settings_patch_persists(client, claims):
 
 
 def test_settings_reject_min_over_max(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     for patch in ({"booth_min_min": 70}, {"meeting_min_min": 60, "meeting_max_min": 45}, {"absence_delay_min": 0}):
         response = client.patch("/api/v1/settings", json=patch)
@@ -166,7 +166,7 @@ def test_effective_occupancy_stale():
 
 
 def make_space(db, name="Bulle 1"):
-    space = Space(name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
+    space = Space(organization="demo-a", name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
     db.add(space)
     db.flush()
     return space

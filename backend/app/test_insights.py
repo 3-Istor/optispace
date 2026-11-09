@@ -8,7 +8,7 @@ from app.models.enums import EpisodeKind, EpisodeOutcome, ObservationKind, Prese
 from app.services import insights
 from app.testkit import MIN, at, book, iso, make_space
 
-FM = ["project-admins"]
+FM = ["facility-managers"]
 
 
 def minutes(db, space, presence, start, end):

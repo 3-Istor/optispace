@@ -25,6 +25,7 @@ class DeviceState(BaseModel):
 class SpaceRef(BaseModel):
     id: UUID
     name: str
+    organization: str
 
 
 class DeviceOut(BaseModel):

@@ -5,9 +5,9 @@ from uuid import UUID
 from sqlalchemy import exists, func, select, update
 from sqlalchemy.orm import Session
 
-from app.models import AbsenceEpisode, AppSettings, AppUser, Device, Observation, Reservation, Space, SpaceStatus
+from app.models import AbsenceEpisode, AppUser, Device, Observation, Reservation, Space, SpaceStatus
 from app.models.enums import EpisodeKind, EpisodeOutcome, NotificationType, Presence, ReservationStatus
-from app.services import alerts, booking, occupancy
+from app.services import alerts, booking, occupancy, settings
 from app.services.notifications import iso, notify
 
 
@@ -30,8 +30,8 @@ def evaluate_space(db: Session, space_id: UUID, now: datetime) -> None:
     status = db.get(SpaceStatus, space_id)
     device = db.scalar(select(Device).where(Device.space_id == space_id))
     presence = occupancy.effective_occupancy(status, device, now)
-    delay = timedelta(minutes=db.get(AppSettings, 1).absence_delay_min)
     space = db.get(Space, space_id)
+    delay = timedelta(minutes=settings.get(db, space.organization).absence_delay_min)
 
     episode = booking.pending_episode(db, r.id)
     if episode is not None:

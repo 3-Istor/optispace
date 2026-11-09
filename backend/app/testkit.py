@@ -21,6 +21,7 @@ def iso(dt: datetime) -> str:
 
 
 def make_user(db, sub="u2", **fields) -> AppUser:
+    fields.setdefault("organization", "demo-a")  # an explicit None stays None
     user = AppUser(keycloak_sub=sub, **fields)
     db.add(user)
     db.commit()
@@ -29,6 +30,7 @@ def make_user(db, sub="u2", **fields) -> AppUser:
 
 def make_space(db, name="Bulle 1", type=SpaceType.INDIVIDUAL_BOOTH, capacity=1, device=True, **fields) -> Space:
     """With an unsealed device unless `device=False`."""
+    fields.setdefault("organization", "demo-a")
     space = Space(name=name, type=type, capacity=capacity, **fields)
     db.add(space)
     db.flush()

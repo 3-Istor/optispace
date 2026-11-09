@@ -8,9 +8,9 @@ from app import clock
 from app.database import get_db
 from app.models import AppUser, Notification
 from app.schemas.notifications import NotificationOut
-from app.security import get_app_user
+from app.security import get_app_user, member
 
-router = APIRouter(tags=["notifications"])
+router = APIRouter(tags=["notifications"], dependencies=[Depends(member)])
 
 
 @router.get("/notifications", response_model=list[NotificationOut])

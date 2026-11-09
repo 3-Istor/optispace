@@ -17,7 +17,10 @@ const FM_NAV = [
   ['Compte', [['/admin/profile', 'Profil', ICONS.profile]]],
 ]
 
-export const roleLabel = (me) => (me.role === 'facility_manager' ? 'Facility manager' : 'Employé')
+const STAFF_NAV = [['Installation', [['/', 'Boîtiers', ICONS.device]]]]
+
+const ROLE_LABELS = { facility_manager: 'Facility manager', staff: 'Admin OptiSpace' }
+export const roleLabel = (me) => ROLE_LABELS[me.role] ?? 'Employé'
 export const initials = (name) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
 
 function NavLink({ to, children }) {
@@ -69,7 +72,7 @@ function Sidebar({ me }) {
         <div id="side-nav" className={open ? 'side-nav open' : 'side-nav'}>
           <nav aria-label="Navigation" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
             onClick={(e) => e.target.closest('a') && setOpen(false)}>
-            {(fm ? FM_NAV : EMPLOYEE_NAV).map(([title, items]) => (
+            {(me.role === 'staff' ? STAFF_NAV : fm ? FM_NAV : EMPLOYEE_NAV).map(([title, items]) => (
               <div className="side-group" key={title}>
                 <span className="side-title">{title}</span>
                 {items.map(([to, label, d]) => <NavLink key={to} to={to}><Icon d={d} />{label}</NavLink>)}
@@ -91,16 +94,17 @@ function Sidebar({ me }) {
 }
 
 // Title row of every page: crumb, h1 and actions (children). It also holds the bell, as in the
-// admin mockups, so every page must render it.
+// admin mockups, so every page must render it. Staff get none: /notifications answers them 403.
 export function PageHeader({ crumb, title, children }) {
   const me = useContext(MeContext)
+  const bell = me && me.role !== 'staff'
   return (
     <div className="page-h">
       <div className="page-h-t">
         {crumb && <span className="crumb">{crumb}</span>}
         <h1>{title}</h1>
       </div>
-      {(children || me) && <div className="actions">{children}{me && <Bell me={me} />}</div>}
+      {(children || bell) && <div className="actions">{children}{bell && <Bell me={me} />}</div>}
     </div>
   )
 }

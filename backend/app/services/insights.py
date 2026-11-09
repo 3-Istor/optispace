@@ -14,9 +14,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import AbsenceEpisode, AppSettings, Observation, Reservation, Space
+from app.models import AbsenceEpisode, Observation, Reservation, Space
 from app.models.enums import EpisodeKind, EpisodeOutcome, Presence, ReservationStatus
-from app.services import booking
+from app.services import booking, settings
 from app.services.notifications import hhmm, iso
 
 MINUTE = timedelta(minutes=1)
@@ -81,7 +81,7 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
 
     # K-05 population: reservations starting in the period. A no-show is a no_show episode that released;
     # a presence in the first D minutes is evaluated too; anything else is not evaluated.
-    delay = timedelta(minutes=db.get(AppSettings, 1).absence_delay_min)
+    delay = timedelta(minutes=settings.get(db, space.organization).absence_delay_min)
     population = [r for r in reservations if frm <= r.start_at < to]
     no_show_list = [r for r in population if any(
         e.kind == EpisodeKind.NO_SHOW and e.outcome == EpisodeOutcome.RELEASED for e in episodes[r.id])]

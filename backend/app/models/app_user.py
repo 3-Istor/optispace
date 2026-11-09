@@ -23,4 +23,6 @@ class AppUser(Base):
     alert_device_sealed: Mapped[bool] = mapped_column(default=True)
     # Copied from the token's groups on each request, to find who gets device alerts.
     is_fm: Mapped[bool] = mapped_column(default=False, server_default=false())
+    # The token's organization alias, copied on each request; NULL for staff.
+    organization: Mapped[str | None]
     created_at: Mapped[datetime] = mapped_column(default=lambda: clock.now())

@@ -6,9 +6,9 @@ from app.config import get_settings
 from app.database import get_db
 from app.models import AppUser, PushSubscription
 from app.schemas.notifications import PushSubscriptionDelete, PushSubscriptionIn
-from app.security import get_app_user
+from app.security import get_app_user, member
 
-router = APIRouter(tags=["push"])
+router = APIRouter(tags=["push"], dependencies=[Depends(member)])
 
 
 @router.get("/push/vapid-public-key")
