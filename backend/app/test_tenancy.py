@@ -1,4 +1,6 @@
-from app.models import AppUser
+from app.models import AppUser, OrgSettings
+from app.services import settings
+from app.services.settings import DEFAULTS
 from app.security import organization_of
 from app.models import Space
 from app.testkit import at, iso, make_space, make_user
@@ -125,3 +127,29 @@ def test_booking_durations_follow_the_company_settings(client, claims, db):
     assert (refused.status_code, refused.json()) == (422, {"detail": "INVALID_SLOT"})
     act_as(claims, "emp-a", "demo-a")
     assert client.post("/api/v1/reservations", json={"space_id": str(a1.id), **slot}).status_code == 201
+
+
+def test_settings_changes_accumulate(client, claims):
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    client.patch("/api/v1/settings", json={"absence_delay_min": 5})
+    body = client.patch("/api/v1/settings", json={"booth_max_min": 30}).json()
+
+    assert (body["absence_delay_min"], body["booth_max_min"]) == (5, 30)
+
+
+def test_first_settings_change_survives_a_concurrent_insert(db, session_factory, monkeypatch):
+    real_get, calls = settings.get, []
+
+    def racing_get(session, organization):
+        calls.append(1)
+        row = real_get(session, organization)
+        if len(calls) == 1:  # another request creates the row after our read
+            with session_factory() as other:
+                other.add(OrgSettings(organization=organization, **{**DEFAULTS, "absence_delay_min": 5}))
+                other.commit()
+        return row
+
+    monkeypatch.setattr(settings, "get", racing_get)
+    saved = settings.save(db, "demo-a", {"booth_max_min": 30})
+
+    assert (saved.absence_delay_min, saved.booth_max_min) == (5, 30)

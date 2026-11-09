@@ -1,3 +1,4 @@
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import OrgSettings
@@ -15,5 +16,12 @@ def save(db: Session, organization: str, changes: dict) -> OrgSettings:
     for field, value in changes.items():
         setattr(row, field, value)
     db.add(row)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()  # a parallel first change created the row: apply ours on top of it
+        row = get(db, organization)
+        for field, value in changes.items():
+            setattr(row, field, value)
+        db.commit()
     return row
