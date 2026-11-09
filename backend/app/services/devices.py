@@ -16,8 +16,13 @@ from app.services.notifications import iso, notify
 MAX_CLOCK_SKEW = timedelta(seconds=60)
 
 
-def get(db: Session, device_id: str) -> Device:
+def get(db: Session, device_id: str, organization: str | None) -> Device:
+    """`organization=None` (staff) finds any device; otherwise only those of that company's spaces."""
     device = db.get(Device, device_id)
+    if device is not None and organization is not None:
+        space = device.space_id and db.get(Space, device.space_id)
+        if not space or space.organization != organization:
+            device = None
     if device is None:
         raise DomainError(404, "DEVICE_NOT_FOUND")
     return device
@@ -49,7 +54,7 @@ def _reseal(db: Session, device: Device) -> None:
 
 def assign(db: Session, device_id: str, space_id: UUID | None) -> Device:
     """Always reseals, even when the space does not change."""
-    device = get(db, device_id)
+    device = get(db, device_id, None)
     if space_id is not None:
         if db.get(Space, space_id) is None:
             raise DomainError(404, "SPACE_NOT_FOUND")
@@ -61,8 +66,8 @@ def assign(db: Session, device_id: str, space_id: UUID | None) -> Device:
     return device
 
 
-def seal(db: Session, device_id: str) -> Device:
-    device = get(db, device_id)
+def seal(db: Session, device_id: str, organization: str) -> Device:
+    device = get(db, device_id, organization)
     _reseal(db, device)
     db.flush()
     return device
@@ -84,9 +89,9 @@ def notify_offline(db: Session, now: datetime) -> None:
                         db.get(Space, device.space_id), at=iso(device.last_seen_at))
 
 
-def unseal(db: Session, device_id: str) -> Device:
+def unseal(db: Session, device_id: str, organization: str) -> Device:
     """409 DEVICE_UNASSIGNED when the device has no space."""
-    device = get(db, device_id)
+    device = get(db, device_id, organization)
     if device.space_id is None:
         raise DomainError(409, "DEVICE_UNASSIGNED")
     device.seal = SealState.UNSEALED

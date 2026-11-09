@@ -103,3 +103,9 @@ def require_staff(user: AppUser = Depends(get_app_user)) -> AppUser:
     if user.organization is not None:
         raise HTTPException(status_code=403, detail="FORBIDDEN")
     return user
+
+
+def fm_or_staff(user: AppUser = Depends(get_app_user)) -> AppUser:
+    if user.organization is not None and not user.is_fm:
+        raise HTTPException(status_code=403, detail="FORBIDDEN")
+    return user

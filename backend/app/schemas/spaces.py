@@ -14,6 +14,17 @@ class CurrentReservation(BaseModel):
     booker_name: str | None  # facility managers only
 
 
+class StaffSpaceOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: str
+    type: SpaceType
+    floor: int
+    is_active: bool
+    organization: str
+
+
 class SpaceOut(BaseModel):
     id: UUID
     name: str

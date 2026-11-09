@@ -20,6 +20,15 @@ def fm(claims):
     claims.update(sub="fm1", groups=["facility-managers"])
 
 
+def as_staff(claims):
+    claims.pop("organization", None)
+    claims.update(sub="staff", groups=["project-members"])
+
+
+def as_fm(claims):
+    claims.update(sub="fm1", organization=["demo-a"], groups=["facility-managers"])
+
+
 def make_space(db, name="Bulle 2"):
     space = Space(organization="demo-a", name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
     db.add(space)
@@ -48,7 +57,8 @@ def test_device_routes_require_fm(client):
         assert (response.status_code, response.json()) == (403, {"detail": "FORBIDDEN"})
 
 
-def test_list_devices(client, db, fm):
+def test_list_devices(client, db, claims):
+    as_staff(claims)
     space = make_space(db)
     make_device(db, space=space, seal=SealState.UNSEALED, last_seen_at=NOW - 29 * SEC)
     make_device(db, "esp32-000000000001", last_seen_at=NOW - 30 * SEC)
@@ -64,7 +74,7 @@ def test_list_devices(client, db, fm):
             "last_seen_at": "2026-11-02T08:59:30Z",
         },
         {
-            "id": DEVICE, "space": {"id": str(space.id), "name": "Bulle 2"}, "seal": "unsealed", "online": True,
+            "id": DEVICE, "space": {"id": str(space.id), "name": "Bulle 2", "organization": "demo-a"}, "seal": "unsealed", "online": True,
             "firmware_version": "0.3.0", "first_seen_at": "2026-11-02T08:00:00Z",
             "last_seen_at": "2026-11-02T08:59:31Z",
         },
@@ -80,7 +90,7 @@ def test_get_device_includes_state(client, db, fm):
     response = client.get(f"/api/v1/devices/{DEVICE}")
 
     assert response.status_code == 200
-    assert response.json()["space"] == {"id": str(space.id), "name": "Bulle 2"}
+    assert response.json()["space"] == {"id": str(space.id), "name": "Bulle 2", "organization": "demo-a"}
     assert response.json()["state"] == {
         "seal": "unsealed", "space_state": "occupied_unreserved", "space_name": "Bulle 2", "reservation": None,
         "release_at": None, "updated_at": "2026-11-02T09:00:00Z",
@@ -108,23 +118,27 @@ def test_state_payload_reservation_and_release_at(db):
     }
 
 
-def test_assign_reseals(client, db, fm):
+def test_assign_reseals(client, db, claims):
     first, second = make_space(db), make_space(db, "Salle Lovelace")
     make_device(db, space=first, seal=SealState.UNSEALED)
     db.commit()
+    as_staff(claims)
 
     moved = client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(second.id)})
     assert moved.status_code == 200
-    assert (moved.json()["space"], moved.json()["seal"]) == ({"id": str(second.id), "name": "Salle Lovelace"}, "sealed")
+    assert (moved.json()["space"], moved.json()["seal"]) == ({"id": str(second.id), "name": "Salle Lovelace", "organization": "demo-a"}, "sealed")
 
+    as_fm(claims)
     client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
+    as_staff(claims)
     removed = client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": None})
     assert (removed.json()["space"], removed.json()["seal"]) == (None, "sealed")
     db.expire_all()
     assert db.get(Device, DEVICE).space_id is None
 
 
-def test_assign_errors(client, db, fm):
+def test_assign_errors(client, db, claims):
+    as_staff(claims)
     space = make_space(db)
     make_device(db)
     make_device(db, "esp32-000000000001", space=space)
@@ -152,13 +166,13 @@ def test_unseal_requires_confirmation(client, db, fm):
     assert db.get(Device, DEVICE).seal == SealState.SEALED
 
 
-def test_unseal_unassigned_409(client, db, fm):
+def test_unseal_unassigned_is_not_found_for_fm(client, db, fm):
     make_device(db)
     db.commit()
 
     response = client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
 
-    assert (response.status_code, response.json()) == (409, {"detail": "DEVICE_UNASSIGNED"})
+    assert (response.status_code, response.json()) == (404, {"detail": "DEVICE_NOT_FOUND"})
 
 
 def test_is_fm_follows_the_token(client, db, claims):
@@ -190,7 +204,8 @@ def alerts(db):
             for n in db.scalars(select(Notification).order_by(Notification.created_at))]
 
 
-def test_reseal_alerts_fms(client, db, fm, fms):
+def test_reseal_alerts_fms(client, db, claims, fms):
+    as_fm(claims)
     space, other = make_space(db), make_space(db, "Salle Lovelace")
     make_device(db, space=space, seal=SealState.UNSEALED)
     db.commit()
@@ -198,11 +213,14 @@ def test_reseal_alerts_fms(client, db, fm, fms):
 
     client.post(f"/api/v1/devices/{DEVICE}/seal")
     client.post(f"/api/v1/devices/{DEVICE}/seal")  # already sealed: no alert
+    as_staff(claims)
     client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(other.id)})  # sealed: no alert
     assert alerts(db) == [resealed]
 
     client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(space.id)})
+    as_fm(claims)
     client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
+    as_staff(claims)
     client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": str(other.id)})  # moving an unsealed device
 
     assert alerts(db) == [resealed, resealed]

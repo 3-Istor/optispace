@@ -188,3 +188,68 @@ def test_device_alerts_reach_the_fms_of_the_space_company(client, claims, db, fr
     offline = db.query(Notification).filter_by(type=NotificationType.DEVICE_OFFLINE).all()
     assert [n.user_id for n in offline] == [fm_a.id]
     assert fm_b.id not in [n.user_id for n in offline]
+
+
+def _new_device(db):
+    db.add(Device(id="esp32-NEW", seal=SealState.SEALED, firmware_version="0.3.0",
+                  first_seen_at=at("09:00"), last_seen_at=at("09:00")))
+    db.commit()
+
+
+def test_unassigned_devices_are_visible_to_staff_only(client, claims, db):
+    _new_device(db)
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+
+    assert "esp32-NEW" not in [d["id"] for d in client.get("/api/v1/devices").json()]
+    response = client.get("/api/v1/devices/esp32-NEW")
+    assert (response.status_code, response.json()) == (404, {"detail": "DEVICE_NOT_FOUND"})
+
+    act_as(claims, "staff", None, "project-members")
+    listed = {d["id"]: d for d in client.get("/api/v1/devices").json()}
+    assert listed["esp32-NEW"]["space"] is None
+
+
+def test_staff_assigns_a_device_to_a_space_of_any_company(client, claims, db):
+    _new_device(db)
+    b1 = make_space(db, "B1", organization="demo-b", device=False)
+    act_as(claims, "staff", None, "project-members")
+    assert client.patch("/api/v1/devices/esp32-NEW", json={"space_id": str(b1.id)}).status_code == 200
+
+    act_as(claims, "fm-b", "demo-b", "facility-managers")
+    listed = {d["id"]: d for d in client.get("/api/v1/devices").json()}
+    assert listed["esp32-NEW"]["space"]["organization"] == "demo-b"
+    assert client.post("/api/v1/devices/esp32-NEW/unseal", json={"confirm": True}).status_code == 200
+
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    assert "esp32-NEW" not in [d["id"] for d in client.get("/api/v1/devices").json()]
+    response = client.post("/api/v1/devices/esp32-NEW/seal")
+    assert (response.status_code, response.json()) == (404, {"detail": "DEVICE_NOT_FOUND"})
+
+
+def test_only_staff_assign_devices(client, claims, db):
+    _new_device(db)
+    forbidden = (403, {"detail": "FORBIDDEN"})
+
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    response = client.patch("/api/v1/devices/esp32-NEW", json={"space_id": None})
+    assert (response.status_code, response.json()) == forbidden
+
+    act_as(claims, "staff", None, "project-members")
+    response = client.post("/api/v1/devices/esp32-NEW/seal")
+    assert (response.status_code, response.json()) == forbidden
+
+    act_as(claims, "emp-a", "demo-a")
+    assert client.get("/api/v1/devices").status_code == 403
+
+
+def test_staff_spaces_lists_every_company(client, claims, db):
+    make_space(db, "A1")
+    make_space(db, "B1", organization="demo-b")
+    act_as(claims, "staff", None, "project-members")
+
+    spaces = client.get("/api/v1/staff/spaces").json()
+    assert [s["organization"] for s in spaces] == ["demo-a", "demo-b"]
+
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    response = client.get("/api/v1/staff/spaces")
+    assert (response.status_code, response.json()) == (403, {"detail": "FORBIDDEN"})
