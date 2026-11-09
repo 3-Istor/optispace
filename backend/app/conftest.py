@@ -1,10 +1,12 @@
 """Shared test fixtures.
 
-- `db`: a session on a fresh in-memory SQLite database (tables from the models). Commit setup data before calling `client`: each
-  request gets its own session on the same connection. Call `db.expire_all()`
+- `db`: a session on a fresh in-memory SQLite database (tables from the
+  models). Commit setup data before calling `client`: each request gets its
+  own session on the same connection. Call `db.expire_all()`
   to read what a request wrote to rows `db` had already loaded.
 - `claims`: the JWT claims `current_user` returns. Mutate it to switch user or
   role, e.g. `claims["groups"] = ["facility-managers"]` for a facility manager.
+  Default: an employee of `demo-a`.
 - `frozen_clock`: `app.clock.now()` returns `frozen_clock.now` (aware UTC,
   2026-11-02 09:00); assign it to move time.
 - `client`: a TestClient wired to the three fixtures above.

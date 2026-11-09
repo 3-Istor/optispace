@@ -79,8 +79,11 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
   `{"detail": "<CODE>"}`.
 - "Now" comes only from `app.clock.now()` (aware UTC, patched in tests).
   Datetimes are stored and compared as aware UTC.
-- The user is `Depends(get_app_user)`, facility managers are
-  `Depends(require_fm)` (`app/security.py`).
+- Auth dependencies (`app/security.py`): `get_app_user` is the token's user
+  (403 `NO_ORGANIZATION` without a company, except OptiSpace staff); `member`
+  for company data (staff get 403 `FORBIDDEN`); `require_fm` for the company's
+  facility managers; `require_staff` for OptiSpace staff (`project-admins`,
+  `project-members`); `fm_or_staff` for the device list.
 - Every new endpoint gets a test in `backend/app/test_*.py`, using `TestClient`
   and the shared fixtures of `app/conftest.py`.
 - Access control is enforced in the backend. Hiding a button in React is not
