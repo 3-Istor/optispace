@@ -16,7 +16,7 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
   before calling a task done, and show its output.
 - One test: `cd backend && .venv/bin/python -m pytest app/test_main.py::test_health_check -q`
 - Run locally: `docker compose up --build`. Frontend at http://localhost:3001,
-  API docs at http://localhost:8081/docs. SQLite by default; add
+  API docs at http://localhost:8081/api/docs. SQLite by default; add
   `--profile postgres` and `DB_TYPE=postgres` in `.env` for PostgreSQL.
 - New migration: `make migration name="add email_verified"` (needs Docker)
 

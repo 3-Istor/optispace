@@ -29,3 +29,12 @@ def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
+
+def test_api_docs_are_under_api():
+    """The front's nginx only forwards /api/* to the backend."""
+    schema = client.get("/api/openapi.json")
+    assert schema.status_code == 200
+    assert "/api/v1/me" in schema.json()["paths"]
+    docs = client.get("/api/docs")
+    assert docs.status_code == 200
+    assert "/api/openapi.json" in docs.text

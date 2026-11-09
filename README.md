@@ -183,10 +183,9 @@ Règle pratique : les routes restent fines, les validations vivent dans les sch�
 
 Une fois le backend démarré, ouvrez :
 
-- http://localhost:8000/docs pour Swagger UI
-- http://localhost:8000/redoc pour ReDoc
+- http://localhost:8000/api/docs pour Swagger UI (schéma : `/api/openapi.json`)
 
-Si vous passez par Docker Compose, l’API reste accessible via http://localhost:8081/docs et http://localhost:8081/redoc.
+Si vous passez par Docker Compose : http://localhost:8081/api/docs. Sur staging, https://optispace-iot-staging.3istor.com/api/docs s'ouvre sans connexion ; les appels « Try it out » demandent une session.
 
 ## Tests
 

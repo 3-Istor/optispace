@@ -12,7 +12,8 @@ from app.routers import settings as settings_routes
 settings = get_settings()
 if settings.dev_fake_user and settings.oidc_issuer:
     logging.getLogger(__name__).warning("DEV_FAKE_USER is ignored: OIDC_ISSUER is set")
-app = FastAPI(title="OptiSpace API")
+# Under /api/: the front's nginx only forwards /api/* to the backend.
+app = FastAPI(title="OptiSpace API", docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
 app.add_exception_handler(DomainError, domain_error_handler)
 for module in (
     me, settings_routes, spaces, reservations, alerts, notifications, push, devices, insights, telemetry, staff,
