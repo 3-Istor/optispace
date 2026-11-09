@@ -21,12 +21,6 @@ ingress:
   oidc:
     clientID: cnp-iot-optispace-stg
   realm: iot-staging
-  # Swagger without SSO, staging only; API calls from it still need a session.
-  publicPaths:
-  - path: /api/docs
-    method: GET
-  - path: /api/openapi.json
-    method: GET
 auth:
   clientId: cnp-iot-optispace-stg
   realm: iot-staging
