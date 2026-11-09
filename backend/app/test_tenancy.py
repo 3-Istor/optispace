@@ -244,11 +244,13 @@ def test_only_staff_assign_devices(client, claims, db):
 
 def test_staff_spaces_lists_every_company(client, claims, db):
     make_space(db, "A1")
-    make_space(db, "B1", organization="demo-b")
+    make_space(db, "B1", organization="demo-b", device=False)
     act_as(claims, "staff", None, "project-members")
 
     spaces = client.get("/api/v1/staff/spaces").json()
     assert [s["organization"] for s in spaces] == ["demo-a", "demo-b"]
+    assert db.query(Device).one().id == spaces[0]["device_id"]
+    assert spaces[1]["device_id"] is None
 
     act_as(claims, "fm-a", "demo-a", "facility-managers")
     response = client.get("/api/v1/staff/spaces")

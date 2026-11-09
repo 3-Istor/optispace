@@ -15,14 +15,13 @@ class CurrentReservation(BaseModel):
 
 
 class StaffSpaceOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     id: UUID
     name: str
     type: SpaceType
     floor: int
     is_active: bool
     organization: str
+    device_id: str | None
 
 
 class SpaceOut(BaseModel):
