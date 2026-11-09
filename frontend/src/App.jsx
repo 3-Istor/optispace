@@ -67,7 +67,7 @@ export default function App() {
     <Shell me={me}>
       {Page
         ? <Page key={url} me={me} setMe={setMe} />
-        : <ErrorPage kind={path.startsWith('/admin') && !fm ? 'forbidden' : 'notFound'} />}
+        : <ErrorPage kind={path.startsWith('/admin') && me.role === 'employee' ? 'forbidden' : 'notFound'} />}
       <Toaster />
     </Shell>
   )
