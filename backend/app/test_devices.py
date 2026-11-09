@@ -21,7 +21,7 @@ def fm(claims):
 
 
 def make_space(db, name="Bulle 2"):
-    space = Space(name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
+    space = Space(organization="demo-a", name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
     db.add(space)
     db.flush()
     return space

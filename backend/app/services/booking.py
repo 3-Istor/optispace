@@ -91,9 +91,10 @@ def _flush(db: Session) -> None:
         raise DomainError(409, "RESERVATION_CONFLICT")
 
 
-def _space(db: Session, space_id: UUID) -> Space:
+def space_in(db: Session, space_id: UUID, organization: str) -> Space:
+    """404 for a space of another company, as if it did not exist."""
     space = db.get(Space, space_id)
-    if space is None:
+    if space is None or space.organization != organization:
         raise DomainError(404, "SPACE_NOT_FOUND")
     return space
 
@@ -118,7 +119,7 @@ def _close_episode(db: Session, reservation_id: UUID, now: datetime, unless_befo
 
 
 def create(db: Session, user: AppUser, space_id: UUID, start_at: datetime, end_at: datetime, now: datetime) -> Reservation:
-    space = _space(db, space_id)
+    space = space_in(db, space_id, user.organization)
     if not (space.is_active and valid_new_slot(start_at, end_at, now) and _fits(db, space, start_at, end_at)):
         raise DomainError(422, "INVALID_SLOT")
     if _overlaps(db, space_id, start_at, end_at):
@@ -137,7 +138,7 @@ def modify(
     """None keeps the current value. Once started, only the end moves (on a 5-min boundary, after now, within the max)."""
     r = _own(db, user, reservation_id, now)
     space_id, start_at, end_at = space_id or r.space_id, start_at or r.start_at, end_at or r.end_at
-    space = _space(db, space_id)
+    space = space_in(db, space_id, user.organization)
     if r.start_at <= now:
         _, hi = duration_bounds(db, space)
         valid = (space_id, start_at) == (r.space_id, r.start_at) and _aligned(end_at) and end_at > now \
@@ -170,10 +171,10 @@ def cancel(db: Session, user: AppUser, reservation_id: UUID, now: datetime) -> N
 
 
 def find_spaces(
-    db: Session, space_type: SpaceType | None, min_capacity: int | None, floor: int | None,
+    db: Session, organization: str, space_type: SpaceType | None, min_capacity: int | None, floor: int | None,
     equipment: list[str] | None, active_only: bool = True,
 ) -> list[Space]:
-    query = select(Space).order_by(Space.name)
+    query = select(Space).where(Space.organization == organization).order_by(Space.name)
     if active_only:
         query = query.where(Space.is_active)
     if space_type is not None:
@@ -188,6 +189,7 @@ def find_spaces(
 
 def free_spaces(
     db: Session,
+    organization: str,
     start_at: datetime,
     end_at: datetime,
     space_type: SpaceType | None,
@@ -200,6 +202,6 @@ def free_spaces(
     if not valid_new_slot(start_at, end_at, now):
         raise DomainError(422, "INVALID_SLOT")
     return [
-        s for s in find_spaces(db, space_type, min_capacity, floor, equipment)
+        s for s in find_spaces(db, organization, space_type, min_capacity, floor, equipment)
         if _fits(db, s, start_at, end_at) and not _overlaps(db, s.id, start_at, end_at)
     ]

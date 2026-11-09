@@ -16,7 +16,7 @@ from app.schemas.spaces import (
     CurrentReservation, DayReservation, EpisodeOut, History, HistoryReservation, ObservationOut, SpaceDetail, SpaceIn,
     SpaceOut, SpacePatch,
 )
-from app.security import current_user, get_app_user, is_fm, member, require_fm
+from app.security import member, require_fm
 from app.services import absence, alerts, booking, devices, occupancy
 from app.services.notifications import PARIS
 
@@ -56,9 +56,9 @@ def space_out(db: Session, space: Space, now: dt.datetime, fm: bool) -> SpaceOut
     )
 
 
-def _space(db: Session, space_id: UUID, fm: bool) -> Space:
-    space = db.get(Space, space_id)
-    if space is None or not (space.is_active or fm):
+def _space(db: Session, space_id: UUID, user: AppUser) -> Space:
+    space = booking.space_in(db, space_id, user.organization)
+    if not (space.is_active or user.is_fm):
         raise HTTPException(status_code=404, detail="SPACE_NOT_FOUND")
     return space
 
@@ -69,12 +69,12 @@ def list_spaces(
     min_capacity: int | None = None,
     floor: int | None = None,
     equipment: list[str] = Query(default=[]),
-    claims: dict = Depends(current_user),
+    user: AppUser = Depends(member),
     db: Session = Depends(get_db),
 ):
     """Inactive spaces only for facility managers; a space has every `equipment` asked."""
-    now, fm = clock.now(), is_fm(claims)
-    spaces = booking.find_spaces(db, type, min_capacity, floor, equipment, active_only=not fm)
+    now, fm = clock.now(), user.is_fm
+    spaces = booking.find_spaces(db, user.organization, type, min_capacity, floor, equipment, active_only=not fm)
     devices.notify_offline(db, now)  # committed by _evaluate
     _evaluate(db, spaces, now)
     return [space_out(db, s, now, fm) for s in spaces]
@@ -88,27 +88,26 @@ def availability(
     min_capacity: int | None = None,
     floor: int | None = None,
     equipment: list[str] = Query(default=[]),
-    claims: dict = Depends(current_user),
+    user: AppUser = Depends(member),
     db: Session = Depends(get_db),
 ):
     """Active spaces free on [start_at, end_at[ whose durations allow it; 422 INVALID_SLOT."""
     now = clock.now()
-    spaces = booking.free_spaces(db, start_at, end_at, type, min_capacity, floor, equipment, now)
+    spaces = booking.free_spaces(db, user.organization, start_at, end_at, type, min_capacity, floor, equipment, now)
     _evaluate(db, spaces, now)
-    return [space_out(db, s, now, is_fm(claims)) for s in spaces]
+    return [space_out(db, s, now, user.is_fm) for s in spaces]
 
 
 @router.get("/spaces/{space_id}", response_model=SpaceDetail)
 def read_space(
     space_id: UUID,
     date: dt.date | None = None,
-    claims: dict = Depends(current_user),
-    user: AppUser = Depends(get_app_user),
+    user: AppUser = Depends(member),
     db: Session = Depends(get_db),
 ):
     """The space and the reservations of `date` (Paris day, default today), cancelled ones excluded."""
-    now, fm = clock.now(), is_fm(claims)
-    space = _space(db, space_id, fm)
+    now, fm = clock.now(), user.is_fm
+    space = _space(db, space_id, user)
     _evaluate(db, [space], now)
     day = date or now.astimezone(PARIS).date()
     start = dt.datetime.combine(day, dt.time(), PARIS)
@@ -137,10 +136,10 @@ def _save(db: Session, space: Space) -> None:
         raise HTTPException(status_code=409, detail="SPACE_NAME_TAKEN")
 
 
-@router.post("/spaces", status_code=201, response_model=SpaceOut, dependencies=[Depends(require_fm)])
-def create_space(body: SpaceIn, db: Session = Depends(get_db)):
+@router.post("/spaces", status_code=201, response_model=SpaceOut)
+def create_space(body: SpaceIn, user: AppUser = Depends(require_fm), db: Session = Depends(get_db)):
     now = clock.now()
-    space = Space(**body.model_dump())
+    space = Space(organization=user.organization, **body.model_dump())
     db.add(space)
     _save(db, space)
     alerts.on_space_available(db, space, now)
@@ -148,11 +147,11 @@ def create_space(body: SpaceIn, db: Session = Depends(get_db)):
     return space_out(db, space, now, fm=True)
 
 
-@router.patch("/spaces/{space_id}", response_model=SpaceOut, dependencies=[Depends(require_fm)])
-def update_space(space_id: UUID, body: SpacePatch, db: Session = Depends(get_db)):
+@router.patch("/spaces/{space_id}", response_model=SpaceOut)
+def update_space(space_id: UUID, body: SpacePatch, user: AppUser = Depends(require_fm), db: Session = Depends(get_db)):
     """Existing reservations are not touched (spec §4.1); alerts the space starts matching are notified."""
     now = clock.now()
-    space = _space(db, space_id, fm=True)
+    space = _space(db, space_id, user)
     before = SimpleNamespace(**{field: getattr(space, field) for field in FIELDS})
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(space, field, value)
@@ -162,17 +161,18 @@ def update_space(space_id: UUID, body: SpacePatch, db: Session = Depends(get_db)
     return space_out(db, space, now, fm=True)
 
 
-@router.get("/spaces/{space_id}/history", response_model=History, dependencies=[Depends(require_fm)])
+@router.get("/spaces/{space_id}/history", response_model=History)
 def history(
     space_id: UUID,
     frm: AwareDatetime = Query(alias="from"),
     to: AwareDatetime = Query(),
+    user: AppUser = Depends(require_fm),
     db: Session = Depends(get_db),
 ):
     """Observations, reservations (any status) and their absence episodes on [from, to[."""
     if frm >= to:
         raise HTTPException(status_code=400, detail="INVALID_PERIOD")
-    space = _space(db, space_id, fm=True)
+    space = _space(db, space_id, user)
     # ponytail: no pagination (8640 observations a day per space); add it when periods get long
     observations = db.scalars(select(Observation).where(
         Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to,

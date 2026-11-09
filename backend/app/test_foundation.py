@@ -166,7 +166,7 @@ def test_effective_occupancy_stale():
 
 
 def make_space(db, name="Bulle 1"):
-    space = Space(name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
+    space = Space(organization="demo-a", name=name, type=SpaceType.INDIVIDUAL_BOOTH, capacity=1)
     db.add(space)
     db.flush()
     return space

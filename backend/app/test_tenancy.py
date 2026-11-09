@@ -1,6 +1,7 @@
 from app.models import AppUser
 from app.security import organization_of
-from app.testkit import make_user
+from app.models import Space
+from app.testkit import at, iso, make_space, make_user
 
 
 def act_as(claims: dict, sub: str, org: str | None = None, *groups: str) -> None:
@@ -55,3 +56,47 @@ def test_existing_user_gets_the_company_of_the_token(client, claims, db):
     assert client.get("/api/v1/me").json()["role"] == "employee"
     db.expire_all()
     assert db.query(AppUser).filter_by(keycloak_sub="old").one().organization == "demo-a"
+
+
+def _two_companies(db):
+    return make_space(db, "A1"), make_space(db, "B1", organization="demo-b")
+
+
+def test_employee_sees_only_spaces_of_their_company(client, claims, db):
+    _, b1 = _two_companies(db)
+    act_as(claims, "emp-a", "demo-a")
+
+    assert [s["name"] for s in client.get("/api/v1/spaces").json()] == ["A1"]
+    missing = client.get(f"/api/v1/spaces/{b1.id}")
+    assert (missing.status_code, missing.json()) == (404, {"detail": "SPACE_NOT_FOUND"})
+    free = client.get("/api/v1/spaces/availability", params={"start_at": iso(at("10:00")), "end_at": iso(at("10:30"))})
+    assert [s["name"] for s in free.json()] == ["A1"]
+
+
+def test_employee_cannot_book_a_space_of_another_company(client, claims, db):
+    a1, b1 = _two_companies(db)
+    act_as(claims, "emp-a", "demo-a")
+    slot = {"start_at": iso(at("10:00")), "end_at": iso(at("10:30"))}
+
+    refused = client.post("/api/v1/reservations", json={"space_id": str(b1.id), **slot})
+    assert (refused.status_code, refused.json()) == (404, {"detail": "SPACE_NOT_FOUND"})
+    created = client.post("/api/v1/reservations", json={"space_id": str(a1.id), **slot})
+    assert created.status_code == 201
+    moved = client.patch(f"/api/v1/reservations/{created.json()['id']}", json={"space_id": str(b1.id)})
+    assert (moved.status_code, moved.json()) == (404, {"detail": "SPACE_NOT_FOUND"})
+
+
+def test_fm_manages_only_spaces_of_their_company(client, claims, db):
+    _, b1 = _two_companies(db)
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    period = {"from": iso(at("09:00")), "to": iso(at("10:00"))}
+
+    assert client.patch(f"/api/v1/spaces/{b1.id}", json={"floor": 2}).status_code == 404
+    assert client.get(f"/api/v1/spaces/{b1.id}/history", params=period).status_code == 404
+    assert client.get(f"/api/v1/spaces/{b1.id}/insights", params=period).status_code == 404
+
+    body = {"name": "B1", "type": "individual_booth", "capacity": 1}
+    assert client.post("/api/v1/spaces", json=body).status_code == 201
+    assert db.query(Space).filter_by(name="B1", organization="demo-a").count() == 1
+    again = client.post("/api/v1/spaces", json={**body, "name": "A1"})
+    assert (again.status_code, again.json()) == (409, {"detail": "SPACE_NAME_TAKEN"})

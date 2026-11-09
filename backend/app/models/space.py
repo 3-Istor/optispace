@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import JSON
+from sqlalchemy import JSON, Index
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -11,7 +11,8 @@ class Space(Base):
     __tablename__ = "space"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    name: Mapped[str] = mapped_column(unique=True)
+    organization: Mapped[str]  # Keycloak organization alias; no default, the caller must set it
+    name: Mapped[str]
     type: Mapped[SpaceType]
     description: Mapped[str] = mapped_column(default="")
     capacity: Mapped[int]
@@ -21,3 +22,5 @@ class Space(Base):
     min_duration_min: Mapped[int | None]
     max_duration_min: Mapped[int | None]
     is_active: Mapped[bool] = mapped_column(default=True)
+
+    __table_args__ = (Index("uq_space_organization_name", "organization", "name", unique=True),)
