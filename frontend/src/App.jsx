@@ -16,6 +16,8 @@ import { Toaster } from './ui/Toast.jsx'
 // path -> page component, rendered as <Page me={me} setMe={setMe} />.
 const ROUTES = { '/': Reserve, '/reservations': MyReservations, '/profile': Profile }
 // Served to role facility_manager only (the backend enforces it anyway); /admin/* for others is a 403 page.
+// Staff (OptiSpace devs and admins) only install devices.
+const STAFF_ROUTES = { '/': Devices }
 const FM_ROUTES = {
   '/admin': Dashboard, '/admin/spaces': Spaces, '/admin/devices': Devices, '/admin/settings': Settings, '/admin/profile': Profile,
 }
@@ -51,7 +53,7 @@ export default function App() {
     window.addEventListener('api:unauthorized', expired)
     api.get('/me').then((m) => { forgetReload(); setMe(m) }, (e) => {
       if (e.status === 401 && reloadOnce()) return
-      setFailure(FAILURE[e.status] ?? 'server')
+      setFailure(e.code === 'NO_ORGANIZATION' ? 'noOrganization' : FAILURE[e.status] ?? 'server')
     })
     return () => window.removeEventListener('api:unauthorized', expired)
   }, [])
@@ -60,7 +62,7 @@ export default function App() {
   if (!me) return <Loader full label="Chargement de vos espaces" />
 
   const fm = me.role === 'facility_manager'
-  const Page = ROUTES[path] ?? (fm ? FM_ROUTES[path] : undefined)
+  const Page = me.role === 'staff' ? STAFF_ROUTES[path] : ROUTES[path] ?? (fm ? FM_ROUTES[path] : undefined)
   return (
     <Shell me={me}>
       {Page

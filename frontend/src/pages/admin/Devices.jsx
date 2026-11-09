@@ -13,10 +13,12 @@ import { PageHeader } from '../../ui/Shell.jsx'
 import { StatusBadge } from '../../ui/StatusBadge.jsx'
 import { toast } from '../../ui/Toast.jsx'
 
-const load = async () => {
-  const [devices, spaces] = await Promise.all([api.get('/devices'), api.get('/spaces')])
+const loader = (spacesPath) => async () => {
+  const [devices, spaces] = await Promise.all([api.get('/devices'), api.get(spacesPath)])
   return { devices, spaces }
 }
+const loadFm = loader('/spaces')
+const loadStaff = loader('/staff/spaces') // every company's spaces, with their organization
 
 const ORDER = ['new', 'offline', 'sealed', 'active'] // what needs action first
 const FILTERS = [['all', 'Tous', ORDER], ['sealed', 'Scellés', ['new', 'sealed']], ['active', 'Actifs', ['active']], ['offline', 'Hors ligne', ['offline']]]
@@ -24,18 +26,20 @@ const STEPS = ['Affecter', 'Desceller', 'Actif']
 
 const Dot = ({ state }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><span className="dot" style={{ background: DEVICE_STATES[state][1] }} />{DEVICE_STATES[state][0]}</span>
 
-// A space holds one device, so spaces equipped by another device are left out.
-function SpaceSelect({ device, devices, spaces, value, onChange, style }) {
+// A space holds one device, so spaces equipped by another device are left out. Staff see
+// every company, so their options are grouped by organization instead of by type.
+function SpaceSelect({ device, devices, spaces, value, onChange, style, staff }) {
   const taken = new Set(devices.filter((d) => d.space && d.id !== device.id).map((d) => d.space.id))
   const free = spaces.filter((s) => !taken.has(s.id)).sort((a, b) => a.name.localeCompare(b.name, 'fr'))
+  const groups = staff ? [...new Set(free.map((s) => s.organization))].sort().map((o) => [o, o]) : Object.entries(SPACE_TYPES)
   return (
     <label className="field" style={style}><span className="lbl">Espace</span>
       <select className="input" value={value} onChange={(e) => onChange(e.target.value)} style={{ width: '100%' }}>
         <option value="">Aucun espace</option>
-        {Object.entries(SPACE_TYPES).map(([type, label]) => (
-          <optgroup key={type} label={label}>
-            {free.filter((s) => s.type === type).map((s) => (
-              <option key={s.id} value={s.id}>{s.name} · {floorLabel(s.floor)}{s.is_active === false ? ' (hors service)' : ''}</option>
+        {groups.map(([key, label]) => (
+          <optgroup key={key} label={label}>
+            {free.filter((s) => s[staff ? 'organization' : 'type'] === key).map((s) => (
+              <option key={s.id} value={s.id}>{s.name} · {staff ? `${SPACE_TYPES[s.type]} · ` : ''}{floorLabel(s.floor)}{s.is_active === false ? ' (hors service)' : ''}</option>
             ))}
           </optgroup>
         ))}
@@ -55,9 +59,11 @@ function AssignForm({ busy, onAssign, ...pick }) {
 }
 
 // AdminBoitier.dc.html: list, commissioning (assign then unseal), maintenance (seal).
-export function Devices() {
+// Staff assign, move and detach; facility managers seal and unseal.
+export function Devices({ me }) {
+  const staff = me.role === 'staff'
   const { query } = useRoute()
-  const { data, error, refresh } = usePolling(load, 5000)
+  const { data, error, refresh } = usePolling(staff ? loadStaff : loadFm, 5000)
   const [selId, setSelId] = useState(query.get('id'))
   const [filter, setFilter] = useState('all')
   const [busy, setBusy] = useState(null)
@@ -66,7 +72,7 @@ export function Devices() {
 
   const count = data?.devices.length
   const header = (
-    <PageHeader crumb="Espaces / Boîtiers" title="Boîtiers">
+    <PageHeader crumb={staff ? 'Installation / Boîtiers' : 'Espaces / Boîtiers'} title="Boîtiers">
       {data && <span className="muted" style={{ fontSize: 13 }}>{count} boîtier{count > 1 ? 's' : ''}</span>}
     </PageHeader>
   )
@@ -77,7 +83,7 @@ export function Devices() {
   const cur = devices.find((d) => d.id === selId) ?? devices[0]
   const st = deviceState(cur)
   const space = data.spaces.find((s) => s.id === cur.space?.id)
-  const where = cur.space ? `${cur.space.name}${space ? ` · ${floorLabel(space.floor)}` : ''}` : 'Non affecté'
+  const where = cur.space ? `${cur.space.name}${space ? ` · ${floorLabel(space.floor)}` : ''}${staff ? ` · ${cur.space.organization}` : ''}` : 'Non affecté'
   const sealed = cur.seal !== 'unsealed'
   const step = !cur.space ? 0 : sealed ? 1 : 2
   const path = `/devices/${encodeURIComponent(cur.id)}`
@@ -109,7 +115,7 @@ export function Devices() {
   const seal = () => run('seal', () => api.post(`${path}/seal`), 'Boîtier en maintenance : il ne mesure plus la présence.')
   // PATCH reseals even on the same space, so an unchanged choice just closes.
   const move = () => (moveTo === (cur.space?.id ?? '') ? setAsk(null) : assign(moveTo))
-  const pick = { device: cur, devices, spaces: data.spaces }
+  const pick = { device: cur, devices, spaces: data.spaces, staff }
 
   const counts = Object.fromEntries(FILTERS.map(([key, , states]) => [key, devices.filter((d) => states.includes(deviceState(d))).length]))
   const shown = devices.filter((d) => FILTERS.find((f) => f[0] === filter)[2].includes(deviceState(d)))
@@ -204,10 +210,12 @@ export function Devices() {
             {step === 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <h3 style={{ fontSize: 17 }}>Affecter le boîtier à un espace</h3>
+                  <h3 style={{ fontSize: 17 }}>{staff ? 'Affecter le boîtier à un espace' : 'Boîtier non affecté'}</h3>
                   <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Le boîtier est scellé : il ne mesure rien tant qu’il n’est pas affecté puis descellé.</p>
                 </div>
-                <AssignForm key={cur.id} {...pick} busy={busy === 'assign'} onAssign={assign} />
+                {staff
+                  ? <AssignForm key={cur.id} {...pick} busy={busy === 'assign'} onAssign={assign} />
+                  : <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>L’équipe OptiSpace l’affectera à l’un de vos espaces.</p>}
               </div>
             )}
 
@@ -215,27 +223,30 @@ export function Devices() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 560 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   <h3 style={{ fontSize: 17 }}>Desceller le boîtier</h3>
-                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>Descellez-le pour qu’il mesure la présence dans cet espace.</p>
+                  <p className="muted" style={{ margin: 0, lineHeight: 1.55 }}>{staff ? 'Un facility manager de l’entreprise le descellera.' : 'Descellez-le pour qu’il mesure la présence dans cet espace.'}</p>
                 </div>
                 <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 120px) minmax(0, 1fr)', gap: '8px 14px', margin: 0 }}>
                   <dt className="muted">Espace</dt><dd style={{ margin: 0, fontWeight: 500 }}>{where}</dd>
                   {space && <><dt className="muted">Type</dt><dd style={{ margin: 0 }}>{SPACE_TYPES[space.type]}</dd></>}
                 </dl>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <Button variant="p" onClick={() => openConfirm('unseal')}><Icon d={ICONS.lock} />Desceller</Button>
-                  <Button variant="g" onClick={() => openConfirm('move')}>Changer d’espace</Button>
+                  {!staff && <Button variant="p" onClick={() => openConfirm('unseal')}><Icon d={ICONS.lock} />Desceller</Button>}
+                  {staff && <Button variant="g" onClick={() => openConfirm('move')}>Changer d’espace</Button>}
                 </div>
               </div>
             )}
 
             {step === 2 && (
               <>
-                <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 160px) minmax(0, 1fr)', gap: '10px 14px', margin: 0 }}>
-                  <dt className="muted">État de l’espace</dt><dd style={{ margin: 0 }}>{space ? <StatusBadge state={space.space_state} releaseAt={space.current_reservation?.release_at} /> : 'Inconnu'}</dd>
-                </dl>
+                {!staff && (
+                  <dl style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 160px) minmax(0, 1fr)', gap: '10px 14px', margin: 0 }}>
+                    <dt className="muted">État de l’espace</dt><dd style={{ margin: 0 }}>{space ? <StatusBadge state={space.space_state} releaseAt={space.current_reservation?.release_at} /> : 'Inconnu'}</dd>
+                  </dl>
+                )}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <Button onClick={() => openConfirm('seal')}>Mettre en maintenance</Button>
-                  <Button onClick={() => openConfirm('move')}>Changer d’espace</Button>
+                  {staff
+                    ? <Button onClick={() => openConfirm('move')}>Changer d’espace</Button>
+                    : <Button onClick={() => openConfirm('seal')}>Mettre en maintenance</Button>}
                 </div>
               </>
             )}

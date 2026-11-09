@@ -1,7 +1,7 @@
 import { Link } from '../router.jsx'
 import { Icon, ICONS } from '../ui/Icon.jsx'
 
-// The single blocking-error template of Erreurs.dc.html. home: the action goes to "/", else it reloads.
+// The single blocking-error template of Erreurs.dc.html. home: the action goes to "/", else it reloads; no action: none.
 const KINDS = {
   notFound: {
     code: 'ERREUR 404', icon: ICONS.notFound, dot: '#1E56D6', home: true, action: 'Trouver un espace',
@@ -11,6 +11,11 @@ const KINDS = {
     code: 'ERREUR 403', icon: ICONS.forbidden, dot: '#E5484D', home: true, action: 'Revenir à mon espace',
     title: 'Vous n’avez pas accès à cette page.',
     text: 'Cette section est réservée aux Facility managers de votre entreprise. Demandez-leur d’ajuster vos droits si besoin.',
+  },
+  noOrganization: {
+    code: 'ERREUR 403', icon: ICONS.forbidden, dot: '#E5484D',
+    title: 'Votre compte n’est rattaché à aucune entreprise.',
+    text: 'Demandez au support OptiSpace de rattacher votre compte à votre entreprise.',
   },
   server: {
     code: 'ERREUR 500', icon: ICONS.server, dot: '#E5484D', action: 'Réessayer',
@@ -34,7 +39,7 @@ const KINDS = {
   },
 }
 
-// kind: notFound | forbidden | server | session | unauthenticated | offline. standalone: outside the Shell (before sign-in).
+// kind: notFound | forbidden | noOrganization | server | session | unauthenticated | offline. standalone: outside the Shell (before sign-in).
 export function ErrorPage({ kind, standalone = false }) {
   const e = KINDS[kind] ?? KINDS.server
   const action = { className: 'btn btn-p', style: { height: 42, padding: '0 22px', fontSize: 15 } }
@@ -47,10 +52,10 @@ export function ErrorPage({ kind, standalone = false }) {
       <span className="err-code">{e.code}</span>
       <h1 id="err-title">{e.title}</h1>
       <p>{e.text}</p>
-      {e.home
+      {e.action && (e.home
         ? <Link to="/" {...action}>{e.action}</Link>
-        : <button type="button" onClick={() => location.reload()} {...action}>{e.action}</button>}
-      <span style={{ fontSize: 12, color: '#6A7A92' }}>Si le problème persiste, contactez votre administrateur.</span>
+        : <button type="button" onClick={() => location.reload()} {...action}>{e.action}</button>)}
+      {e.action && <span style={{ fontSize: 12, color: '#6A7A92' }}>Si le problème persiste, contactez votre administrateur.</span>}
     </section>
   )
   if (!standalone) return card
