@@ -81,7 +81,8 @@ def on_freed(db: Session, space: Space, start_at: datetime, end_at: datetime, no
     if not space.is_active or start_at >= end_at:
         return
     _expire(db, now)
-    overlapping = db.scalars(select(AvailabilityAlert).where(
+    overlapping = db.scalars(select(AvailabilityAlert).join(AppUser, AppUser.id == AvailabilityAlert.user_id).where(
+        AppUser.organization == space.organization,
         AvailabilityAlert.status == AlertStatus.ACTIVE,
         AvailabilityAlert.start_at < end_at,
         AvailabilityAlert.end_at > start_at,
@@ -100,7 +101,8 @@ def on_space_available(db: Session, space: Space, now: datetime, before=None) ->
         return
     _expire(db, now)
     notified = set()  # one notification per user and space, the earliest free slot
-    for alert in db.scalars(select(AvailabilityAlert).where(
+    for alert in db.scalars(select(AvailabilityAlert).join(AppUser, AppUser.id == AvailabilityAlert.user_id).where(
+        AppUser.organization == space.organization,
         AvailabilityAlert.status == AlertStatus.ACTIVE).order_by(AvailabilityAlert.start_at)).all():
         if alert.user_id in notified or not _matches(alert, space) or (before and before.is_active and _matches(alert, before)):
             continue

@@ -36,7 +36,7 @@ def register_or_touch(db: Session, device_id: str, firmware_version: str, now: d
 
 def _notify_fms(db: Session, alert, type: NotificationType, space: Space, **params) -> None:
     """`alert`: the AppUser preference column of this alert."""
-    for fm in db.scalars(select(AppUser).where(AppUser.is_fm, alert)).all():
+    for fm in db.scalars(select(AppUser).where(AppUser.is_fm, AppUser.organization == space.organization, alert)).all():
         notify(db, fm, type, space_id=space.id, space_name=space.name, **params)
 
 

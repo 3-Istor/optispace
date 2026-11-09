@@ -176,8 +176,8 @@ def test_is_fm_follows_the_token(client, db, claims):
 def fms(db):
     """Two facility managers, the second without device alerts, and an employee."""
     users = [
-        AppUser(keycloak_sub="fm1", is_fm=True),
-        AppUser(keycloak_sub="fm2", is_fm=True, alert_device_sealed=False, alert_device_offline=False),
+        AppUser(keycloak_sub="fm1", is_fm=True, organization="demo-a"),
+        AppUser(keycloak_sub="fm2", is_fm=True, organization="demo-a", alert_device_sealed=False, alert_device_offline=False),
         AppUser(keycloak_sub="employee"),
     ]
     db.add_all(users)

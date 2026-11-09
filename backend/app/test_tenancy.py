@@ -2,7 +2,8 @@ from app.models import AppUser, OrgSettings
 from app.services import settings
 from app.services.settings import DEFAULTS
 from app.security import organization_of
-from app.models import Space
+from app.models import Device, Notification, Space
+from app.models.enums import NotificationType, SealState
 from app.testkit import at, iso, make_space, make_user
 
 
@@ -153,3 +154,37 @@ def test_first_settings_change_survives_a_concurrent_insert(db, session_factory,
     saved = settings.save(db, "demo-a", {"booth_max_min": 30})
 
     assert (saved.absence_delay_min, saved.booth_max_min) == (5, 30)
+
+
+def test_free_space_alerts_stay_within_the_company(client, claims, db):
+    act_as(claims, "emp-a", "demo-a")
+    criteria = {"start_at": iso(at("10:00")), "end_at": iso(at("11:00")), "space_type": "individual_booth", "min_capacity": 4}
+    assert client.post("/api/v1/alerts", json=criteria).status_code == 201
+    booth = {"name": "Big booth", "type": "individual_booth", "capacity": 4}
+
+    def received():
+        return db.query(Notification).filter_by(type=NotificationType.SPACE_AVAILABLE).count()
+
+    act_as(claims, "fm-b", "demo-b", "facility-managers")
+    assert client.post("/api/v1/spaces", json=booth).status_code == 201
+    assert received() == 0
+
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    assert client.post("/api/v1/spaces", json=booth).status_code == 201
+    assert received() == 1
+
+
+def test_device_alerts_reach_the_fms_of_the_space_company(client, claims, db, frozen_clock):
+    fm_a = make_user(db, "fm-a", is_fm=True)
+    fm_b = make_user(db, "fm-b", is_fm=True, organization="demo-b")
+    a1 = make_space(db, "A1", device=False)
+    db.add(Device(id="esp32-A", space_id=a1.id, seal=SealState.UNSEALED, firmware_version="0.3.0",
+                  first_seen_at=at("09:00"), last_seen_at=at("10:00")))
+    db.commit()
+    frozen_clock.now = at("10:01")
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+
+    assert client.get("/api/v1/devices").status_code == 200
+    offline = db.query(Notification).filter_by(type=NotificationType.DEVICE_OFFLINE).all()
+    assert [n.user_id for n in offline] == [fm_a.id]
+    assert fm_b.id not in [n.user_id for n in offline]
