@@ -15,6 +15,9 @@ down_revision: Union[str, Sequence[str], None] = "0004"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
+# The new unique index keeps the previous release's guarantee: everything it inserts goes to demo-a.
+squawk_ignore = ["ban-drop-constraint"]
+
 
 def upgrade() -> None:
     # Nullable: the previous release inserts users without it; filled from the token on the next request.
@@ -23,12 +26,12 @@ def upgrade() -> None:
     # The default backfills data from before 0.6 and serves the previous release, which inserts without it.
     op.add_column("space", sa.Column("organization", sa.String(), nullable=False, server_default="demo-a"))
     if op.get_bind().dialect.name == "postgresql":
-        op.drop_constraint("space_name_key", "space", type_="unique")
         with op.get_context().autocommit_block():
             op.create_index(
                 "uq_space_organization_name", "space", ["organization", "name"], unique=True,
                 postgresql_concurrently=True,
             )
+        op.drop_constraint("space_name_key", "space", type_="unique")
     else:
         with op.batch_alter_table("space", naming_convention={"uq": "uq_%(table_name)s_%(column_0_name)s"}) as batch:
             batch.drop_constraint("uq_space_name", type_="unique")
