@@ -100,3 +100,28 @@ def test_fm_manages_only_spaces_of_their_company(client, claims, db):
     assert db.query(Space).filter_by(name="B1", organization="demo-a").count() == 1
     again = client.post("/api/v1/spaces", json={**body, "name": "A1"})
     assert (again.status_code, again.json()) == (409, {"detail": "SPACE_NAME_TAKEN"})
+
+
+def test_settings_are_per_company(client, claims):
+    act_as(claims, "fm-a", "demo-a", "facility-managers")
+    assert client.patch("/api/v1/settings", json={"absence_delay_min": 5}).status_code == 200
+
+    act_as(claims, "fm-b", "demo-b", "facility-managers")
+    assert client.get("/api/v1/settings").json()["absence_delay_min"] == 10
+    act_as(claims, "emp-a", "demo-a")
+    assert client.get("/api/v1/me").json()["absence_delay_min"] == 5
+    act_as(claims, "emp-b", "demo-b")
+    assert client.get("/api/v1/me").json()["absence_delay_min"] == 10
+
+
+def test_booking_durations_follow_the_company_settings(client, claims, db):
+    a1, b1 = _two_companies(db)
+    act_as(claims, "fm-b", "demo-b", "facility-managers")
+    assert client.patch("/api/v1/settings", json={"booth_max_min": 30}).status_code == 200
+    slot = {"start_at": iso(at("10:00")), "end_at": iso(at("10:45"))}
+
+    act_as(claims, "emp-b", "demo-b")
+    refused = client.post("/api/v1/reservations", json={"space_id": str(b1.id), **slot})
+    assert (refused.status_code, refused.json()) == (422, {"detail": "INVALID_SLOT"})
+    act_as(claims, "emp-a", "demo-a")
+    assert client.post("/api/v1/reservations", json={"space_id": str(a1.id), **slot}).status_code == 201

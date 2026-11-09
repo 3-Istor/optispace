@@ -7,9 +7,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.errors import DomainError
-from app.models import AbsenceEpisode, AppSettings, AppUser, Reservation, Space
+from app.models import AbsenceEpisode, AppUser, Reservation, Space
 from app.models.enums import EpisodeOutcome, ReservationStatus, SpaceType
-from app.services import alerts
+from app.services import alerts, settings
 
 STEP = timedelta(minutes=5)
 MINUTE = timedelta(minutes=1)
@@ -41,7 +41,7 @@ def pending_episode(db: Session, reservation_id: UUID) -> AbsenceEpisode | None:
 
 def duration_bounds(db: Session, space: Space) -> tuple[int, int]:
     """Effective (min, max) minutes: the space's override, else its type's default."""
-    s = db.get(AppSettings, 1)
+    s = settings.get(db, space.organization)
     lo, hi = (s.meeting_min_min, s.meeting_max_min) if space.type == SpaceType.MEETING_ROOM else (s.booth_min_min, s.booth_max_min)
     return (
         lo if space.min_duration_min is None else space.min_duration_min,

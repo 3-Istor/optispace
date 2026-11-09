@@ -4,7 +4,7 @@ from app.database import Base
 
 
 class AppSettings(Base):
-    """Global settings: one row, id 1, inserted by migration 0002. Read it with `db.get(AppSettings, 1)`."""
+    """Legacy global settings, read only by the previous release during the rollout; superseded by OrgSettings."""
 
     __tablename__ = "app_settings"
 

@@ -1,7 +1,6 @@
 """Shared test fixtures.
 
-- `db`: a session on a fresh in-memory SQLite database (tables from the models,
-  `app_settings` row seeded). Commit setup data before calling `client`: each
+- `db`: a session on a fresh in-memory SQLite database (tables from the models). Commit setup data before calling `client`: each
   request gets its own session on the same connection. Call `db.expire_all()`
   to read what a request wrote to rows `db` had already loaded.
 - `claims`: the JWT claims `current_user` returns. Mutate it to switch user or
@@ -26,7 +25,6 @@ from app import clock
 from app.config import get_settings
 from app.database import Base, get_db
 from app.main import app
-from app.models import AppSettings
 from app.security import current_user
 
 
@@ -36,9 +34,6 @@ def session_factory():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine, autoflush=False)
-    with factory() as session:
-        session.add(AppSettings(id=1))
-        session.commit()
     yield factory
     engine.dispose()
 

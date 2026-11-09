@@ -6,6 +6,7 @@ from app.models.availability_alert import AvailabilityAlert
 from app.models.device import Device
 from app.models.notification import Notification
 from app.models.observation import Observation
+from app.models.org_settings import OrgSettings
 from app.models.push_subscription import PushSubscription
 from app.models.reservation import Reservation
 from app.models.space import Space
@@ -20,6 +21,7 @@ __all__ = [
     "Device",
     "Notification",
     "Observation",
+    "OrgSettings",
     "PushSubscription",
     "Reservation",
     "Space",

@@ -18,7 +18,7 @@ class Space(Base):
     capacity: Mapped[int]
     floor: Mapped[int] = mapped_column(default=0)  # 0 = ground floor
     equipment: Mapped[list[str]] = mapped_column(JSON, default=list)
-    # None = the type's default from AppSettings.
+    # None = the type's default from OrgSettings.
     min_duration_min: Mapped[int | None]
     max_duration_min: Mapped[int | None]
     is_active: Mapped[bool] = mapped_column(default=True)
