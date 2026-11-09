@@ -1,8 +1,10 @@
-from app.models import AppUser, OrgSettings
+import pytest
+from fastapi import HTTPException
+
+from app.models import AppUser, Device, Notification, OrgSettings, Space
+from app.security import fm_or_staff, organization_of, require_staff
 from app.services import settings
 from app.services.settings import DEFAULTS
-from app.security import organization_of
-from app.models import Device, Notification, Space
 from app.models.enums import NotificationType, SealState
 from app.testkit import at, iso, make_space, make_user
 
@@ -53,12 +55,26 @@ def test_facility_manager_needs_the_fm_group_and_a_company(client, claims):
 
 
 def test_existing_user_gets_the_company_of_the_token(client, claims, db):
-    make_user(db, "old", organization=None)
+    # Email and name already synced: only the organization differs, so the early return must not hide it.
+    make_user(db, "old", organization=None, email="old@example.com", display_name="old")
     act_as(claims, "old", "demo-a")
 
     assert client.get("/api/v1/me").json()["role"] == "employee"
     db.expire_all()
     assert db.query(AppUser).filter_by(keycloak_sub="old").one().organization == "demo-a"
+    refused = client.get("/api/v1/staff/spaces")
+    assert (refused.status_code, refused.json()) == (403, {"detail": "FORBIDDEN"})
+
+
+def test_staff_rights_come_from_the_token_not_the_row(db, claims):
+    # A row with a NULL company (what the IntegrityError fallback could return unsynced) is no staff.
+    act_as(claims, "old", "demo-a")
+    user = make_user(db, "old", organization=None, email="old@example.com", display_name="old")
+
+    for dependency in (require_staff, fm_or_staff):
+        with pytest.raises(HTTPException) as refused:
+            dependency(user, claims)
+        assert (refused.value.status_code, refused.value.detail) == (403, "FORBIDDEN")
 
 
 def _two_companies(db):
@@ -255,3 +271,25 @@ def test_staff_spaces_lists_every_company(client, claims, db):
     act_as(claims, "fm-a", "demo-a", "facility-managers")
     response = client.get("/api/v1/staff/spaces")
     assert (response.status_code, response.json()) == (403, {"detail": "FORBIDDEN"})
+
+
+def test_freed_slot_alerts_only_the_company_of_the_space(client, claims, db):
+    a1, b1 = _two_companies(db)
+    act_as(claims, "emp-a", "demo-a")
+    alert = {"start_at": iso(at("11:00")), "end_at": iso(at("12:00")), "space_type": "individual_booth"}
+    assert client.post("/api/v1/alerts", json=alert).status_code == 201
+    slot = {"start_at": iso(at("11:00")), "end_at": iso(at("11:30"))}
+
+    def available():
+        db.expire_all()
+        return db.query(Notification).filter_by(type=NotificationType.SPACE_AVAILABLE).count()
+
+    act_as(claims, "emp-b", "demo-b")
+    booked = client.post("/api/v1/reservations", json={"space_id": str(b1.id), **slot})
+    assert client.delete(f"/api/v1/reservations/{booked.json()['id']}").status_code in (200, 204)
+    assert available() == 0
+
+    act_as(claims, "emp-a2", "demo-a")
+    booked = client.post("/api/v1/reservations", json={"space_id": str(a1.id), **slot})
+    assert client.delete(f"/api/v1/reservations/{booked.json()['id']}").status_code in (200, 204)
+    assert available() == 1

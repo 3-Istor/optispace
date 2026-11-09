@@ -81,8 +81,10 @@ def get_app_user(db: Session = Depends(get_db), claims: dict = Depends(current_u
     try:
         db.commit()
     except IntegrityError:
-        db.rollback()  # the browser's parallel first requests: another one created the row
+        db.rollback()  # the browser's parallel first requests (or an old pod): another one created the row
         user = db.scalar(by_sub)
+        user.email, user.display_name, user.is_fm, user.organization = email, name, fm, organization
+        db.commit()
     return user
 
 
@@ -99,13 +101,13 @@ def require_fm(user: AppUser = Depends(member)) -> AppUser:
     return user
 
 
-def require_staff(user: AppUser = Depends(get_app_user)) -> AppUser:
-    if user.organization is not None:
+def require_staff(user: AppUser = Depends(get_app_user), claims: dict = Depends(current_user)) -> AppUser:
+    if not is_staff(claims):
         raise HTTPException(status_code=403, detail="FORBIDDEN")
     return user
 
 
-def fm_or_staff(user: AppUser = Depends(get_app_user)) -> AppUser:
-    if user.organization is not None and not user.is_fm:
+def fm_or_staff(user: AppUser = Depends(get_app_user), claims: dict = Depends(current_user)) -> AppUser:
+    if not is_staff(claims) and not user.is_fm:
         raise HTTPException(status_code=403, detail="FORBIDDEN")
     return user

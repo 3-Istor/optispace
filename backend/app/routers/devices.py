@@ -6,9 +6,8 @@ from sqlalchemy.orm import Session
 
 from app import clock
 from app.database import get_db
-from app.models import Device, Space
+from app.models import AppUser, Device, Space
 from app.schemas.devices import DeviceDetail, DeviceOut, DevicePatch, UnsealIn
-from app.models import AppUser
 from app.security import fm_or_staff, require_fm, require_staff
 from app.services import devices, occupancy
 

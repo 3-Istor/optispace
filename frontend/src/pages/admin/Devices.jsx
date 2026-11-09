@@ -145,7 +145,7 @@ export function Devices({ me }) {
                     </span>
                     <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, lineHeight: 1.3 }}>
                       <span className="num" style={{ fontSize: 12.5, fontWeight: 500, overflowWrap: 'anywhere' }}>{d.id}</span>
-                      <span style={{ fontSize: 12, color: '#5B6676', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.space?.name ?? 'Non affecté'}</span>
+                      <span style={{ fontSize: 12, color: '#5B6676', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.space ? `${d.space.name}${staff ? ` · ${d.space.organization}` : ''}` : 'Non affecté'}</span>
                     </span>
                     <Dot state={s} />
                   </button>

@@ -16,7 +16,7 @@ DEVICE = "esp32-24A1B2C3D4E5"
 
 @pytest.fixture
 def fm(claims):
-    # The acting FM is the `fm1` of the `fms` fixture: routes now create the user of the token.
+    # The acting FM is the `fm1` of the `fms` fixture: routes create the user of the token.
     claims.update(sub="fm1", groups=["facility-managers"])
 
 
@@ -129,7 +129,7 @@ def test_assign_reseals(client, db, claims):
     assert (moved.json()["space"], moved.json()["seal"]) == ({"id": str(second.id), "name": "Salle Lovelace", "organization": "demo-a"}, "sealed")
 
     as_fm(claims)
-    client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True})
+    assert client.post(f"/api/v1/devices/{DEVICE}/unseal", json={"confirm": True}).status_code == 200
     as_staff(claims)
     removed = client.patch(f"/api/v1/devices/{DEVICE}", json={"space_id": None})
     assert (removed.json()["space"], removed.json()["seal"]) == (None, "sealed")

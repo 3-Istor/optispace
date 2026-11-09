@@ -15,7 +15,7 @@ import { Toaster } from './ui/Toast.jsx'
 
 // path -> page component, rendered as <Page me={me} setMe={setMe} />.
 const ROUTES = { '/': Reserve, '/reservations': MyReservations, '/profile': Profile }
-// Served to role facility_manager only (the backend enforces it anyway); /admin/* for others is a 403 page.
+// Served to role facility_manager only (the backend enforces it anyway); /admin/* is a 403 page for employees, not found for staff.
 // Staff (OptiSpace devs and admins) only install devices.
 const STAFF_ROUTES = { '/': Devices }
 const FM_ROUTES = {

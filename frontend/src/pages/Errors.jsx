@@ -1,7 +1,7 @@
 import { Link } from '../router.jsx'
 import { Icon, ICONS } from '../ui/Icon.jsx'
 
-// The single blocking-error template of Erreurs.dc.html. home: the action goes to "/", else it reloads; no action: none.
+// The single blocking-error template of Erreurs.dc.html. home: the action goes to "/", logout: to the gateway's /logout, else it reloads; no action: none.
 const KINDS = {
   notFound: {
     code: 'ERREUR 404', icon: ICONS.notFound, dot: '#1E56D6', home: true, action: 'Trouver un espace',
@@ -13,7 +13,7 @@ const KINDS = {
     text: 'Cette section est réservée aux Facility managers de votre entreprise. Demandez-leur d’ajuster vos droits si besoin.',
   },
   noOrganization: {
-    code: 'ERREUR 403', icon: ICONS.forbidden, dot: '#E5484D',
+    code: 'ERREUR 403', icon: ICONS.forbidden, dot: '#E5484D', logout: true, action: 'Se déconnecter',
     title: 'Votre compte n’est rattaché à aucune entreprise.',
     text: 'Demandez au support OptiSpace de rattacher votre compte à votre entreprise.',
   },
@@ -54,6 +54,8 @@ export function ErrorPage({ kind, standalone = false }) {
       <p>{e.text}</p>
       {e.action && (e.home
         ? <Link to="/" {...action}>{e.action}</Link>
+        : e.logout
+        ? <a href="/logout" {...action}>{e.action}</a>
         : <button type="button" onClick={() => location.reload()} {...action}>{e.action}</button>)}
       {e.action && <span style={{ fontSize: 12, color: '#6A7A92' }}>Si le problème persiste, contactez votre administrateur.</span>}
     </section>
