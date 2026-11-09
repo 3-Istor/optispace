@@ -9,7 +9,7 @@ from app.services import occupancy
 from app.testkit import SEC, at, book, heartbeats, iso, make_space, make_user
 
 URL = "/api/v1/spaces"
-FM = ["project-admins"]
+FM = ["facility-managers"]
 
 
 def test_list_spaces(client, db, claims):

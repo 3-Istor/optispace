@@ -16,11 +16,11 @@ from app.schemas.spaces import (
     CurrentReservation, DayReservation, EpisodeOut, History, HistoryReservation, ObservationOut, SpaceDetail, SpaceIn,
     SpaceOut, SpacePatch,
 )
-from app.security import current_user, get_app_user, is_fm, require_fm
+from app.security import current_user, get_app_user, is_fm, member, require_fm
 from app.services import absence, alerts, booking, devices, occupancy
 from app.services.notifications import PARIS
 
-router = APIRouter(tags=["spaces"])
+router = APIRouter(tags=["spaces"], dependencies=[Depends(member)])
 
 FIELDS = ("id", "name", "type", "description", "capacity", "floor", "equipment", "is_active")
 

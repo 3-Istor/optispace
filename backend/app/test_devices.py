@@ -16,7 +16,8 @@ DEVICE = "esp32-24A1B2C3D4E5"
 
 @pytest.fixture
 def fm(claims):
-    claims["groups"] = ["project-admins"]
+    # The acting FM is the `fm1` of the `fms` fixture: routes now create the user of the token.
+    claims.update(sub="fm1", groups=["facility-managers"])
 
 
 def make_space(db, name="Bulle 2"):
@@ -161,7 +162,7 @@ def test_unseal_unassigned_409(client, db, fm):
 
 
 def test_is_fm_follows_the_token(client, db, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
     client.get("/api/v1/me")
     assert db.scalar(select(AppUser)).is_fm is True
 

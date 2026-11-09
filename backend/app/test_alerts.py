@@ -10,7 +10,7 @@ from app.testkit import at, book, iso, make_space, make_user
 
 URL = "/api/v1/alerts"
 SPACES = "/api/v1/spaces"
-FM = ["project-admins"]
+FM = ["facility-managers"]
 CRITERIA = {"start_at": iso(at("11:00")), "end_at": iso(at("12:00")), "space_type": "meeting_room", "min_capacity": 4}
 BOARD_AND_PROJECTOR = ["Tableau blanc", "Vidéoprojecteur"]
 

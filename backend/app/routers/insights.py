@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 
 from app import clock
 from app.database import get_db
-from app.security import require_fm
+from app.security import member, require_fm
 from app.services import insights
 
-router = APIRouter(tags=["insights"])
+router = APIRouter(tags=["insights"], dependencies=[Depends(member)])
 
 
 @router.get("/spaces/{space_id}/insights", dependencies=[Depends(require_fm)])

@@ -105,7 +105,7 @@ def test_invalid_json_400(client, post):
 
 
 def test_other_routes_keep_fastapi_validation(client, claims):
-    claims["groups"] = ["project-admins"]
+    claims["groups"] = ["facility-managers"]
 
     assert client.patch("/api/v1/settings", json={"absence_delay_min": "x"}).status_code == 422
 

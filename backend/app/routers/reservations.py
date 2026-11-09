@@ -10,10 +10,10 @@ from app.database import get_db
 from app.models import AppUser, Reservation, Space
 from app.models.enums import ReservationStatus
 from app.schemas.reservations import ReservationIn, ReservationOut, ReservationPatch
-from app.security import get_app_user
+from app.security import get_app_user, member
 from app.services import absence, booking
 
-router = APIRouter(tags=["reservations"])
+router = APIRouter(tags=["reservations"], dependencies=[Depends(member)])
 
 
 def reservation_out(db: Session, r: Reservation) -> ReservationOut:

@@ -7,10 +7,10 @@ from app import clock
 from app.database import get_db
 from app.models import AppUser
 from app.schemas.reservations import AlertIn, AlertOut
-from app.security import get_app_user
+from app.security import get_app_user, member
 from app.services import alerts
 
-router = APIRouter(tags=["alerts"])
+router = APIRouter(tags=["alerts"], dependencies=[Depends(member)])
 
 
 @router.post("/alerts", status_code=201, response_model=AlertOut)
