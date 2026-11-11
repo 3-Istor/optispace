@@ -89,6 +89,12 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 - Access control is enforced in the backend. Hiding a button in React is not
   access control.
 - The browser bundle is public: no secret, token or internal URL in frontend code.
+- UI rules (`frontend/src/styles/app.css`): one frame level per block (inside a
+  `.card`, spacing and hairlines only; borders are for what can be clicked),
+  concentric corners (inner radius = outer radius - padding, 14/6/8), 44 px
+  touch targets on phones. Space states use three colours (green free, orange
+  awaiting presence, red occupied) and grey for an offline or sealed device.
+  A page's breadcrumb comes from the navigation in `ui/Shell.jsx`.
 - A new dependency is pinned to an exact version in `backend/requirements.txt`,
   or added to `frontend/package.json`. Nothing is installed at runtime.
 - Read secret values and `.env` only through the app, never in the

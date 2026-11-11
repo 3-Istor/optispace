@@ -72,7 +72,7 @@ export function Devices({ me }) {
 
   const count = data?.devices.length
   const header = (
-    <PageHeader crumb={staff ? 'Installation / Boîtiers' : 'Espaces / Boîtiers'} title="Boîtiers">
+    <PageHeader title="Boîtiers">
       {data && <span className="muted" style={{ fontSize: 13 }}>{count} boîtier{count > 1 ? 's' : ''}</span>}
     </PageHeader>
   )
@@ -202,7 +202,7 @@ export function Devices({ me }) {
                 <Icon d={ICONS.warn} size={18} style={{ color: '#D63F45', flex: 'none' }} />
                 <span>
                   Le boîtier n’a plus donné de nouvelles depuis plus de 30 secondes. Dernière connexion {fmtAgo(cur.last_seen_at)}.
-                  {!sealed && cur.space && ' L’espace passe en « Présence à vérifier » tant qu’il est hors ligne : aucune réservation n’y est libérée.'}
+                  {!sealed && cur.space && ' L’espace passe en « Hors ligne » tant qu’il est hors ligne : aucune réservation n’y est libérée.'}
                 </span>
               </div>
             )}

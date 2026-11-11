@@ -5,5 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F6F7F9",
-  "icons": [{ "src": "/3istor.png", "sizes": "280x238", "type": "image/png" }]
+  "icons": [
+    { "src": "/optispace-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/optispace-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
 }

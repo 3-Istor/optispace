@@ -64,7 +64,7 @@ export function ErrorPage({ kind, standalone = false }) {
   return (
     <div className="err-page">
       <header className="topbar">
-        <div className="topbar-in"><span className="brand"><img src="/3istor.png" alt="3istor" /><span className="brand-name">OptiSpace</span></span></div>
+        <div className="topbar-in"><span className="brand"><img src="/optispace.svg" alt="" /><span className="brand-name">OptiSpace</span></span></div>
       </header>
       <main>{card}</main>
     </div>

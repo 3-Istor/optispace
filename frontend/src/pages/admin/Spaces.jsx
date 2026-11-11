@@ -58,7 +58,7 @@ export function Spaces() {
   const [form, setForm] = useState(null) // the space being edited; {type} for a new one
 
   const header = (
-    <PageHeader crumb="Espaces / Salles et bulles" title="Salles et bulles">
+    <PageHeader title="Salles et bulles">
       <Button variant="p" disabled={!data} onClick={() => setForm({ type })}><Icon d="M12 5v14M5 12h14" />Ajouter un espace</Button>
     </PageHeader>
   )

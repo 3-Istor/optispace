@@ -70,7 +70,7 @@ export function Dashboard() {
 
   const { spaces = [], devices = [] } = live.data ?? {}
   const header = (
-    <PageHeader crumb="Pilotage / Tableau de bord" title="Tableau de bord">
+    <PageHeader title="Tableau de bord">
       {spaces.length > 0 && <>
         <select className="input" aria-label="Espace" value={spaceId} onChange={(e) => setPicked(e.target.value)} style={{ maxWidth: '100%' }}>
           {spaces.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.is_active === false ? ' (hors service)' : ''}</option>)}
