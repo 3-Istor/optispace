@@ -1,33 +1,39 @@
-// The three-arc loader of Chargement.dc.html. full: dark full-screen boot screen; else inline 48 px.
-const ARC = { full: [[52, '#1E56D6', 2.4, 1.8], [42, '#5B8CF0', 1.9, 1.6], [32, '#A9C6FF', 1.4, 1.4]], inline: [[52, '#1E56D6', 2.4, 1.8], [36, '#5B8CF0', 1.9, 1.6], [20, '#A9C6FF', 1.4, 1.4]] }
-
-function Arcs({ full }) {
-  const size = full ? 140 : 48
+// full: boot screen where the OptiSpace symbol draws itself; else skeleton lines in place of the content.
+// The symbol is public/optispace.svg inlined so its parts can be animated (app.css, .boot-*).
+function Symbol() {
   return (
-    <div className="loader" style={{ width: size, height: size }} aria-hidden="true">
-      {ARC[full ? 'full' : 'inline'].map(([r, color, spin, dash], i) => (
-        <svg key={r} width={size} height={size} viewBox="0 0 120 120" style={{ animation: `osSpin ${spin}s linear infinite${i === 1 ? ' reverse' : ''}` }}>
-          {full && i === 0 && <circle cx="60" cy="60" r="52" fill="none" stroke="#1B3157" strokeWidth="5" />}
-          <circle cx="60" cy="60" r={r} fill="none" stroke={color} strokeWidth={full ? 5 : 10} strokeLinecap="round"
-            style={{ animation: `osDash ${dash}s ease-in-out infinite ${i * 0.2}s` }} />
-        </svg>
-      ))}
-      {full && <div className="loader-core"><span /></div>}
-    </div>
+    <svg className="boot" viewBox="180 180 640 640" width="96" height="96" aria-hidden="true">
+      <defs>
+        <mask id="boot-s" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1000">
+          <rect width="1000" height="1000" fill="#fff" />
+          <polygon points="456.7,500 543.3,500 475,774 388.4,774" fill="#000" stroke="#000" strokeWidth="20" />
+        </mask>
+        <mask id="boot-i" maskUnits="userSpaceOnUse" x="0" y="0" width="1000" height="1000">
+          <rect width="1000" height="1000" fill="#fff" />
+          <path d="M440.3 483.4A116 116 0 0 0 500 500A116 116 0 0 1 580 532" fill="none" stroke="#000" strokeWidth="104" />
+        </mask>
+      </defs>
+      <circle className="boot-dot" cx="500" cy="384" r="52" fill="#38B6FF" />
+      <path className="boot-s" pathLength="1" d="M616 384A116 116 0 1 0 500 500A116 116 0 1 1 384 616" fill="none" stroke="#09234A" strokeWidth="84" mask="url(#boot-s)" />
+      <polygon className="boot-i" points="456.7,500 543.3,500 475,774 388.4,774" fill="#38B6FF" mask="url(#boot-i)" />
+      <path className="boot-s" pathLength="1" d="M440.3 483.4A116 116 0 0 0 500 500A116 116 0 0 1 580 532" fill="none" stroke="#09234A" strokeWidth="84" />
+    </svg>
   )
 }
 
 export function Loader({ full = false, label = 'Chargement' }) {
   if (!full) {
-    return <div className="loader-inline" role="status"><Arcs /><span>{label}</span></div>
+    return (
+      <div className="sk-list" role="status">
+        <span className="sr-only">{label}</span>
+        <span className="sk" style={{ width: '72%' }} /><span className="sk" style={{ width: '94%' }} /><span className="sk" style={{ width: '56%' }} />
+      </div>
+    )
   }
   return (
     <section className="loader-full" role="status" aria-label={label}>
-      <Arcs full />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <span style={{ fontSize: 18, fontWeight: 500 }}>{label}<span className="dots" aria-hidden="true"><span>.</span><span>.</span><span>.</span></span></span>
-        <span style={{ fontSize: 14, color: '#A9BBD8' }}>Synchronisation avec les boîtiers</span>
-      </div>
+      <Symbol />
+      <span className="brand-name" style={{ fontSize: 22 }}>OptiSpace</span>
     </section>
   )
 }

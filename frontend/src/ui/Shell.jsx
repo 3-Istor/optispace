@@ -4,6 +4,7 @@ import { Bell } from './Bell.jsx'
 import { Icon, ICONS } from './Icon.jsx'
 
 const MeContext = createContext(null)
+export const useMe = () => useContext(MeContext)
 
 const EMPLOYEE_NAV = [
   ['Réservations', [['/', 'Réserver', ICONS.search], ['/reservations', 'Mes réservations', ICONS.calendar]]],
@@ -18,6 +19,8 @@ const FM_NAV = [
 ]
 
 const STAFF_NAV = [['Installation', [['/', 'Boîtiers', ICONS.device]]]]
+
+const navOf = (me) => (me.role === 'staff' ? STAFF_NAV : me.role === 'facility_manager' ? FM_NAV : EMPLOYEE_NAV)
 
 const ROLE_LABELS = { facility_manager: 'Facility manager', staff: 'Admin OptiSpace' }
 export const roleLabel = (me) => ROLE_LABELS[me.role] ?? 'Employé'
@@ -60,10 +63,10 @@ function Sidebar({ me }) {
       <div className="side-in">
         <div className="side-top">
           <Link to={fm ? '/admin' : '/'} className="brand" style={{ padding: '2px 6px' }}>
-            <img src="/3istor.png" alt="3istor" style={{ height: 30 }} />
+            <img src="/optispace.svg" alt="" style={{ height: 30 }} />
             <span style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.2 }}>
               <span className="brand-name">OptiSpace</span>
-              {fm && <span style={{ fontSize: 11, color: '#5B6676' }}>Facility management</span>}
+              <span style={{ fontSize: 11, color: '#5B6676' }}>par 3istor</span>
             </span>
           </Link>
           <button ref={button} type="button" className="btn btn-s side-menu" aria-expanded={open} aria-controls="side-nav"
@@ -72,7 +75,7 @@ function Sidebar({ me }) {
         <div id="side-nav" className={open ? 'side-nav open' : 'side-nav'}>
           <nav aria-label="Navigation" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}
             onClick={(e) => e.target.closest('a') && setOpen(false)}>
-            {(me.role === 'staff' ? STAFF_NAV : fm ? FM_NAV : EMPLOYEE_NAV).map(([title, items]) => (
+            {navOf(me).map(([title, items]) => (
               <div className="side-group" key={title}>
                 <span className="side-title">{title}</span>
                 {items.map(([to, label, d]) => <NavLink key={to} to={to}><Icon d={d} />{label}</NavLink>)}
@@ -95,9 +98,13 @@ function Sidebar({ me }) {
 
 // Title row of every page: crumb, h1 and actions (children). It also holds the bell, as in the
 // admin mockups, so every page must render it. Staff get none: /notifications answers them 403.
-export function PageHeader({ crumb, title, children }) {
-  const me = useContext(MeContext)
+// The crumb is "group / link" of the current path in the user's navigation.
+export function PageHeader({ title, children }) {
+  const me = useMe()
+  const { path } = useRoute()
   const bell = me && me.role !== 'staff'
+  const group = me && navOf(me).find(([, items]) => items.some(([to]) => to === path))
+  const crumb = group && `${group[0]} / ${group[1].find(([to]) => to === path)[1]}`
   return (
     <div className="page-h">
       <div className="page-h-t">

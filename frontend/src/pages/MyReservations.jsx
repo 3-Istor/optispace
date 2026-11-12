@@ -113,7 +113,7 @@ export function MyReservations({ me }) {
 
   return (
     <>
-      <PageHeader crumb={me.display_name} title="Mes réservations" />
+      <PageHeader title="Mes réservations" />
       <div className="cols-2">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <section className="stack" aria-labelledby="now-h">

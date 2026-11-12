@@ -60,14 +60,14 @@ export const NOTIFICATIONS = {
   },
 }
 
-// space_state (spec §5) -> [label, dot color]
+// space_state (spec §5) -> [label, dot color]: three colours like the device LED, grey when the device is silent or sealed.
 export const SPACE_STATES = {
   free: ['Libre', '#1A8F4E'],
-  awaiting_presence: ['Réservée, en attente de présence', '#D9771F'],
+  awaiting_presence: ['Réservée, en attente', '#D9771F'],
   occupied_reserved: ['Occupée', '#D63F45'],
-  occupied_unreserved: ['Occupée sans réservation', '#A8323A'],
-  unknown: ['Présence à vérifier', '#2F6FE0'],
-  sealed: ['Détection désactivée', '#8A94A3'],
+  occupied_unreserved: ['Occupée', '#D63F45'],
+  unknown: ['Hors ligne', '#8A94A3'],
+  sealed: ['Hors ligne', '#8A94A3'],
 }
 
 // GET /devices item -> key of DEVICE_STATES; offline wins so a dead box is never shown as fine.

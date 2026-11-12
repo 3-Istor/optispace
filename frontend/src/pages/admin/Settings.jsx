@@ -48,7 +48,7 @@ export function Settings() {
     api.get('/settings').then((s) => { setSaved(s); setDraft(s) }, setError)
   }, [])
 
-  const header = <PageHeader crumb="Espaces / Paramètres" title="Paramètres des espaces" />
+  const header = <PageHeader title="Paramètres des espaces" />
   if (!draft) {
     return <>{header}{error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement des paramètres" />}</>
   }

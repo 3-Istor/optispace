@@ -25,6 +25,19 @@ const FM_ROUTES = {
 // GET /me failure -> what to show. A 401 that survives one reload means the gateway does not pass the token.
 const FAILURE = { 0: 'offline', 401: 'unauthenticated', 403: 'forbidden' }
 const RELOADED = 'optispace.reloaded-on-401'
+const BOOTED = 'optispace.booted'
+const BOOT_MS = 1500
+
+// True once per browser session; storage blocked means no boot hold rather than one on every load.
+const FIRST_BOOT = (() => {
+  try {
+    if (sessionStorage.getItem(BOOTED)) return false
+    sessionStorage.setItem(BOOTED, '1')
+    return true
+  } catch {
+    return false
+  }
+})()
 
 // Keycloak signs users in before the app loads, so a reload is the whole login. The flag is cleared only by a
 // successful /me: parallel 401s (StrictMode runs effects twice) must not reload again.
@@ -46,20 +59,22 @@ function forgetReload() {
 export default function App() {
   const [me, setMe] = useState(null)
   const [failure, setFailure] = useState(null)
+  const [booting, setBooting] = useState(FIRST_BOOT)
   const { path, url } = useRoute()
 
   useEffect(() => {
     const expired = () => setFailure((f) => f ?? 'session')
     window.addEventListener('api:unauthorized', expired)
+    const boot = setTimeout(() => setBooting(false), BOOT_MS)
     api.get('/me').then((m) => { forgetReload(); setMe(m) }, (e) => {
       if (e.status === 401 && reloadOnce()) return
       setFailure(e.code === 'NO_ORGANIZATION' ? 'noOrganization' : FAILURE[e.status] ?? 'server')
     })
-    return () => window.removeEventListener('api:unauthorized', expired)
+    return () => { clearTimeout(boot); window.removeEventListener('api:unauthorized', expired) }
   }, [])
 
   if (failure) return <ErrorPage kind={failure} standalone />
-  if (!me) return <Loader full label="Chargement de vos espaces" />
+  if (!me || booting) return <Loader full label="Chargement de vos espaces" />
 
   const fm = me.role === 'facility_manager'
   const Page = me.role === 'staff' ? STAFF_ROUTES[path] : ROUTES[path] ?? (fm ? FM_ROUTES[path] : undefined)

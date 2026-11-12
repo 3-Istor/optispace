@@ -57,7 +57,7 @@ export function Profile({ me, setMe }) {
 
   return (
     <>
-      <PageHeader crumb="Compte / Profil" title="Profil" />
+      <PageHeader title="Profil" />
       <div className="cols" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         <section className="card" style={{ padding: '22px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 16 }}>
