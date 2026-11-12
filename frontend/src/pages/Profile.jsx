@@ -3,6 +3,7 @@ import { api } from '../api.js'
 import { errorText } from '../messages.js'
 import { disablePush, enablePush } from '../push.js'
 import { Icon } from '../ui/Icon.jsx'
+import { Tick } from '../ui/motion.jsx'
 import { initials, PageHeader, roleLabel } from '../ui/Shell.jsx'
 import { toast } from '../ui/Toast.jsx'
 
@@ -86,7 +87,7 @@ export function Profile({ me, setMe }) {
                 value={phone} onChange={(e) => { setPhone(e.target.value); setPhoneSaved(false) }} style={{ width: 260, maxWidth: '100%' }} />
               <button type="submit" className="btn btn-p" disabled={phone.trim() === (me.phone ?? '')}>Enregistrer</button>
             </div>
-            <span role="status" style={{ fontSize: 12, color: '#156B3C' }}>{phoneSaved && 'Téléphone enregistré.'}</span>
+            <span role="status" style={{ fontSize: 12, color: '#156B3C' }}>{phoneSaved && <span className="fade" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Tick size={14} />Téléphone enregistré.</span>}</span>
           </form>
         </section>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

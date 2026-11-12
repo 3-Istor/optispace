@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../ui/Icon.jsx'
 import { Loader } from '../ui/Loader.jsx'
+import { EXIT_MS } from '../ui/motion.jsx'
 import { PageHeader } from '../ui/Shell.jsx'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
 import { toast } from '../ui/Toast.jsx'
@@ -46,6 +47,8 @@ export function MyReservations({ me }) {
   const [edit, setEdit] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [cancelling, setCancelling] = useState(null) // reservation awaiting the cancel confirmation
+  const [goneId, setGoneId] = useState(null) // row folding away until the reloaded list arrives
+  useEffect(() => setGoneId(null), [data])
 
   if (!data) return error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement de vos réservations" />
 
@@ -69,6 +72,8 @@ export function MyReservations({ me }) {
     try {
       await call()
       toast(done)
+      setGoneId(id)
+      await new Promise((r) => setTimeout(r, EXIT_MS))
     } catch (e) {
       toast(errorText(e), 'err')
     }
@@ -82,7 +87,7 @@ export function MyReservations({ me }) {
     const releaseAt = r.release_at ?? (current?.id === r.id ? current.release_at : null)
     const banner = kind === 'now' && releaseAt && NOTIFICATIONS.ABSENCE_WARNING.text({ space_name: spaceName(r), at: releaseAt })
     return (
-      <article key={r.id} className="card" style={{ overflow: 'hidden', borderColor: banner ? '#F2D3B0' : undefined, background: kind === 'past' ? '#FBFBFC' : undefined }}>
+      <div key={r.id} className={goneId === r.id ? 'fold gone' : 'fold'}><article className="card" style={{ overflow: 'hidden', borderColor: banner ? '#F2D3B0' : undefined, background: kind === 'past' ? '#FBFBFC' : undefined }}>
         {banner && (
           <div className="banner" role="status">
             <Icon d={ICONS.warn} style={{ color: '#D9771F', flex: 'none' }} />
@@ -107,7 +112,7 @@ export function MyReservations({ me }) {
             </span>
           )}
         </div>
-      </article>
+      </article></div>
     )
   }
 
@@ -140,7 +145,7 @@ export function MyReservations({ me }) {
             {alerts.map((a) => {
               const where = [a.floor != null && floorLabel(a.floor), a.equipment?.join(', ')].filter(Boolean).join(' · ')
               return (
-                <div className="line" key={a.id}>
+                <div className={goneId === a.id ? 'line gone' : 'line'} key={a.id}>
                   <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <span style={{ fontWeight: 500 }}>{SPACE_TYPES[a.space_type]}{a.min_capacity > 1 && ` · ${a.min_capacity} places ou plus`}</span>
                     <span className="muted num" style={{ fontSize: 12 }}>{fmtLongDay(a.start_at)}, {fmtTime(a.start_at)} à {fmtTime(a.end_at)}</span>
@@ -169,7 +174,7 @@ export function MyReservations({ me }) {
 
       {edit && (
         <EditReservation reservation={edit} spaces={Object.values(data.spaces)} name={spaceLabel(edit)}
-          onClose={() => setEdit(null)} onSaved={() => { setEdit(null); refresh() }} />
+          onClose={() => setTimeout(() => setEdit(null), EXIT_MS)} onSaved={() => { setEdit(null); refresh() }} />
       )}
     </>
   )

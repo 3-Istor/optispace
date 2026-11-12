@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
+import { LiveDot } from '../../ui/motion.jsx'
 import { PageHeader } from '../../ui/Shell.jsx'
 import { StatusBadge } from '../../ui/StatusBadge.jsx'
 import { toast } from '../../ui/Toast.jsx'
@@ -24,7 +25,7 @@ const ORDER = ['new', 'offline', 'sealed', 'active'] // what needs action first
 const FILTERS = [['all', 'Tous', ORDER], ['sealed', 'Scellés', ['new', 'sealed']], ['active', 'Actifs', ['active']], ['offline', 'Hors ligne', ['offline']]]
 const STEPS = ['Affecter', 'Desceller', 'Actif']
 
-const Dot = ({ state }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><span className="dot" style={{ background: DEVICE_STATES[state][1] }} />{DEVICE_STATES[state][0]}</span>
+const Dot = ({ state }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><LiveDot color={DEVICE_STATES[state][1]} quiet={state !== 'active'} />{DEVICE_STATES[state][0]}</span>
 
 // A space holds one device, so spaces equipped by another device are left out. Staff see
 // every company, so their options are grouped by organization instead of by type.

@@ -37,12 +37,14 @@ export function Bell({ me }) {
   const [card, setCard] = useState(() => pushCardWanted(me))
   const unread = data.filter((n) => !n.read_at)
   const seen = useRef(null)
+  const [rings, setRings] = useState(0) // arrivals since the page loaded; each one swings the bell once
 
   // A new unread notification also pops a toast; the first load only records what is already there.
   useEffect(() => {
     if (!loaded) return
     const fresh = seen.current ? unread.filter((n) => !seen.current.has(n.id)) : []
     seen.current = new Set(data.map((n) => n.id))
+    if (fresh.length) setRings((r) => r + 1)
     fresh.forEach((n) => {
       const t = NOTIFICATIONS[n.type]
       if (t) toast(`${t.title} : ${t.text(n.params ?? {})}`)
@@ -93,8 +95,8 @@ export function Bell({ me }) {
   return (
     <details className="bell" ref={ref}>
       <summary aria-label={`Notifications, ${unread.length} non lue${unread.length > 1 ? 's' : ''}`}>
-        <Icon d={ICONS.bell} size={18} />
-        {unread.length > 0 && <span className="cnt num" aria-hidden="true">{unread.length > 99 ? '99+' : unread.length}</span>}
+        <span key={`bell${rings}`} className={rings ? 'swing' : undefined} style={{ display: 'inline-flex' }}><Icon d={ICONS.bell} size={18} /></span>
+        {unread.length > 0 && <span key={`cnt${rings}`} className={rings ? 'cnt num pop' : 'cnt num'} aria-hidden="true">{unread.length > 99 ? '99+' : unread.length}</span>}
       </summary>
       <div className="menu">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 10px' }}>
