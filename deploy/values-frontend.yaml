@@ -52,6 +52,12 @@ ingress:
   enabled: true
   hostname: "optispace-iot.3istor.com"
   sso_protected: true
+  # Swagger without SSO in every environment; API calls from it still need a session.
+  publicPaths:
+  - path: /api/docs
+    method: GET
+  - path: /api/openapi.json
+    method: GET
   realm: "iot"
   # Every project gets its own connector and Gateway in <project>-system now
   # (D-06) — an app-level connector would be a second, redundant one, and the
