@@ -7,6 +7,7 @@ import { Button } from '../../ui/Button.jsx'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
+import { EXIT_MS, Seg } from '../../ui/motion.jsx'
 import { PageHeader } from '../../ui/Shell.jsx'
 import { StatusBadge } from '../../ui/StatusBadge.jsx'
 import { Stepper } from '../../ui/Stepper.jsx'
@@ -63,7 +64,7 @@ export function Spaces() {
     </PageHeader>
   )
   const drawer = form && data && (
-    <SpaceForm space={form} settings={data.settings} onClose={() => setForm(null)}
+    <SpaceForm space={form} settings={data.settings} onClose={() => setTimeout(() => setForm(null), EXIT_MS)}
       onSaved={(s) => { setForm(null); setType(s.type); setSelId(s.id); refresh() }} />
   )
   if (!data) return <>{header}{error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement des espaces" />}</>
@@ -79,13 +80,13 @@ export function Spaces() {
     <>
       {header}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-        <div className="seg" role="group" aria-label="Type d’espace">
+        <Seg role="group" aria-label="Type d’espace">
           {[['meeting_room', 'Salles de réunion'], ['individual_booth', 'Bulles individuelles']].map(([t, label]) => (
             <button key={t} type="button" aria-pressed={type === t} onClick={() => { setType(t); setSelId(null) }}>
               {label} <span className="num" style={{ color: '#8A94A3', marginLeft: 2 }}>{spaces.filter((s) => s.type === t).length}</span>
             </button>
           ))}
-        </div>
+        </Seg>
         <div style={{ position: 'relative', marginLeft: 'auto', maxWidth: '100%' }}>
           <Icon d={ICONS.search} style={{ position: 'absolute', left: 10, top: 10, color: '#8A94A3' }} />
           <input className="input" type="search" placeholder="Rechercher" aria-label="Rechercher un espace" value={q}
@@ -333,11 +334,11 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
           <div className="pair">
             <div className="field" role="group" aria-labelledby="sf-type">
               <span className="lbl" id="sf-type">Type</span>
-              <div className="seg" style={{ alignSelf: 'flex-start' }}>
+              <Seg style={{ alignSelf: 'flex-start' }}>
                 {Object.entries(SPACE_TYPES).map(([t, label]) => (
                   <button key={t} type="button" aria-pressed={f.type === t} onClick={() => set({ type: t })}>{label}</button>
                 ))}
-              </div>
+              </Seg>
             </div>
             <label className="field"><span className="lbl">Capacité</span>
               <input className="input num" type="number" min={1} step={1} required value={f.capacity}

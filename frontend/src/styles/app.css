@@ -58,23 +58,22 @@ button.ntf:hover{background:#F8F9FB}
 
 /* Toasts, newest at the bottom */
 .toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:8px;width:max-content;max-width:min(560px,calc(100% - 32px));pointer-events:none}
-.toast{display:flex;align-items:center;gap:10px;background:#0E1726;color:#FFFFFF;font-size:14px;line-height:1.45;box-shadow:0 10px 30px rgba(14,23,38,.25);pointer-events:auto;box-sizing:border-box;animation:toast .2s ease}
-.toast i{width:8px;height:8px;border-radius:50%;flex:none;background:#7FD3A4}
-.toast-err i{background:#F08A8E}
+.toast{display:flex;align-items:center;gap:10px;background:#0E1726;color:#FFFFFF;font-size:14px;line-height:1.45;box-shadow:0 10px 30px rgba(14,23,38,.25);pointer-events:auto;box-sizing:border-box;animation:rise var(--t2) var(--e-out)}
+.toast.out{animation:sink var(--t2) var(--e-trace) forwards}
+.toast-err{animation:rise var(--t2) var(--e-out),shake var(--t3) var(--e-out) var(--t2)}
+.toast>svg{flex:none;color:#7FD3A4}
+.toast-err>svg{color:#F08A8E}
 .toast-x{flex:none;width:28px;height:28px;border:0;background:transparent;color:#C9D0DA;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .toast-x:hover{background:rgba(255,255,255,.12);color:#FFFFFF}
-@keyframes toast{from{opacity:0;transform:translateY(12px)}}
 
 /* Drawer (native <dialog>) */
 dialog.drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);max-width:100%;height:100%;max-height:none;border:0;padding:0;background:#FFFFFF;color:inherit;box-shadow:-20px 0 50px rgba(14,23,38,.15)}
-dialog.drawer[open]{animation:drawer .25s cubic-bezier(.2,.8,.2,1)}
 dialog.drawer::backdrop{background:rgba(14,23,38,.28)}
 .drawer-form{display:flex;flex-direction:column;height:100%}
 .drawer-h{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #E4E8EE}
 .drawer-b{padding:18px 22px;display:flex;flex-direction:column;gap:16px;flex:1;overflow:auto}
 .drawer-f{display:flex;justify-content:flex-end;gap:8px;padding:14px 22px;border-top:1px solid #E4E8EE}
 .note{padding:10px 12px;border-radius:8px;background:#F3F6FD;border:1px solid #DCE6FA;font-size:13px;color:#1747B3;line-height:1.5}
-@keyframes drawer{from{transform:translateX(100%)}to{transform:none}}
 
 /* Confirmation dialog (native <dialog>, centered by the browser) */
 dialog.modal{width:min(420px,calc(100% - 32px));box-sizing:border-box;border:1px solid #E4E8EE;border-radius:12px;padding:24px;color:inherit;box-shadow:0 24px 60px rgba(14,23,38,.25)}
@@ -85,21 +84,20 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
 /* Loader: boot screen (the symbol draws itself, then the bar rises and the dot lights up) and skeleton lines.
    Resting state is the finished logo, so reduced motion shows it complete. */
 .loader-full{position:fixed;inset:0;background:#F6F7F9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px}
-.boot-s{stroke-dasharray:1;animation:bootDraw .8s cubic-bezier(.6,0,.2,1) both}
-.boot-i{animation:bootRise .4s cubic-bezier(.2,.8,.2,1) .65s both}
-.boot-dot{transform-box:fill-box;transform-origin:center;animation:bootDot .3s cubic-bezier(.2,.8,.2,1) 1s both}
-.loader-full .brand-name{animation:fd .4s ease-out 1s both}
-@keyframes bootDraw{from{stroke-dashoffset:1}}
+/* .8s: the logo stroke is the one duration outside the three motion tokens */
+.boot-s{stroke-dasharray:1;animation:draw .8s var(--e-trace) both}
+.boot-i{animation:bootRise var(--t3) var(--e-out) .65s both}
+.boot-dot{transform-box:fill-box;transform-origin:center;animation:pop var(--t2) var(--e-out) 1s both}
+.loader-full .brand-name{animation:rise var(--t3) var(--e-out) 1s both}
 @keyframes bootRise{from{opacity:0;transform:translateY(60px)}}
-@keyframes bootDot{from{opacity:0;transform:scale(.2)}}
 .sk-list{display:flex;flex-direction:column;gap:12px;padding:20px 4px}
-.sk{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,#EEF1F5,#F8F9FB,#EEF1F5);background-size:200% 100%;animation:sk 1.4s linear infinite}
+.sk{display:block;height:14px;border-radius:7px;background:linear-gradient(104deg,#EEF1F5 40%,#FFFFFF 50%,#EEF1F5 60%);background-size:200% 100%;animation:sk calc(var(--t3)*3) linear infinite}
 @keyframes sk{to{background-position:-200% 0}}
 
 /* Error page (Erreurs.dc.html) */
 .err-page{min-height:100vh;display:flex;flex-direction:column;background:#F2F5FA}
 .err-page .err{margin:32px auto;width:calc(100% - 48px);max-width:1200px;box-sizing:border-box}
-.err{background:#FFFFFF;border:1px solid #DDE4EF;border-radius:12px;padding:64px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;animation:fd .45s ease both}
+.err{background:#FFFFFF;border:1px solid #DDE4EF;border-radius:12px;padding:64px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:20px;animation:rise var(--t3) var(--e-out) backwards}
 .err-icon{position:relative;width:112px;height:112px;border-radius:14px;background:#E8EFFC;color:#1E56D6;display:flex;align-items:center;justify-content:center}
 .err-icon i{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:4px solid #FFFFFF;box-sizing:border-box}
 .err-code{font-size:14px;font-weight:500;letter-spacing:.12em;color:#1E56D6}
@@ -142,3 +140,89 @@ dialog.drawer-wide{width:600px}
   .step,.bell>summary,.icon-btn,.toast-x{width:44px;height:44px}
   .seg button{height:38px}
 }
+
+/* Motion: three durations, two curves, and the three gestures of the logo animation: draw (done, validated),
+   rise (what arrives), light up (what is live). design-system.css switches all of it off under
+   prefers-reduced-motion. Exits are never longer than entrances. */
+:root{--t1:120ms;--t2:240ms;--t3:480ms;--e-out:cubic-bezier(.2,.8,.2,1);--e-trace:cubic-bezier(.6,0,.2,1)}
+@keyframes draw{from{stroke-dashoffset:1}}
+@keyframes undraw{0%{stroke-dashoffset:1}45%{stroke-dashoffset:.3}100%{stroke-dashoffset:1}}
+@keyframes rise{from{opacity:0;transform:translate(-3px,12px)}}
+@keyframes sink{to{opacity:0;transform:translate(-2px,8px)}}
+@keyframes pop{from{opacity:0;transform:scale(.2)}}
+@keyframes ring{0%{opacity:0;transform:scale(1)}15%{opacity:.65}100%{opacity:0;transform:scale(3)}}
+@keyframes shake{20%{transform:translateX(-5px)}40%{transform:translateX(4px)}60%{transform:translateX(-3px)}80%{transform:translateX(2px)}}
+@keyframes swing{20%{transform:rotate(-16deg)}45%{transform:rotate(12deg)}70%{transform:rotate(-6deg)}}
+@keyframes rin{from{opacity:0;transform:translateY(100%)}}
+@keyframes rinD{from{opacity:0;transform:translateY(-100%)}}
+@keyframes menu{from{opacity:0;transform:scale(.92)}}
+@keyframes spark{from{opacity:1;transform:rotate(var(--a)) translateX(6px)}to{opacity:0;transform:rotate(var(--a)) translateX(24px) scaleX(.3)}}
+
+/* Touch: one rhythm for every control */
+.btn{transition:background-color var(--t1) linear,border-color var(--t1) linear,opacity var(--t1) linear,transform var(--t1) var(--e-out)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.input,.seg button,.nav-i,.row,.tog,.step,.chip,.bell>summary{transition-duration:var(--t1);transition-timing-function:linear}
+.tog span{transition:transform var(--t2) var(--e-out)}
+.spark{position:fixed;z-index:70;width:9px;height:2px;border-radius:2px;background:#38B6FF;pointer-events:none;transform-origin:0 50%;animation:spark var(--t3) var(--e-out) forwards}
+.arc{flex:none;animation:sp calc(var(--t3)*2) var(--e-trace) infinite}
+.seg.slide{position:relative}
+.seg.slide button{position:relative;z-index:1}
+.seg.slide button[aria-pressed="true"]{background:transparent;box-shadow:none}
+.seg-thumb{position:absolute;top:var(--pad);bottom:var(--pad);left:0;border-radius:calc(var(--r-out) - var(--pad));background:#FFFFFF;box-shadow:0 1px 2px rgba(14,23,38,.1);transition:transform var(--t2) var(--e-out),width var(--t2) var(--e-out)}
+.chip::before{content:"";display:inline-block;vertical-align:middle;width:0;height:6px;border-radius:50%;background:#38B6FF;transform:scale(0);transition:width var(--t2) var(--e-out),margin var(--t2) var(--e-out),transform var(--t2) var(--e-out)}
+.chip[aria-pressed="true"]::before{width:6px;margin-right:7px;transform:scale(1)}
+.roll{display:inline-block;overflow:hidden;vertical-align:bottom}
+.roll>span{display:block}
+.r-in{animation:rin var(--t2) var(--e-out)}
+.r-in.d{animation-name:rinD}
+.row[aria-selected="true"]>td:first-child,button.row{position:relative}
+.row[aria-selected="true"]>td:first-child::before,button.row[aria-pressed="true"]::before{content:"";position:absolute;left:0;top:50%;width:3px;height:24px;margin-top:-12px;border-radius:2px;background:#38B6FF;transform:skewY(-14deg);animation:pop var(--t2) var(--e-out)}
+
+/* Arrive: pages, loaded content and list items rise; backwards only, so no transform is left on a
+   block that holds a menu or a sticky child. */
+.shell-main>:not(.toasts,dialog),.stack>*,.fade{animation:rise var(--t2) var(--e-out) backwards}
+.shell-main>:nth-child(2),.stack>:nth-child(2){animation-delay:60ms}
+.shell-main>:nth-child(n+3),.stack>:nth-child(3){animation-delay:120ms}
+.stack>:nth-child(n+4){animation-delay:180ms}
+
+/* Open and close: native dialogs and the bell menu leave the way they came */
+dialog.modal,dialog.drawer{transition:opacity var(--t1) linear,transform var(--t1) var(--e-out),overlay var(--t1) allow-discrete,display var(--t1) allow-discrete}
+dialog.modal{opacity:0;transform:translateY(8px) scale(.98)}
+dialog.modal[open]{opacity:1;transform:none;transition-duration:var(--t2)}
+dialog.drawer{transform:translateX(100%);transition-duration:var(--t2);transition-timing-function:var(--e-trace)}
+dialog.drawer[open]{transform:none;transition-timing-function:var(--e-out)}
+dialog::backdrop{opacity:0;transition:opacity var(--t2) linear,overlay var(--t2) allow-discrete,display var(--t2) allow-discrete}
+dialog[open]::backdrop{opacity:1}
+@starting-style{
+  dialog.modal[open]{opacity:0;transform:translateY(8px) scale(.98)}
+  dialog.drawer[open]{transform:translateX(100%)}
+  dialog[open]::backdrop{opacity:0}
+}
+.bell .menu{transform-origin:calc(100% - 18px) 0;animation:menu var(--t2) var(--e-out)}
+.bell::details-content{opacity:0;transition:opacity var(--t1) linear,content-visibility var(--t1) allow-discrete}
+.bell[open]::details-content{opacity:1}
+.fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t2) var(--e-out),margin var(--t2) var(--e-out),opacity var(--t2) linear,transform var(--t2) var(--e-out)}
+.fold>*{min-height:0;overflow:hidden;transition:padding var(--t2) var(--e-out),border-width var(--t2) var(--e-out)}
+.fold.gone{grid-template-rows:0fr;opacity:0;transform:translateX(-12px)}
+.fold.gone>*{padding-block:0;border-block-width:0}
+.stack>.fold.gone{margin-bottom:-10px}
+
+/* Succeed and fail: a drawn tick, a ring that draws back, a field that shakes */
+.c-ring,.c-mark{stroke-dasharray:1}
+.c-ring{transform:rotate(-90deg);transform-origin:center;animation:draw var(--t3) var(--e-trace) both}
+.c-mark{animation:draw var(--t2) var(--e-out) var(--t2) both}
+.c-ring.bad{animation-name:undraw}
+.c-dot{transform-box:fill-box;transform-origin:center;animation:pop var(--t2) var(--e-out) var(--t3) both}
+.btn-ok:disabled{opacity:1;background:#E6F4EC;border-color:#1A8F4E;color:#0F5E32}
+.input:user-invalid{border-color:#D63F45;box-shadow:0 0 0 3px rgba(214,63,69,.14);animation:shake var(--t3) var(--e-out)}
+.swing{display:inline-flex;transform-origin:50% 10%;animation:swing var(--t3) var(--e-out)}
+.lit{position:relative;display:inline-flex}
+.lit::after{content:"";position:absolute;top:-1px;right:-2px;width:7px;height:7px;border-radius:50%;background:#38B6FF;animation:pop var(--t2) var(--e-out) var(--t2) both}
+
+/* Live: a state dot that changes colour emits one ring, like the device LED */
+.dot{position:relative;transition:background-color var(--t2) linear}
+.dot .rg,.bell .cnt.pop::after{position:absolute;inset:0;border-radius:50%;border:2px solid;animation:ring var(--t3) var(--e-out) both}
+.bell .cnt.pop{animation:pop var(--t2) var(--e-out)}
+.bell .cnt.pop::after{content:"";inset:-2px;border-radius:9px;border-color:#D63F45}
+.line{transition:opacity var(--t2) linear,transform var(--t2) var(--e-out)}
+.line.gone{opacity:0;transform:translateX(-12px)}

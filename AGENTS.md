@@ -94,6 +94,10 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
   concentric corners (inner radius = outer radius - padding, 14/6/8), 44 px
   touch targets on phones. Space states use three colours (green free, orange
   awaiting presence, red occupied) and grey for an offline or sealed device.
+- Motion (`app.css`, `frontend/src/ui/motion.jsx`): only `--t1`/`--t2`/`--t3`
+  and `--e-out`/`--e-trace`, and the three gestures of the logo: draw (done),
+  rise (arrives), light up (live state). No animation library; an exit is
+  never longer than its entrance.
   A page's breadcrumb comes from the navigation in `ui/Shell.jsx`.
 - A new dependency is pinned to an exact version in `backend/requirements.txt`,
   or added to `frontend/package.json`. Nothing is installed at runtime.

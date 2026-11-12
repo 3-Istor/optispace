@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Icon, ICONS } from './Icon.jsx'
+import { EXIT_MS, Tick } from './motion.jsx'
 
 // One <Toaster /> in App; any module calls toast(text) or toast(text, 'err').
 let show = () => {}
@@ -35,18 +36,23 @@ export function Toaster() {
   )
 }
 
-// Hides after DELAY; a pause restarts the full delay when it ends.
+// Hides after DELAY; a pause restarts the full delay when it ends. It sinks for EXIT_MS before it is removed.
 function Toast({ t, paused, onClose }) {
+  const [out, setOut] = useState(false)
   useEffect(() => {
+    if (out) {
+      const gone = setTimeout(() => onClose(t.id), EXIT_MS)
+      return () => clearTimeout(gone)
+    }
     if (paused) return
-    const timer = setTimeout(() => onClose(t.id), DELAY[t.kind] ?? DELAY.ok)
+    const timer = setTimeout(() => setOut(true), DELAY[t.kind] ?? DELAY.ok)
     return () => clearTimeout(timer)
-  }, [paused, t, onClose])
+  }, [paused, out, t, onClose])
   return (
-    <div className={`toast ${t.kind === 'err' ? 'toast-err' : ''}`}>
-      <i aria-hidden="true" />
+    <div className={`toast ${t.kind === 'err' ? 'toast-err' : ''} ${out ? 'out' : ''}`}>
+      <Tick bad={t.kind === 'err'} />
       <span style={{ flex: 1 }}>{t.text}</span>
-      <button type="button" className="toast-x" aria-label="Fermer" onClick={() => onClose(t.id)}><Icon d={ICONS.close} size={14} /></button>
+      <button type="button" className="toast-x" aria-label="Fermer" onClick={() => setOut(true)}><Icon d={ICONS.close} size={14} /></button>
     </div>
   )
 }

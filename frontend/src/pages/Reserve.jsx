@@ -7,7 +7,9 @@ import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../ui/EmptyState.jsx'
+import { Icon, ICONS } from '../ui/Icon.jsx'
 import { Loader } from '../ui/Loader.jsx'
+import { Roll, Seg, Tick } from '../ui/motion.jsx'
 import { PageHeader } from '../ui/Shell.jsx'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
 import { toast } from '../ui/Toast.jsx'
@@ -73,10 +75,10 @@ export function Reserve() {
   }, [c.dur, lo, hi])
   const fits = (s) => c.dur >= bounds(s)[0] && c.dur <= bounds(s)[1]
   const isFree = (s) => booked.includes(s.id) || (data?.freeIds.has(s.id) && fits(s))
-  const shown = spaces
-    .filter((s) => s.capacity >= c.cap && (c.floor === '' || s.floor === Number(c.floor)) && c.eq.every((e) => s.equipment?.includes(e)))
-    .sort((a, b) => isFree(b) - isFree(a) || a.name.localeCompare(b.name, 'fr'))
-  const freeCount = shown.filter(isFree).length
+  const hit = (s) => s.capacity >= c.cap && (c.floor === '' || s.floor === Number(c.floor)) && c.eq.every((e) => s.equipment?.includes(e))
+  const freeCount = spaces.filter((s) => hit(s) && isFree(s)).length
+  // Spaces the criteria exclude stay mounted, folded and inert: they leave and come back with a transition.
+  const listed = [...spaces].sort((a, b) => isFree(b) - isFree(a) || a.name.localeCompare(b.name, 'fr'))
 
   async function book() {
     const s = pending
@@ -116,7 +118,9 @@ export function Reserve() {
       <EmptyState
         title="Aucun espace ne correspond"
         actions={<>
-          <Button variant="p" disabled={alertSet} onClick={createAlert}>{alertSet ? 'Alerte active' : 'M’avertir si un espace se libère'}</Button>
+          <Button variant={alertSet ? 's' : 'p'} className={alertSet ? 'btn-ok' : ''} disabled={alertSet} onClick={createAlert}>
+            {alertSet ? <><span className="swing lit"><Icon d={ICONS.bell} /></span>Alerte active</> : 'M’avertir si un espace se libère'}
+          </Button>
           <Button onClick={() => set({ cap: 0, floor: '', eq: [] })}>Réinitialiser les critères</Button>
         </>}
       >
@@ -128,12 +132,13 @@ export function Reserve() {
       <span className="muted" role="status" style={{ fontSize: 13 }}>
         {freeCount} {freeCount > 1 ? 'espaces libres' : 'espace libre'} pour {fmtDuration(c.dur)}, de {fmtTime(startAt)} à {fmtTime(endAt)}
       </span>
-      {shown.map((s) => {
+      {listed.map((s) => {
+        const out = !hit(s)
         const mine = booked.includes(s.id)
         const bookable = !mine && isFree(s)
         const [min, max] = bounds(s)
         return (
-          <article className="card item" key={s.id}>
+          <div className={out ? 'fold gone' : 'fold'} inert={out} key={s.id}><article className="card item">
             <div className="item-main">
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                 <h2 style={{ fontSize: 15 }}>{s.name}</h2>
@@ -151,11 +156,11 @@ export function Reserve() {
                 </span>
               )}
             </div>
-            <Button variant={bookable ? 'p' : 's'} disabled={!bookable} busy={busyId === s.id} style={{ minWidth: 112 }}
+            <Button variant={bookable ? 'p' : 's'} className={mine ? 'btn-ok' : ''} disabled={!bookable} busy={busyId === s.id} style={{ minWidth: 112 }}
               aria-label={bookable ? `Réserver ${s.name}` : undefined} onClick={() => setPending(s)}>
-              {mine ? 'Réservée' : bookable ? 'Réserver' : 'Indisponible'}
+              {mine && <Tick />}{mine ? 'Réservée' : bookable ? 'Réserver' : 'Indisponible'}
             </Button>
-          </article>
+          </article></div>
         )
       })}
     </>
@@ -164,12 +169,12 @@ export function Reserve() {
   return (
     <>
       <PageHeader title="Réserver un espace">
-        <div className="seg" role="group" aria-label="Type d’espace">
+        <Seg role="group" aria-label="Type d’espace">
           {Object.entries(SPACE_TYPES).map(([t, label]) => (
             <button key={t} type="button" aria-pressed={c.type === t}
               onClick={() => set({ type: t, dur: DURATIONS[t][2], cap: 0, floor: '', eq: [] })}>{label}</button>
           ))}
-        </div>
+        </Seg>
       </PageHeader>
 
       <section className="card" aria-label="Critères" style={{ padding: '16px 18px', display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 18 }}>
@@ -184,7 +189,7 @@ export function Reserve() {
           <span className="lbl" id="dur-l">Durée</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8, height: 36 }}>
             <button type="button" className="step" aria-label="Réduire la durée" disabled={c.dur <= lo} onClick={() => set({ dur: c.dur - 5 })}>−</button>
-            <span className="num" style={{ minWidth: 64, textAlign: 'center', fontWeight: 500 }} aria-live="polite">{fmtDuration(c.dur)}</span>
+            <Roll value={c.dur} className="num" style={{ minWidth: 64, textAlign: 'center', fontWeight: 500 }} aria-live="polite">{fmtDuration(c.dur)}</Roll>
             <button type="button" className="step" aria-label="Allonger la durée" disabled={c.dur >= hi} onClick={() => set({ dur: c.dur + 5 })}>+</button>
           </span>
         </div>
@@ -197,11 +202,11 @@ export function Reserve() {
         {c.type === 'meeting_room' && (
           <div className="field" role="group" aria-labelledby="cap-l">
             <span className="lbl" id="cap-l">Participants</span>
-            <div className="seg">
+            <Seg>
               {CAPACITIES.map(([n, label]) => (
                 <button key={n} type="button" aria-pressed={c.cap === n} onClick={() => set({ cap: n })}>{label}</button>
               ))}
-            </div>
+            </Seg>
           </div>
         )}
         {equipment.length > 0 && (
