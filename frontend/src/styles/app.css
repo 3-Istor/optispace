@@ -77,6 +77,26 @@ button.ntf:hover{background:rgba(14,23,38,.03)}
 .prog{height:6px;border-radius:3px;background:#EEF1F5;overflow:hidden}
 .prog i{display:block;height:100%;border-radius:3px;transition:width 1s linear,background-color var(--t2) linear}
 
+/* Dashboard: figures, hourly bars (reserved then used) that rise in cascade, live tiles by floor */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.kpi{padding:16px 16px 14px;display:flex;flex-direction:column;gap:8px}
+.kpi b{font:500 26px/1 'Sora',sans-serif;letter-spacing:-.03em}
+.kpi b.txt{font-size:18px;line-height:26px;letter-spacing:-.02em}
+.chart,.chart-x{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+.chart{position:relative;align-items:end;flex:1;min-height:150px;padding-top:18px;box-sizing:border-box;border-block:1px solid #EEF1F5;border-bottom-color:#E4E8EE}
+.chart-top{position:absolute;top:2px;left:0;font-size:11px;color:#8A94A3}
+.chart>span:not(.chart-top){display:flex;gap:2px;align-items:flex-end;height:100%}
+.chart i{flex:1;border-radius:3px 3px 0 0;background:#C9D6F5;transform-origin:bottom;transition:height var(--t2) var(--e-out);animation:grow var(--t3) var(--e-out) calc(var(--i)*30ms) backwards}
+.chart i+i{background:#1E56D6}
+.chart-x{font-size:11px;color:#8A94A3;text-align:center;white-space:nowrap}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
+.tile{display:flex;flex-direction:column;justify-content:center;gap:2px;min-height:44px;padding:7px 10px;box-sizing:border-box;border:1px solid #E4E8EE;border-radius:calc(var(--r-out) - var(--pad));background:#FFFFFF;color:#0E1726;font-size:13px;font-weight:500;line-height:1.3;overflow-wrap:anywhere;transition:background-color var(--t2) linear,border-color var(--t2) linear}
+.tile:hover{color:#0E1726;border-color:#8A94A3}
+.tile small{font-size:11px;font-weight:400;color:#5B6676}
+.tile.free{background:#E6F4EC;border-color:#BFE3CD}
+.tile.wait{background:#FDF6EE;border-color:#F2D3B0}
+.tile.busy{background:#FCEFEF;border-color:#F2C9CB}
+
 /* Phone tab bar of the employee; hidden above 960px */
 .tabs,.only-narrow{display:none}
 
@@ -158,6 +178,23 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
   .now-r>.actions>.btn{flex:1 1 auto}
 }
 
+/* Spaces table: columns on a wide screen, one stacked block per space on a phone (same card, hairlines) */
+.tbl-stack{min-width:640px}
+.tbl-stack td{white-space:nowrap}
+@media (max-width:640px){
+  .tbl-stack{min-width:0}
+  .tbl-stack,.tbl-stack tbody{display:block}
+  .tbl-stack thead{display:none}
+  .tbl-stack tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;padding:14px 16px;border-top:1px solid #EEF1F5}
+  .tbl-stack tr:first-child{border-top:0}
+  .tbl-stack td{display:block;padding:0 !important;border:0;white-space:normal;grid-column:1/-1}
+  .tbl-stack td:first-child{grid-column:1}
+  .tbl-stack td:last-child{grid-area:1/2;justify-self:end}
+  .tbl-stack td[data-l]::before{content:attr(data-l) " : ";font-size:12px;color:#5B6676}
+  .tbl-stack .btn{width:100%}
+  .tbl-stack .row[aria-selected="true"]>td:first-child::before{left:-16px}
+}
+
 /* Space form drawer: wider, short fields two per row, one per row on phones */
 dialog.drawer-wide{width:600px}
 .pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:start}
@@ -185,6 +222,7 @@ dialog.drawer-wide{width:600px}
 :root{--t1:120ms;--t2:240ms;--t3:480ms;--e-out:cubic-bezier(.2,.8,.2,1);--e-trace:cubic-bezier(.6,0,.2,1)}
 @keyframes draw{from{stroke-dashoffset:1}}
 @keyframes undraw{0%{stroke-dashoffset:1}45%{stroke-dashoffset:.3}100%{stroke-dashoffset:1}}
+@keyframes grow{from{transform:scaleY(0)}}
 @keyframes rise{from{opacity:0;transform:translate(-3px,12px)}}
 @keyframes sink{to{opacity:0;transform:translate(-2px,8px)}}
 @keyframes pop{from{opacity:0;transform:scale(.2)}}

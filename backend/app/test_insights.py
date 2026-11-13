@@ -157,3 +157,25 @@ def test_insights_access_and_errors(client, db, claims, salle):
         assert (response.status_code, response.json()) == (400, {"detail": "INVALID_PERIOD"})
     missing = client.get("/api/v1/spaces/00000000-0000-0000-0000-000000000000/insights", params=period)
     assert (missing.status_code, missing.json()) == (404, {"detail": "SPACE_NOT_FOUND"})
+
+
+def test_hourly_series(client, db, claims, frozen_clock, salle):
+    j01(db, salle)
+    minutes(db, salle, Presence.ABSENT, "10:30", "12:00")
+    frozen_clock.now = at("12:01")
+    claims["groups"] = FM
+
+    # 09:30 to 12:00: a first bucket cut at the period start, then two whole hours.
+    body = client.get(f"/api/v1/spaces/{salle.id}/insights", params={"from": iso(at("09:30")), "to": iso(at("12:00"))}).json()
+
+    assert body["hourly"] == [
+        {"start_at": iso(at("09:00")), "reserved_min": 30, "used_min": 30},
+        {"start_at": iso(at("10:00")), "reserved_min": 0, "used_min": 0},  # present until 10:30, but not reserved
+        {"start_at": iso(at("11:00")), "reserved_min": 60, "used_min": 0},  # no-show: reserved, released at 11:10
+    ]
+    assert sum(h["reserved_min"] for h in body["hourly"]) == body["kpis"]["reserved_initial_min"]
+    assert sum(h["used_min"] for h in body["hourly"]) == body["kpis"]["occupied_reserved_min"]
+
+
+def test_hourly_series_is_empty_without_elapsed_minute(db, salle):
+    assert insights.compute(db, salle.id, at("09:00"), at("10:00"), at("08:00"))["hourly"] == []

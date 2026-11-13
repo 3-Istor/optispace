@@ -2,8 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api.js'
 import { DEVICE_STATES, deviceState, errorText, floorLabel, SPACE_TYPES } from '../../messages.js'
 import { fmtDuration, fmtTime, fromParis, presenceSpans, toParis } from '../../time.js'
+import { Link, navigate, useRoute } from '../../router.jsx'
 import { usePolling } from '../../usePolling.js'
 import { Button } from '../../ui/Button.jsx'
+import { ConfirmDialog } from '../../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
@@ -26,11 +28,13 @@ const H = 36e5
 
 // min/max_duration_min are effective; the *_override fields are null when the type's default applies.
 const durations = (s) => `${fmtDuration(s.min_duration_min)} à ${fmtDuration(s.max_duration_min)}`
-  + (s.min_duration_override == null && s.max_duration_override == null ? ' (type)' : '')
+  + (s.min_duration_override == null && s.max_duration_override == null ? ' (par défaut)' : '')
 
-const status = (s) => (s.is_active === false
+// A space with no device has no measured state: grey "Sans boîtier" instead of "Hors ligne".
+const status = (s, device) => (s.is_active === false
   ? <StatusBadge state="sealed">Hors service</StatusBadge>
-  : <StatusBadge state={s.space_state} releaseAt={s.current_reservation?.release_at} />)
+  : !device ? <StatusBadge state="sealed">Sans boîtier</StatusBadge>
+    : <StatusBadge state={s.space_state} releaseAt={s.current_reservation?.release_at} />)
 
 // "Camille Martin · 14:00 à 15:00" for the current reservation (booker_name is sent to Facility managers only).
 function booking(r) {
@@ -39,9 +43,8 @@ function booking(r) {
 }
 
 function deviceText(d) {
-  if (!d) return ['Aucun', '#5B6676']
   const st = deviceState(d)
-  return [DEVICE_STATES[st][0], st === 'offline' ? '#B4232A' : st === 'active' ? '#3A4555' : '#1747B3']
+  return [DEVICE_STATES[st][0], st === 'offline' ? '#B4232A' : st === 'active' ? '#3A4555' : '#8A4A0E']
 }
 
 const tabStyle = (on) => ({
@@ -52,9 +55,13 @@ const tabStyle = (on) => ({
 // AdminSalles.dc.html: table, detail panel (Détails / Historique) and the create/edit drawer.
 export function Spaces() {
   const { data, error, refresh } = usePolling(load, 5000)
-  const [type, setType] = useState('meeting_room')
+  const { query } = useRoute()
+  const [picked, setType] = useState(null)
   const [q, setQ] = useState('')
-  const [selId, setSelId] = useState(null)
+  const [selId, setSelId] = useState(query.get('id')) // ?id= opens that space, as the dashboard tiles do
+  const [pair, setPair] = useState(null) // space whose "Associer un boîtier" dialog is open
+  const aside = useRef(null)
+  const type = picked ?? data?.spaces.find((s) => s.id === selId)?.type ?? 'meeting_room'
   const [tab, setTab] = useState('details')
   const [form, setForm] = useState(null) // the space being edited; {type} for a new one
 
@@ -75,6 +82,11 @@ export function Spaces() {
   const needle = q.trim().toLowerCase()
   const rows = ofType.filter((s) => s.name.toLowerCase().includes(needle))
   const cur = ofType.find((s) => s.id === selId) ?? rows[0] ?? ofType[0]
+  // On a phone the sheet sits under the list: bring it into view.
+  const select = (id) => { setSelId(id); setTimeout(() => aside.current?.scrollIntoView({ block: 'nearest' })) }
+  const pairButton = (s) => (
+    <Button onClick={(e) => { e.stopPropagation(); setPair(s) }}>Associer un boîtier</Button>
+  )
 
   return (
     <>
@@ -102,25 +114,25 @@ export function Spaces() {
         <div className="cols" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 360px)', gap: 16, alignItems: 'start' }}>
           <section className="card" aria-label="Espaces" style={{ overflow: 'hidden' }}>
             <div style={{ overflowX: 'auto' }}>
-              <table className="tbl" style={{ minWidth: 640 }}>
+              <table className="tbl tbl-stack">
                 <thead><tr><th style={{ paddingLeft: 20 }}>Espace</th><th>Capacité</th><th>Durées</th><th>Boîtier</th><th>Statut</th></tr></thead>
                 <tbody>
                   {rows.map((s) => {
-                    const [devLabel, devColor] = deviceText(deviceOf[s.id])
+                    const device = deviceOf[s.id]
                     return (
-                      <tr key={s.id} className="row" aria-selected={s.id === cur.id} onClick={() => setSelId(s.id)}>
+                      <tr key={s.id} className="row" aria-selected={s.id === cur.id} onClick={() => select(s.id)}>
                         <td style={{ paddingLeft: 20 }}>
                           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.35 }}>
-                            <button type="button" className="link" style={{ fontSize: 14, fontWeight: 500, color: '#0E1726', textAlign: 'left', whiteSpace: 'nowrap' }}>{s.name}</button>
+                            <button type="button" className="link" style={{ fontSize: 14, fontWeight: 500, color: '#0E1726', textAlign: 'left' }}>{s.name}</button>
                             <span className="muted" style={{ fontSize: 12 }}>{floorLabel(s.floor)}</span>
                           </span>
                         </td>
-                        <td className="num">{s.capacity}</td>
-                        <td className="num muted" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>{durations(s)}</td>
-                        <td><span style={{ fontSize: 13, color: devColor, whiteSpace: 'nowrap' }}>{devLabel}</span></td>
+                        <td className="num" data-l="Capacité">{s.capacity}</td>
+                        <td className="num muted" data-l="Durées" style={{ fontSize: 13 }}>{durations(s)}</td>
+                        <td data-l={device && 'Boîtier'}>{device ? <span style={{ fontSize: 13, color: deviceText(device)[1] }}>{deviceText(device)[0]}</span> : pairButton(s)}</td>
                         <td>
                           <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {status(s)}
+                            {status(s, device)}
                             {booking(s.current_reservation) && <span className="muted" style={{ fontSize: 12 }}>{booking(s.current_reservation)}</span>}
                           </span>
                         </td>
@@ -133,14 +145,14 @@ export function Spaces() {
             {!rows.length && <p className="muted" style={{ margin: 0, padding: '28px 20px', textAlign: 'center' }}>Aucun espace ne correspond à « {q.trim()} ».</p>}
           </section>
 
-          <aside className="card fade" key={cur.id} aria-labelledby="sp-h" style={{ overflow: 'hidden', position: 'sticky', top: 20 }}>
+          <aside ref={aside} className="card fade" key={cur.id} aria-labelledby="sp-h" style={{ overflow: 'hidden', position: 'sticky', top: 20 }}>
             <div style={{ padding: '18px 20px 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span className="lbl">{SPACE_TYPES[cur.type]}</span>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <h2 id="sp-h" style={{ fontSize: 18 }}>{cur.name}</h2>
-                <Button style={{ height: 30 }} onClick={() => setForm(cur)} aria-label={`Modifier ${cur.name}`}>Modifier</Button>
+                <Button onClick={() => setForm(cur)} aria-label={`Modifier ${cur.name}`}>Modifier</Button>
               </div>
-              <span style={{ marginTop: 4 }}>{status(cur)}</span>
+              <span style={{ marginTop: 4 }}>{status(cur, deviceOf[cur.id])}</span>
             </div>
             <div role="tablist" aria-label="Fiche" style={{ display: 'flex', gap: 18, padding: '0 20px', marginTop: 14, borderBottom: '1px solid #E4E8EE' }}>
               {[['details', 'Détails'], ['history', 'Historique']].map(([k, label]) => (
@@ -157,7 +169,11 @@ export function Spaces() {
                   <dt className="muted">Équipements</dt><dd style={{ margin: 0 }}>{cur.equipment?.join(', ') || 'Aucun'}</dd>
                   <dt className="muted">Durées</dt><dd className="num" style={{ margin: 0 }}>{durations(cur)}</dd>
                   <dt className="muted">Boîtier</dt>
-                  <dd className="num" style={{ margin: 0, overflowWrap: 'anywhere' }}>{deviceOf[cur.id] ? `${deviceOf[cur.id].id} · ${deviceText(deviceOf[cur.id])[0]}` : 'Aucun'}</dd>
+                  <dd className="num" style={{ margin: 0, overflowWrap: 'anywhere' }}>
+                    {deviceOf[cur.id]
+                      ? <Link to={`/admin/devices?id=${encodeURIComponent(deviceOf[cur.id].id)}`}>{deviceOf[cur.id].id} · {deviceText(deviceOf[cur.id])[0]}</Link>
+                      : pairButton(cur)}
+                  </dd>
                   {booking(cur.current_reservation) && <><dt className="muted">En cours</dt><dd style={{ margin: 0 }}>{booking(cur.current_reservation)}</dd></>}
                 </dl>
               ) : <History key={cur.id} space={cur} />}
@@ -166,6 +182,11 @@ export function Spaces() {
         </div>
       )}
       {drawer}
+      {/* Assigning a device is reserved to OptiSpace staff, so this explains the way instead of doing it. */}
+      <ConfirmDialog open={!!pair} title={`Associer un boîtier à ${pair?.name ?? ''}`} confirmLabel="Voir les boîtiers" cancelLabel="Fermer"
+        onConfirm={() => navigate('/admin/devices')} onCancel={() => setPair(null)}>
+        L’équipe OptiSpace associe le boîtier à l’espace lors de l’installation. Il apparaît ensuite dans Boîtiers, où vous le descellez pour qu’il mesure la présence.
+      </ConfirmDialog>
     </>
   )
 }
@@ -375,7 +396,7 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
           <div role="group" aria-labelledby="sf-dur" style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 14px', borderRadius: 8, background: '#F8F9FB', border: '1px solid #EEF1F5' }}>
             <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
               <span className="lbl" id="sf-dur">Durées de réservation</span>
-              <span className="muted" style={{ fontSize: 12 }}>Par défaut pour ce type : {fmtDuration(dMin)} à {fmtDuration(dMax)}</span>
+              <span className="muted" style={{ fontSize: 12 }}>Par défaut : {fmtDuration(dMin)} à {fmtDuration(dMax)}</span>
             </span>
             <div className="pair">
               {[['min_duration_min', 'Minimum', min], ['max_duration_min', 'Maximum', max]].map(([key, label, v]) => (
@@ -386,8 +407,8 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
               ))}
             </div>
             {custom
-              ? <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => set({ min_duration_min: null, max_duration_min: null })}>Revenir aux durées du type</button>
-              : <span className="muted" style={{ fontSize: 12 }}>Suit les durées du type, réglables dans Paramètres.</span>}
+              ? <button type="button" className="link" style={{ alignSelf: 'flex-start' }} onClick={() => set({ min_duration_min: null, max_duration_min: null })}>Revenir aux durées par défaut</button>
+              : <span className="muted" style={{ fontSize: 12 }}>Durées par défaut, réglables dans Paramètres.</span>}
           </div>
           <span role="alert" style={{ fontSize: 13, color: '#B4232A' }}>{err}</span>
         </div>

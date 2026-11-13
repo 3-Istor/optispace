@@ -22,10 +22,15 @@ const loadFm = loader('/spaces')
 const loadStaff = loader('/staff/spaces') // every company's spaces, with their organization
 
 const ORDER = ['new', 'offline', 'sealed', 'active'] // what needs action first
-const FILTERS = [['all', 'Tous', ORDER], ['sealed', 'Scellés', ['new', 'sealed']], ['active', 'Actifs', ['active']], ['offline', 'Hors ligne', ['offline']]]
+// Fleet summary, also the list filter: [key, word after the count, states, dot colour]
+const FLEET = [['all', 'boîtier', ORDER], ['active', 'en ligne', ['active'], '#1A8F4E'], ['offline', 'hors ligne', ['offline'], '#D63F45'], ['sealed', 'scellé', ['new', 'sealed'], '#D9771F']]
+const MONO = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', fontSize: 12, color: '#5B6676', overflowWrap: 'anywhere' }
 const STEPS = ['Affecter', 'Desceller', 'Actif']
 
-const Dot = ({ state }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><LiveDot color={DEVICE_STATES[state][1]} quiet={state !== 'active'} />{DEVICE_STATES[state][0]}</span>
+const Dot = ({ state, children }) => <span className="st" style={{ fontSize: 12, color: '#3A4555' }}><LiveDot color={DEVICE_STATES[state][1]} quiet={state !== 'active'} />{children ?? DEVICE_STATES[state][0]}</span>
+
+// "depuis 34 s", "depuis 09:12", "depuis hier à 09:12"
+const since = (iso) => `depuis ${fmtAgo(iso).replace(/^(il y a|à) /, '')}`
 
 // A space holds one device, so spaces equipped by another device are left out. Staff see
 // every company, so their options are grouped by organization instead of by type.
@@ -72,11 +77,7 @@ export function Devices({ me }) {
   const [moveTo, setMoveTo] = useState('')
 
   const count = data?.devices.length
-  const header = (
-    <PageHeader title="Boîtiers">
-      {data && <span className="muted" style={{ fontSize: 13 }}>{count} boîtier{count > 1 ? 's' : ''}</span>}
-    </PageHeader>
-  )
+  const header = <PageHeader title="Boîtiers" />
   if (!data) return <>{header}{error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement des boîtiers" />}</>
   if (!count) return <>{header}<EmptyState title="Aucun boîtier">Les boîtiers apparaissent ici dès leur première connexion.</EmptyState></>
 
@@ -84,7 +85,10 @@ export function Devices({ me }) {
   const cur = devices.find((d) => d.id === selId) ?? devices[0]
   const st = deviceState(cur)
   const space = data.spaces.find((s) => s.id === cur.space?.id)
-  const where = cur.space ? `${cur.space.name}${space ? ` · ${floorLabel(space.floor)}` : ''}${staff ? ` · ${cur.space.organization}` : ''}` : 'Non affecté'
+  const floorOf = (d) => data.spaces.find((x) => x.id === d.space?.id)?.floor
+  // "2e étage · acme": what follows the room name
+  const place = (d) => [floorOf(d) != null && floorLabel(floorOf(d)), staff && d.space?.organization].filter(Boolean).join(' · ')
+  const where = cur.space ? [cur.space.name, place(cur)].filter(Boolean).join(' · ') : 'Non affecté'
   const sealed = cur.seal !== 'unsealed'
   const step = !cur.space ? 0 : sealed ? 1 : 2
   const path = `/devices/${encodeURIComponent(cur.id)}`
@@ -118,21 +122,24 @@ export function Devices({ me }) {
   const move = () => (moveTo === (cur.space?.id ?? '') ? setAsk(null) : assign(moveTo))
   const pick = { device: cur, devices, spaces: data.spaces, staff }
 
-  const counts = Object.fromEntries(FILTERS.map(([key, , states]) => [key, devices.filter((d) => states.includes(deviceState(d))).length]))
-  const shown = devices.filter((d) => FILTERS.find((f) => f[0] === filter)[2].includes(deviceState(d)))
+  const counts = Object.fromEntries(FLEET.map(([key, , states]) => [key, devices.filter((d) => states.includes(deviceState(d))).length]))
+  const shown = devices.filter((d) => FLEET.find((f) => f[0] === filter)[2].includes(deviceState(d)))
 
   return (
     <>
       {header}
-      <div className="cols" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 360px) minmax(0, 1fr)', gap: 20, alignItems: 'start' }}>
+      <div role="group" aria-label="Filtrer les boîtiers" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+        {FLEET.map(([key, word, , color]) => (
+          <button key={key} type="button" className="chip" aria-pressed={filter === key} onClick={() => setFilter(key)}>
+            <span className="st">
+              {color && <span className="dot" style={{ background: color }} />}
+              <b className="num" style={{ fontWeight: 600, color: '#0E1726' }}>{counts[key]}</b>{word}{key !== 'offline' && key !== 'active' && counts[key] > 1 ? 's' : ''}
+            </span>
+          </button>
+        ))}
+      </div>
+      <div className="cols" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 380px) minmax(0, 1fr)', gap: 16, alignItems: 'start' }}>
         <section className="card" aria-label="Liste des boîtiers" style={{ overflow: 'hidden' }}>
-          <div role="group" aria-label="Filtrer" style={{ display: 'flex', gap: 6, padding: 12, borderBottom: '1px solid #EEF1F5', flexWrap: 'wrap' }}>
-            {FILTERS.map(([key, label]) => (
-              <button key={key} type="button" className="chip" aria-pressed={filter === key} onClick={() => setFilter(key)}>
-                {label} <span className="num" style={{ color: '#8A94A3' }}>{counts[key]}</span>
-              </button>
-            ))}
-          </div>
           <ul style={{ listStyle: 'none', margin: 0, padding: '4px 0' }}>
             {shown.map((d) => {
               const on = d.id === cur.id
@@ -140,15 +147,12 @@ export function Devices({ me }) {
               return (
                 <li key={d.id}>
                   <button type="button" className="row" aria-pressed={on} onClick={() => setSelId(d.id)}
-                    style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', border: 0, background: on ? '#F3F6FD' : 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
-                    <span style={{ width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none', background: s === 'active' ? '#EAF0FD' : '#F1F3F6', color: s === 'active' ? '#1747B3' : '#5B6676' }}>
-                      <Icon d={ICONS.device} />
+                    style={{ width: '100%', minHeight: 44, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '4px 12px', padding: '11px 16px', border: 0, background: on ? '#F3F6FD' : 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
+                    <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.35 }}>
+                      <span style={{ fontWeight: 500 }}>{d.space?.name ?? 'Non affecté'}{place(d) && <span className="muted" style={{ fontWeight: 400 }}> · {place(d)}</span>}</span>
+                      <span className="num" style={MONO}>{d.id}</span>
                     </span>
-                    <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, lineHeight: 1.3 }}>
-                      <span className="num" style={{ fontSize: 12.5, fontWeight: 500, overflowWrap: 'anywhere' }}>{d.id}</span>
-                      <span style={{ fontSize: 12, color: '#5B6676', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{d.space ? `${d.space.name}${staff ? ` · ${d.space.organization}` : ''}` : 'Non affecté'}</span>
-                    </span>
-                    <Dot state={s} />
+                    <Dot state={s}>{s === 'offline' ? `Hors ligne ${since(d.last_seen_at)}` : undefined}</Dot>
                   </button>
                 </li>
               )
@@ -169,10 +173,10 @@ export function Devices({ me }) {
             </svg>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 200 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <h2 id="dev-h" className="num" style={{ fontSize: 18, overflowWrap: 'anywhere' }}>{cur.id}</h2>
-                <span style={{ padding: '3px 9px', borderRadius: 6, background: '#F1F3F6' }}><Dot state={st} /></span>
+                <h2 id="dev-h" style={{ fontSize: 18, overflowWrap: 'anywhere' }}>{cur.space?.name ?? 'Boîtier non affecté'}</h2>
+                <Dot state={st} />
               </div>
-              <span className="muted" style={{ fontSize: 13 }}>{where}</span>
+              <span className="muted" style={{ fontSize: 13 }}>{place(cur) && `${place(cur)} · `}<span className="num" style={MONO}>{cur.id}</span></span>
             </div>
             <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gridAutoFlow: 'column', gridTemplateRows: 'auto auto', gap: '4px 26px', margin: 0, fontSize: 12 }}>
               <dt className="muted">Dernière connexion</dt>
