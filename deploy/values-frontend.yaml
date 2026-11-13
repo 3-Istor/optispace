@@ -58,6 +58,9 @@ ingress:
     method: GET
   - path: /api/openapi.json
     method: GET
+  # Boxes have no session: the backend checks X-Api-Key on this route.
+  - path: /api/v1/telemetry
+    method: POST
   realm: "iot"
   # Every project gets its own connector and Gateway in <project>-system now
   # (D-06) — an app-level connector would be a second, redundant one, and the

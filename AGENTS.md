@@ -28,7 +28,9 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
   under `/api/`, and React calls them with relative URLs (`fetch("/api/notes")`).
 - Company SSO (Keycloak) protects the whole URL, `/api/*` included, before a
   request reaches nginx. The backend does no login of its own. To find out
-  who the user is, see the `using-cnp-services` skill.
+  who the user is, see the `using-cnp-services` skill. Exceptions are listed in
+  `ingress.publicPaths` (`deploy/values-frontend.yaml`): the Swagger pages and
+  `POST /api/v1/telemetry`, which the backend guards with the device key.
 - Configuration comes only from environment variables, read in
   `backend/app/config.py` (`Settings`). The platform sets `DB_TYPE=postgres`,
   `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER` and `DB_PASSWORD`, and injects every
