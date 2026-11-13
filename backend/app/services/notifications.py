@@ -64,6 +64,9 @@ def notify(
     settings = get_settings()
     if user.notify_push and settings.vapid_public_key and settings.vapid_private_key:
         payload = {"title": "OptiSpace", "body": render(type, params), "url": _url(type, params)}
+        if type == NotificationType.ABSENCE_WARNING and reservation_id:
+            # The service worker shows "J'y vais" (marks the row read) and "Libérer" (cancels the reservation).
+            payload |= {"notification_id": row and str(row.id), "reservation_id": str(reservation_id)}
         queued = db.info.setdefault(PUSHES, [])
         for s in db.scalars(select(PushSubscription).where(PushSubscription.user_id == user.id)):
             # A detached copy: the push thread must not touch this session's objects.

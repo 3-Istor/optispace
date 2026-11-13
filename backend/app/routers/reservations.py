@@ -21,7 +21,7 @@ def reservation_out(db: Session, r: Reservation) -> ReservationOut:
     return ReservationOut(
         id=r.id, space_id=r.space_id, space_name=db.get(Space, r.space_id).name, start_at=r.start_at,
         end_at=r.end_at, status=r.status, released_at=r.released_at,
-        release_at=episode.deadline_at if episode else None,
+        release_at=episode.deadline_at if episode else None, absent_since=episode.opened_at if episode else None,
     )
 
 

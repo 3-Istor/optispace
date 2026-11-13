@@ -24,6 +24,7 @@ class NotificationOut(BaseModel):
     params: dict
     created_at: datetime
     read_at: datetime | None
+    reservation_id: UUID | None  # ABSENCE_WARNING and RELEASED: what "Libérer" cancels
 
 
 class PushKeys(BaseModel):

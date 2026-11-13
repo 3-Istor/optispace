@@ -72,3 +72,32 @@ export function presenceSpans(observations) {
   })
   return spans
 }
+
+// Reservations of a space's day ({start_at, end_at, status, released_at}) -> merged, sorted [startMs, endMs]
+// spans when it is taken. Cancelled ones do not count and released_at ends one early, as the booking rules do.
+export function busySpans(reservations) {
+  const spans = []
+  reservations.filter((r) => r.status !== 'cancelled')
+    .map((r) => [Date.parse(r.start_at), Date.parse(r.released_at ?? r.end_at)]).sort((a, b) => a[0] - b[0])
+    .forEach(([start, end]) => {
+      const last = spans[spans.length - 1]
+      if (last && last[1] >= start) last[1] = Math.max(last[1], end)
+      else spans.push([start, end])
+    })
+  return spans
+}
+
+// When the free time holding `from` ends: the start of the next span, null when nothing follows that day.
+export const freeUntil = (spans, from) => spans.find(([start]) => start >= from)?.[0] ?? null
+
+// First 5-minute start at or after `from` (a slot start) where `ms` fit without touching a span; null when
+// it would end after `limit`, the end of the day the spans describe.
+export function nextFree(spans, from, ms, limit) {
+  let t = from
+  for (const [start, end] of spans) {
+    if (end <= t) continue
+    if (start >= t + ms) break
+    t = Math.ceil(end / SLOT_MS) * SLOT_MS
+  }
+  return t + ms <= limit ? t : null
+}

@@ -39,22 +39,46 @@ body{font-family:'DM Sans',system-ui,sans-serif;font-size:14px;color:#0E1726}
 /* Bell menu */
 .bell .menu{max-width:calc(100vw - 32px)}
 .ntf-list{max-height:min(420px,60vh);overflow:auto}
-button.ntf{width:100%;border:0;border-top:1px solid #EEF1F5;background:#FFFFFF;font:inherit;color:inherit;text-align:left;cursor:pointer}
-button.ntf.unread{background:#F3F6FD}
-button.ntf:hover{background:#F8F9FB}
+.ntf-row{border-top:1px solid #EEF1F5;background:#FFFFFF}
+.ntf-row.unread{background:#F3F6FD}
+button.ntf{width:100%;border:0;background:transparent;font:inherit;color:inherit;text-align:left;cursor:pointer}
+button.ntf:hover{background:rgba(14,23,38,.03)}
+.ntf-act{display:flex;gap:8px;padding:0 16px 12px 36px}
 .ntf-empty{margin:0;padding:12px 16px 16px;font-size:13px;color:#5B6676}
 .push-card{margin:0 12px 12px;padding:12px;border-radius:10px;background:#F3F6FD;border:1px solid #DCE6FA;display:flex;flex-direction:column;gap:8px}
 
 /* Lists of cards */
 .cols-2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
 .stack{display:flex;flex-direction:column;gap:10px}
-.item{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:14px 16px}
-.item-main{display:flex;flex-direction:column;gap:3px;flex:1;min-width:200px}
-.banner{display:flex;gap:10px;align-items:center;padding:10px 16px;background:#FDF4EA;color:#8A4A0E;font-size:13px;border-bottom:1px solid #F2D3B0}
 .side-card{padding:16px 18px;display:flex;flex-direction:column;gap:4px}
 .side-card h2{font-size:15px;margin-bottom:4px}
 .line{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #EEF1F5}
 .line:last-child{border-bottom:0}
+
+/* Hairline lists: one surface (.card.rows), one row per item, no frame inside. Rows may sit in a .fold. */
+.rows{overflow:hidden}
+.rows>:first-child{margin-top:-1px}
+.hl{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) auto;gap:10px 20px;align-items:center;padding:14px 16px;border-top:1px solid #EEF1F5}
+.hl-2{grid-template-columns:minmax(0,1fr) auto;padding-block:10px}
+.day{padding:13px 16px 9px;font:600 12px 'DM Sans',system-ui,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#5B6676}
+.btn.danger{color:#B4232A}
+
+/* Day strip of a space: green when free, grey when taken, blue frame on the searched slot */
+.tl{display:flex;flex-direction:column;gap:4px;min-width:0}
+.tl-b{position:relative;height:14px;border-radius:4px;background:#E6F4EC;overflow:hidden}
+.tl-b i{position:absolute;top:0;bottom:0;background:#C9CFD8}
+.tl-b i.sel{background:transparent;border:2px solid #1E56D6;border-radius:4px;box-sizing:border-box;transition:left var(--t2) var(--e-out),width var(--t2) var(--e-out)}
+.tl-x{position:relative;height:14px;font-size:11px;color:#8A94A3}
+.tl-x span{position:absolute;top:0;transform:translateX(-50%)}
+
+/* Reservation in progress */
+.now{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.now-r{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px}
+.prog{height:6px;border-radius:3px;background:#EEF1F5;overflow:hidden}
+.prog i{display:block;height:100%;border-radius:3px;transition:width 1s linear,background-color var(--t2) linear}
+
+/* Phone tab bar of the employee; hidden above 960px */
+.tabs,.only-narrow{display:none}
 
 /* Toasts, newest at the bottom */
 .toasts{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:60;display:flex;flex-direction:column;align-items:center;gap:8px;width:max-content;max-width:min(560px,calc(100% - 32px));pointer-events:none}
@@ -106,11 +130,21 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
 
 
 @media (max-width:960px){
+  /* Top bar: brand, bell, Menu. !important beats the static position design-system.css forces here. */
+  .shell>.side{position:sticky !important;top:0;z-index:40}
   .side-in{position:static;height:auto;gap:14px;padding:10px 16px}
-  .side-menu{display:inline-flex}
+  .side-menu,.only-narrow{display:inline-flex}
   .side-nav:not(.open){display:none}
-  .side-nav{padding-bottom:6px}
+  /* The menu lies over the page instead of pushing it down. */
+  .side-nav{position:absolute;top:100%;left:0;right:0;height:calc(100dvh - 100%);box-sizing:border-box;padding:16px;overflow:auto;overscroll-behavior:contain;background:#FBFBFC;border-top:1px solid #E4E8EE;animation:rise var(--t2) var(--e-out)}
   .cols-2{grid-template-columns:1fr}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:40;display:grid;grid-template-columns:repeat(3,1fr);background:#FFFFFF;border-top:1px solid #E4E8EE;padding-bottom:env(safe-area-inset-bottom)}
+  .tabs a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:58px;padding-top:6px;box-sizing:border-box;font-size:11px;font-weight:500;color:#5B6676;transition:color var(--t1) linear}
+  .tabs a[aria-current="page"]{color:#0E1726}
+  .tabs .td{position:absolute;top:6px;left:0;width:33.333%;display:grid;place-items:center;pointer-events:none;transition:transform var(--t2) var(--e-out)}
+  .tabs .td i{width:6px;height:6px;border-radius:50%;background:#38B6FF}
+  .shell:has(.tabs) .shell-main{padding-bottom:calc(86px + env(safe-area-inset-bottom))}
+  .shell:has(.tabs) .toasts{bottom:calc(70px + env(safe-area-inset-bottom))}
 }
 @media (max-width:640px){
   .topbar-in{padding:0 16px;gap:4px 12px}
@@ -118,6 +152,10 @@ dialog.modal::backdrop{background:rgba(14,23,38,.35)}
   .bell .menu{position:fixed;top:64px;left:16px;right:16px;width:auto;max-width:none}
   .err{padding:40px 20px}
   .err h1{font-size:24px}
+  .hl,.hl-2{grid-template-columns:minmax(0,1fr)}
+  .hl>.btn{width:100%}
+  .now-r>.actions{width:100%}
+  .now-r>.actions>.btn{flex:1 1 auto}
 }
 
 /* Space form drawer: wider, short fields two per row, one per row on phones */
@@ -224,5 +262,11 @@ dialog[open]::backdrop{opacity:1}
 .dot .rg,.bell .cnt.pop::after{position:absolute;inset:0;border-radius:50%;border:2px solid;animation:ring var(--t3) var(--e-out) both}
 .bell .cnt.pop{animation:pop var(--t2) var(--e-out)}
 .bell .cnt.pop::after{content:"";inset:-2px;border-radius:9px;border-color:#D63F45}
+/* Release countdown: the ring follows the clock, one step a second; the dot breathes like the device LED. */
+@keyframes breathe{50%{opacity:.35}}
+.cd{flex:none}
+.cd-r{transition:stroke-dashoffset 1s linear,stroke var(--t2) linear}
+.cd-d{transition:fill var(--t2) linear}
+.cd-d.breathe{animation:breathe calc(var(--t3)*2.5) var(--e-trace) infinite}
 .line{transition:opacity var(--t2) linear,transform var(--t2) var(--e-out)}
 .line.gone{opacity:0;transform:translateX(-12px)}

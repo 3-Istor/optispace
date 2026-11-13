@@ -32,6 +32,7 @@ def test_create_returns_the_reservation(client, db):
     assert response.json() == {
         "id": ANY, "space_id": str(space.id), "space_name": "Bulle 1", "start_at": iso(at("10:00")),
         "end_at": iso(at("10:30")), "status": "active", "released_at": None, "release_at": None,
+        "absent_since": None,
     }
 
 
@@ -143,6 +144,7 @@ def test_modify_before_start_any_field(client, db):
     assert response.json() == {
         "id": ANY, "space_id": str(booth2.id), "space_name": "Bulle 2", "start_at": iso(at("12:00")),
         "end_at": iso(at("12:45")), "status": "active", "released_at": None, "release_at": None,
+        "absent_since": None,
     }
     assert code(patch(client, reservation_id, start_at=at("12:50"), end_at=at("13:15"))) == (409, "RESERVATION_CONFLICT")
     assert code(patch(client, reservation_id, start_at=at("12:02"))) == (422, "INVALID_SLOT")
@@ -263,4 +265,5 @@ def test_reservations_mine(client, db, frozen_clock):
     assert recent[0] == {
         "id": str(now.id), "space_id": str(booth.id), "space_name": "Bulle 1", "start_at": iso(at("10:00")),
         "end_at": iso(at("11:00")), "status": "active", "released_at": None, "release_at": iso(at("10:10")),
+        "absent_since": iso(at("10:00")),
     }

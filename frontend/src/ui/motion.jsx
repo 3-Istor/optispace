@@ -66,3 +66,18 @@ export function Seg({ children, className = '', ...props }) {
   })
   return <div ref={ref} className={`seg slide ${className}`} {...props}><i ref={thumb} className="seg-thumb" aria-hidden="true" />{children}</div>
 }
+
+// Ring around a state dot that empties between `from` and `to` (ms) as the release deadline nears; the dot
+// breathes in the last 3 minutes. done: released, the ring closes in green.
+export function Countdown({ from, to, now, done = false }) {
+  const left = Math.max(0, to - now)
+  const color = done ? '#1A8F4E' : '#D9771F'
+  return (
+    <svg className="cd" width="22" height="22" viewBox="0 0 36 36" aria-hidden="true">
+      <circle cx="18" cy="18" r="15" fill="none" stroke="#E4E8EE" strokeWidth="4" />
+      <circle className="cd-r" pathLength="1" cx="18" cy="18" r="15" fill="none" stroke={color} strokeWidth="4" strokeLinecap="round"
+        strokeDasharray="1" strokeDashoffset={done ? 0 : 1 - Math.min(1, left / Math.max(1, to - from))} transform="rotate(-90 18 18)" />
+      <circle className={!done && left < 180000 ? 'cd-d breathe' : 'cd-d'} cx="18" cy="18" r="6" fill={color} />
+    </svg>
+  )
+}
