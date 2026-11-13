@@ -21,6 +21,8 @@ def read_insights(
     user: AppUser = Depends(require_fm),
     db: Session = Depends(get_db),
 ):
-    """IOT-36 §6.2 as is; 400 INVALID_PERIOD for bounds off the minute or from >= to."""
+    """IOT-36 §6.2 as is, plus `hourly`: one `{start_at, reserved_min, used_min}` per clock hour of the
+    period (minutes initially reserved, minutes occupied during a reservation), for the dashboard chart.
+    400 INVALID_PERIOD for bounds off the minute or from >= to."""
     booking.space_in(db, space_id, user.organization)
     return insights.compute(db, space_id, frm, to, clock.now())

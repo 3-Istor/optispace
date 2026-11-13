@@ -1,7 +1,30 @@
-import { useLayoutEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 // Shared motion pieces; durations and curves live in app.css (--t1, --t2, --t3).
 export const EXIT_MS = 240 // --t2: how long a closing drawer or a removed row stays mounted
+
+const COUNT_MS = 480 // --t3
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)')
+
+// Number that counts from the value shown (0 at first) to `value`; format turns each step into text.
+// Cubic ease-out stands in for --e-out. Instant under reduced motion.
+export function Count({ value, format = String }) {
+  const [shown, setShown] = useState(REDUCED.matches ? value : 0)
+  const at = useRef(shown)
+  at.current = shown
+  useEffect(() => {
+    if (REDUCED.matches) return setShown(value)
+    const from = at.current
+    const t0 = performance.now()
+    let frame = requestAnimationFrame(function step(t) {
+      const p = Math.min(1, Math.max(0, t - t0) / COUNT_MS)
+      setShown(p < 1 ? from + (value - from) * (1 - (1 - p) ** 3) : value)
+      if (p < 1) frame = requestAnimationFrame(step)
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [value])
+  return format(shown)
+}
 
 // Drawn tick (done) or ring that draws back onto a dot (failed).
 export function Tick({ bad = false, size = 16 }) {

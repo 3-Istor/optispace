@@ -5,7 +5,7 @@ Minute resolution (IOT-36 §2.2): a minute is occupied with a `present` observat
 import hashlib
 import json
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from decimal import ROUND_HALF_UP, Decimal
 from uuid import UUID
@@ -39,7 +39,7 @@ def _s(n: int) -> str:
 
 
 def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datetime) -> dict:
-    """`kpis`, `summary` (mode "template_fallback"), `no_shows`, `recommendations` and `warnings`.
+    """`kpis`, `summary` (mode "template_fallback"), `hourly`, `no_shows`, `recommendations` and `warnings`.
     The period is cut at the current minute: later minutes are not observed yet, and a period
     with no elapsed minute is `no_data`."""
     space = db.get(Space, space_id)
@@ -107,6 +107,15 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
         "released_min": len(released), "releases_succeeded": succeeded, "releases_failed": failed,
         "coverage_pct": _rate(len(observed), total),
     }
+    # One item per clock hour the period touches (UTC and Paris hours share their boundaries). The sums
+    # are reserved_initial_min and occupied_reserved_min.
+    lead = frm.minute
+    reserved_by_hour = Counter((i + lead) // 60 for i in booked)
+    used_by_hour = Counter((i + lead) // 60 for i in occupied & effective)
+    hourly = [
+        {"start_at": iso(frm + timedelta(minutes=60 * h - lead)), "reserved_min": reserved_by_hour[h], "used_min": used_by_hour[h]}
+        for h in range(math.ceil((lead + total) / 60) if total else 0)
+    ]
     sources = {o.source.value for o in observations}
     revision = hashlib.sha256(json.dumps([kpis, no_shows]).encode()).hexdigest()[:12]
     facts = _summary(space.name, frm, to, kpis)
@@ -120,6 +129,7 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
             "status": "ready", "mode": "template_fallback", "text": " ".join(text for _, text in facts),
             "fact_ids": [fact for fact, _ in facts], "facts_revision": revision, "model_version": None, "warnings": [],
         },
+        "hourly": hourly,
         "no_shows": no_shows,
         "warnings": ["MISSING_SENSOR_DATA"] if len(observed) < total else [],
         "recommendations": [],

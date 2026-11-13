@@ -73,9 +73,9 @@ export const SPACE_STATES = {
 // GET /devices item -> key of DEVICE_STATES; offline wins so a dead box is never shown as fine.
 export const deviceState = (d) => (!d.online ? 'offline' : d.seal === 'unsealed' ? 'active' : d.space ? 'sealed' : 'new')
 export const DEVICE_STATES = {
-  new: ['Scellé, non affecté', '#2F6FE0'],
-  sealed: ['Scellé', '#2F6FE0'],
-  active: ['Actif', '#1A8F4E'],
+  new: ['Scellé, non affecté', '#D9771F'],
+  sealed: ['Scellé', '#D9771F'],
+  active: ['En ligne', '#1A8F4E'],
   offline: ['Hors ligne', '#D63F45'],
 }
 

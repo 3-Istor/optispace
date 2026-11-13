@@ -2,13 +2,13 @@ import { useCallback, useState } from 'react'
 import { api } from '../../api.js'
 import { DEVICE_STATES, deviceState, errorText, floorLabel, WARNINGS } from '../../messages.js'
 import { Link } from '../../router.jsx'
-import { dayLabel, fmtAgo, fmtTime, fromParis, toParis } from '../../time.js'
+import { dayLabel, fmtAgo, fmtDuration, fmtTime, fromParis, toParis } from '../../time.js'
 import { usePolling } from '../../usePolling.js'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
+import { Count } from '../../ui/motion.jsx'
 import { PageHeader } from '../../ui/Shell.jsx'
-import { StatusBadge } from '../../ui/StatusBadge.jsx'
 
 const PERIODS = { today: ['Aujourd’hui', 1], '7d': ['7 jours', 7], '30d': ['30 jours', 30] }
 const TODO = ['new', 'offline', 'sealed']
@@ -21,25 +21,97 @@ const loadLive = async () => {
 
 // One decimal, half up (exigences §6.1): 56.25 -> "56,3".
 const nf = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 })
-const num = (v) => (v == null ? '?' : nf.format(v))
-const pct = (v) => (v == null ? 'Non calculable' : `${nf.format(v)} %`)
+const pct = (v) => `${nf.format(v)} %`
+const dur = (v) => fmtDuration(Math.round(v))
 const s = (k) => (k > 1 ? 's' : '')
 const text = (x) => (typeof x === 'string' ? x : x?.text ?? x?.message ?? '')
 
-// K-01, K-02, K-05, K-06, K-07 (exigences §6). IOT-36 does not name the fields yet: this mapping is
-// the single place to align with the backend. Rates are null when not computable.
-function kpiCards(k) {
+// Below this share of measured minutes a rate says more about the gaps than about the room.
+const MIN_COVERAGE = 25
+const FEW = 'Pas assez de mesures'
+const fewMeasures = (k) => !(k.coverage_pct >= MIN_COVERAGE)
+
+// [label, value, detail] from the kpis of GET /spaces/{id}/insights. A string value is words, not a figure.
+function kpiTiles(k) {
+  const low = fewMeasures(k)
+  const unreserved = k.occupied_unreserved_min ? `${fmtDuration(k.occupied_unreserved_min)} utilisées sans réservation` : ''
   return [
-    ['Occupation réelle', pct(k.occupancy_pct),
-      `${num(k.occupied_min)} min sur ${num(k.observed_min)} observées · ${num(k.occupied_reserved_min)} avec réservation, ${num(k.occupied_unreserved_min)} sans`],
-    ['Réservation initiale', pct(k.reserved_initial_pct), `${num(k.reserved_initial_min)} min réservées sur ${num(k.period_min)}`],
-    ['No-shows', pct(k.no_show_pct),
-      `${num(k.no_show_count)} sur ${num(k.evaluated_count)} réservation${s(k.evaluated_count)} évaluée${s(k.evaluated_count)}`
-      + (k.not_evaluated_count ? `, ${num(k.not_evaluated_count)} non évaluée${s(k.not_evaluated_count)}` : '')],
-    ['Temps libéré', `${num(k.released_min)} min`,
-      `${num(k.releases_succeeded)} libération${s(k.releases_succeeded)} réussie${s(k.releases_succeeded)}, ${num(k.releases_failed)} échouée${s(k.releases_failed)}`],
-    ['Couverture des mesures', pct(k.coverage_pct), k.unknown_min ? `${num(k.unknown_min)} min sans mesure` : 'toute la période est observée'],
+    ['Réservé et utilisé',
+      low ? FEW : k.reserved_initial_min ? <Count value={100 * k.occupied_reserved_min / k.reserved_initial_min} format={pct} /> : 'Aucune réservation',
+      [k.reserved_initial_min ? `${low ? '' : `${fmtDuration(k.occupied_reserved_min)} sur `}${fmtDuration(k.reserved_initial_min)} réservées` : 'sur cette période',
+        !low && unreserved].filter(Boolean).join(' · ')],
+    ['Réservations sans personne',
+      k.evaluated_count ? <><Count value={k.no_show_count} format={Math.round} /> sur {k.evaluated_count}</> : 'Aucune',
+      [k.no_show_count ? `libérée${s(k.no_show_count)} automatiquement` : k.evaluated_count ? 'tout le monde est venu' : !k.not_evaluated_count && 'aucune réservation à vérifier',
+        k.not_evaluated_count && `${k.not_evaluated_count} réservation${s(k.not_evaluated_count)} sans mesure`].filter(Boolean).join(' · ')],
+    ['Temps libéré', <Count value={k.released_min} format={dur} />,
+      k.releases_succeeded || k.releases_failed
+        ? `${k.releases_succeeded} libération${s(k.releases_succeeded)}${k.releases_failed ? `, ${k.releases_failed} échouée${s(k.releases_failed)}` : ''}`
+        : 'aucune libération'],
+    ['Fiabilité des mesures', low ? FEW : <Count value={k.coverage_pct} format={pct} />,
+      low ? `${fmtDuration(k.observed_min)} mesurées sur ${fmtDuration(k.period_min)}`
+        : k.unknown_min ? `de la période couverte · ${fmtDuration(k.unknown_min)} sans mesure` : 'toute la période est couverte'],
   ]
+}
+
+const Swatch = ({ color, children }) => (
+  <span className="st" style={{ fontSize: 12, color: '#5B6676' }}><span style={{ width: 10, height: 10, borderRadius: 2, background: color }} />{children}</span>
+)
+
+// Bars per Paris hour of day: `hourly` items of several days add up. Working hours by default, widened to the
+// hours that hold data. Full height is one hour, or the largest bar when days add up beyond it.
+function HourChart({ hourly, days, low }) {
+  const by = {}
+  for (const h of hourly) {
+    const sum = (by[Number(toParis(new Date(h.start_at)).time.slice(0, 2))] ??= [0, 0])
+    sum[0] += h.reserved_min
+    sum[1] += h.used_min
+  }
+  const filled = Object.keys(by).map(Number).filter((h) => by[h][0] || by[h][1])
+  const lo = Math.min(8, ...filled)
+  const hours = Array.from({ length: Math.max(18, ...filled) - lo + 1 }, (_, i) => lo + i)
+  const top = Math.max(60, ...filled.flatMap((h) => by[h]))
+  const every = Math.ceil(hours.length / 6) // at most six hour labels, so they fit a phone
+  const total = (i) => fmtDuration(filled.reduce((n, h) => n + by[h][i], 0))
+  return (
+    <section className="card" aria-labelledby="chart-h" style={{ alignSelf: 'stretch', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '6px 14px' }}>
+        <h2 id="chart-h" style={{ fontSize: 15 }}>Minutes réservées et réellement utilisées</h2>
+        <span style={{ display: 'flex', gap: 14 }}><Swatch color="#C9D6F5">Réservé</Swatch><Swatch color="#1E56D6">Utilisé</Swatch></span>
+      </div>
+      <div className="chart" role="img" aria-label={`Par heure, de ${lo} h à ${hours.at(-1) + 1} h : ${total(0)} réservées, ${total(1)} utilisées.`}>
+        <span className="chart-top num">{fmtDuration(top)}</span>
+        {hours.map((h, i) => {
+          const [reserved, used] = by[h] ?? [0, 0]
+          return (
+            <span key={h} style={{ '--i': i }} title={`${h} h : ${fmtDuration(reserved)} réservées, ${fmtDuration(used)} utilisées`}>
+              <i style={{ height: `${(reserved / top) * 100}%` }} /><i style={{ height: `${(used / top) * 100}%` }} />
+            </span>
+          )
+        })}
+      </div>
+      <div className="chart-x num" aria-hidden="true">{hours.map((h, i) => <span key={h}>{i % every ? '' : `${h} h`}</span>)}</div>
+      <span className="muted" style={{ fontSize: 12, lineHeight: 1.45 }}>
+        {!filled.length ? 'Aucune réservation ni présence sur cette période.'
+          : low ? `${FEW} : les minutes utilisées sont sous-estimées.`
+            : days > 1 ? `Par heure de la journée, cumul sur ${days} jours.` : 'Par heure de la journée.'}
+      </span>
+    </section>
+  )
+}
+
+// [tile colour class, state in words] of a space; a space with no device has no state to show.
+function tileOf(sp, hasDevice) {
+  const r = sp.current_reservation
+  if (!hasDevice) return ['', 'sans boîtier']
+  switch (sp.space_state) {
+    case 'free': return ['free', 'libre']
+    case 'awaiting_presence': return ['wait', r?.release_at ? `attendue avant ${fmtTime(r.release_at)}` : 'attendue']
+    case 'occupied_reserved': return ['busy', r ? `jusqu’à ${fmtTime(r.end_at)}` : 'occupée']
+    case 'occupied_unreserved': return ['busy', 'occupée sans réservation']
+    case 'sealed': return ['', 'boîtier scellé']
+    default: return ['', 'boîtier hors ligne']
+  }
 }
 
 function todo(d) {
@@ -49,7 +121,8 @@ function todo(d) {
   return [`${d.space?.name ?? d.id} hors ligne`, `Dernière connexion ${fmtAgo(d.last_seen_at)}.`]
 }
 
-// AdminDashboard.dc.html. Displays GET /spaces/{id}/insights as is (spec §8): nothing is computed here.
+// Figures first, then the hourly chart and the live state, then the written summary. The figures come from
+// GET /spaces/{id}/insights; only the coverage guard and the reserved-and-used rate are worked out here.
 export function Dashboard() {
   const live = usePolling(loadLive, 5000)
   const [picked, setPicked] = useState(null)
@@ -93,99 +166,100 @@ export function Dashboard() {
   const recos = ins?.recommendations ?? []
   const noShows = Array.isArray(ins?.no_shows) ? ins.no_shows : []
   const pending = devices.filter((d) => TODO.includes(deviceState(d))).sort((a, b) => TODO.indexOf(deviceState(a)) - TODO.indexOf(deviceState(b)))
+  const equipped = new Set(devices.map((d) => d.space?.id))
+  const active = spaces.filter((sp) => sp.is_active !== false)
+  const floors = [...new Set(active.map((sp) => sp.floor))].sort((a, b) => a - b)
+  const sub = { display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }
 
   return (
     <>
       {header}
-      <section className="card" aria-labelledby="syn-h" style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-          <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse de la période</h2>
-          {ins?.summary && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', height: 22, padding: '0 8px', borderRadius: 6, fontSize: 12, fontWeight: 600, ...(llm ? { background: '#EAF0FD', color: '#1747B3' } : { background: '#F1F3F6', color: '#3A4555' }) }}>
-              {llm ? 'IA' : 'Gabarit (repli)'}
-            </span>
-          )}
-        </div>
-        {!ins ? (
-          insights.error ? <p className="muted" style={{ margin: 0 }}>{errorText(insights.error)}</p> : <Loader label="Calcul des indicateurs" />
-        ) : <>
-          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, maxWidth: 900 }}>{ins.summary?.text || 'Aucune synthèse pour cette période.'}</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }}>
-            <span className="lbl">Recommandations</span>
-            {recos.length ? (
-              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.5 }}>
-                {recos.map((r, i) => <li key={i}>{r?.title ? <><strong style={{ fontWeight: 600 }}>{r.title}</strong>{r.text && ` : ${r.text}`}</> : text(r)}</li>)}
-              </ul>
-            ) : <span className="muted" style={{ fontSize: 13 }}>Aucune recommandation pour cette période.</span>}
-          </div>
-          {noShows.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }}>
-              <span className="lbl">No-shows</span>
-              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }} className="num">
-                {noShows.map((r, i) => (
-                  <li key={r.reservation_id ?? i}>
-                    {r.start_at ? `${dayLabel(r.start_at).toLowerCase()}, ${fmtTime(r.start_at)} à ${fmtTime(r.end_at)}` : text(r)}
-                    {r.start_at && (r.released_at ? `, libérée à ${fmtTime(r.released_at)}` : ', non libérée')}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-          {ins.warnings?.length > 0 && (
-            <ul aria-label="Avertissements" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {ins.warnings.map((w, i) => (
-                <li key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 26, padding: '0 10px', borderRadius: 6, background: '#FDF6EE', color: '#8A4A0E', fontSize: 12 }}>
-                  <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none' }} />{WARNINGS[w] ?? text(w)}
-                </li>
-              ))}
-            </ul>
-          )}
-        </>}
-      </section>
-
-      {ins?.kpis && (
-        <section aria-label="Indicateurs" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-          {kpiCards(ins.kpis).map(([label, value, sub]) => (
-            <div key={label} className="card" style={{ padding: '16px 16px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {!ins ? (
+        insights.error ? <EmptyState title="Indicateurs indisponibles">{errorText(insights.error)}</EmptyState> : <Loader label="Calcul des indicateurs" />
+      ) : (
+        <section className="kpis" aria-label="Indicateurs">
+          {kpiTiles(ins.kpis).map(([label, value, detail]) => (
+            <div key={label} className="card kpi">
               <span className="lbl">{label}</span>
-              <span className="num" style={{ fontFamily: "'Sora', sans-serif", fontSize: value === 'Non calculable' ? 18 : 26, letterSpacing: '-0.03em', lineHeight: 1 }}>{value}</span>
-              <span className="muted num" style={{ fontSize: 12, lineHeight: 1.45 }}>{sub}</span>
+              <b className={typeof value === 'string' ? 'txt' : 'num'}>{value}</b>
+              <span className="muted num" style={{ fontSize: 12, lineHeight: 1.45 }}>{detail}</span>
             </div>
           ))}
         </section>
       )}
 
-      <div className="cols" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.65fr) minmax(0, 1fr)', gap: 14, alignItems: 'start' }}>
-        <section className="card" aria-labelledby="now-h" style={{ padding: '8px 0' }}>
-          <h2 id="now-h" style={{ fontSize: 15, padding: '12px 22px 6px' }}>En ce moment</h2>
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, maxHeight: 440, overflow: 'auto' }}>
-            {spaces.filter((sp) => sp.is_active !== false).map((sp) => (
-              <li key={sp.id} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 12px', padding: '10px 22px', borderTop: '1px solid #EEF1F5' }}>
-                <span style={{ display: 'flex', flexDirection: 'column', flex: '1 1 160px', lineHeight: 1.35 }}>
-                  <span style={{ fontSize: 13, fontWeight: 500 }}>{sp.name}</span>
-                  <span className="muted" style={{ fontSize: 12 }}>{floorLabel(sp.floor)}</span>
-                </span>
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: '1 1 220px' }}>
-                  <StatusBadge state={sp.space_state} releaseAt={sp.current_reservation?.release_at} />
-                  {sp.current_reservation?.booker_name && <span className="muted" style={{ fontSize: 12 }}>Réservée par {sp.current_reservation.booker_name}</span>}
-                </span>
-              </li>
-            ))}
-          </ul>
+      <div className="cols-2">
+        {ins ? <HourChart hourly={ins.hourly ?? []} days={PERIODS[period][1]} low={fewMeasures(ins.kpis)} /> : <span />}
+        <section className="card" aria-labelledby="now-h" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <h2 id="now-h" style={{ fontSize: 15 }}>En ce moment</h2>
+          {floors.map((floor) => (
+            <div key={floor} role="group" aria-label={floorLabel(floor)} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <span className="muted" style={{ fontSize: 12 }}>{floorLabel(floor)}</span>
+              <div className="tiles">
+                {active.filter((sp) => sp.floor === floor).map((sp) => {
+                  const [tone, state] = tileOf(sp, equipped.has(sp.id))
+                  return <Link key={sp.id} to={`/admin/spaces?id=${sp.id}`} className={`tile ${tone}`}>{sp.name}<small>{state}</small></Link>
+                })}
+              </div>
+            </div>
+          ))}
+          {!active.length && <span className="muted" style={{ fontSize: 13 }}>Aucun espace en service.</span>}
+        </section>
+      </div>
+
+      <div className="cols-2">
+        <section className="card" aria-labelledby="syn-h" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse</h2>
+            {ins?.summary && <span className="muted" style={{ fontSize: 12 }}>{llm ? 'Rédigée par l’IA' : 'Rédigée automatiquement'}</span>}
+          </div>
+          {!ins ? <span className="muted" style={{ fontSize: 13 }}>{insights.error ? errorText(insights.error) : 'Calcul en cours.'}</span> : <>
+            <p style={{ margin: 0, lineHeight: 1.65 }}>{ins.summary?.text || 'Aucune synthèse pour cette période.'}</p>
+            <div style={sub}>
+              <span className="lbl">Recommandations</span>
+              {recos.length ? (
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.5 }}>
+                  {recos.map((r, i) => <li key={i}>{r?.title ? <><strong style={{ fontWeight: 600 }}>{r.title}</strong>{r.text && ` : ${r.text}`}</> : text(r)}</li>)}
+                </ul>
+              ) : <span className="muted" style={{ fontSize: 13 }}>Aucune recommandation pour cette période.</span>}
+            </div>
+            {noShows.length > 0 && (
+              <div style={sub}>
+                <span className="lbl">Réservations sans personne</span>
+                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }} className="num">
+                  {noShows.map((r, i) => (
+                    <li key={r.reservation_id ?? i}>
+                      {r.start_at ? `${dayLabel(r.start_at).toLowerCase()}, ${fmtTime(r.start_at)} à ${fmtTime(r.end_at)}` : text(r)}
+                      {r.start_at && (r.released_at ? `, libérée à ${fmtTime(r.released_at)}` : ', non libérée')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {ins.warnings?.length > 0 && (
+              <ul aria-label="Avertissements" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {ins.warnings.map((w, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, color: '#8A4A0E', fontSize: 12, lineHeight: 1.45 }}>
+                    <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none', marginTop: 1 }} />{WARNINGS[w] ?? text(w)}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>}
         </section>
         <section className="card" aria-labelledby="todo-h" style={{ padding: '8px 0' }}>
-          <h2 id="todo-h" style={{ fontSize: 15, padding: '12px 22px 6px' }}>À traiter</h2>
+          <h2 id="todo-h" style={{ fontSize: 15, padding: '12px 18px 6px' }}>À traiter</h2>
           {pending.length ? (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {pending.map((d) => {
-                const [title, sub] = todo(d)
+                const [title, detail] = todo(d)
                 return (
                   <li key={d.id}>
-                    <Link to={`/admin/devices?id=${encodeURIComponent(d.id)}`} className="row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 22px', color: '#0E1726' }}>
+                    <Link to={`/admin/devices?id=${encodeURIComponent(d.id)}`} className="row" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', color: '#0E1726' }}>
                       <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: DEVICE_STATES[deviceState(d)][1] }} />
                       <span style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, lineHeight: 1.35 }}>
                         <span style={{ fontSize: 13, fontWeight: 500, overflowWrap: 'anywhere' }}>{title}</span>
-                        <span className="muted" style={{ fontSize: 12 }}>{sub}</span>
+                        <span className="muted" style={{ fontSize: 12 }}>{detail}</span>
                       </span>
                       <Icon d="M5 12h14M13 6l6 6-6 6" size={14} style={{ color: '#8A94A3', flex: 'none' }} />
                     </Link>
@@ -193,7 +267,7 @@ export function Dashboard() {
                 )
               })}
             </ul>
-          ) : <p className="muted" style={{ margin: 0, padding: '4px 22px 14px', fontSize: 13, lineHeight: 1.5 }}>Rien à traiter : tous les boîtiers sont affectés, descellés et en ligne.</p>}
+          ) : <p className="muted" style={{ margin: 0, padding: '4px 18px 14px', fontSize: 13, lineHeight: 1.5 }}>Rien à traiter : tous les boîtiers sont affectés, descellés et en ligne.</p>}
         </section>
       </div>
     </>
