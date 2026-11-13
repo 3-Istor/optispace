@@ -1,3 +1,3 @@
 image:
   repository: ghcr.io/3-istor/optispace/frontend
-  tag: sha-4ff8508
+  tag: 2.0.0-rc.1@sha256:29e665ad93798b5416cc3608229660b1bf76b242037004d183fda846f1d5a634
