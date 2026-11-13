@@ -33,6 +33,7 @@ class ReservationOut(BaseModel):
     status: ReservationStatus
     released_at: datetime | None
     release_at: datetime | None  # deadline of the pending absence episode
+    absent_since: datetime | None  # when that episode opened
 
 
 class AlertIn(BaseModel):

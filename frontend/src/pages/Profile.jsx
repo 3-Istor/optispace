@@ -67,6 +67,7 @@ export function Profile({ me, setMe }) {
               <span style={{ fontFamily: "'Sora', sans-serif", fontSize: 18 }}>{name}</span>
               <span className="muted" style={{ fontSize: 13 }}>{roleLabel(me)}</span>
             </span>
+            {me.role === 'employee' && <a href="/logout" className="btn btn-s only-narrow">Déconnexion</a>}
             {ACCOUNT_URL && (
               <a href={ACCOUNT_URL} className="btn btn-s" target="_blank" rel="noopener noreferrer">
                 Gérer mon compte <Icon d="M5 12h14M13 6l6 6-6 6" size={14} />

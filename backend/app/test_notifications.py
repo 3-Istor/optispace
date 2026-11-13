@@ -10,7 +10,7 @@ from sqlalchemy import func, select
 from app.models import Notification, PushSubscription
 from app.models.enums import NotificationType as T
 from app.services import notifications, webpush
-from app.testkit import at, iso, make_user
+from app.testkit import at, book, iso, make_space, make_user
 
 AT = iso(at("10:10"))
 
@@ -117,6 +117,19 @@ def test_push_urls(db, pushes):
     ]
 
 
+def test_absence_push_carries_what_its_buttons_need(db, pushes):
+    user = make_user(db)
+    subscribe(db, user)
+    space = make_space(db)
+    reservation = book(db, space, at("10:00"), at("11:00"), user=user)
+
+    row = notifications.notify(db, user, T.ABSENCE_WARNING, reservation_id=reservation.id, space_name="Bulle 1", at=AT)
+    db.commit()
+
+    [(_, payload)] = pushes
+    assert (payload["notification_id"], payload["reservation_id"]) == (str(row.id), str(reservation.id))
+
+
 def test_push_410_deletes_subscription(db, monkeypatch, settings_env, threads):
     settings_env(VAPID_PUBLIC_KEY="public", VAPID_PRIVATE_KEY="private", VAPID_SUBJECT="mailto:ops@example.com")
     user = make_user(db)
@@ -159,7 +172,7 @@ def test_notifications_list_and_read(client, db, frozen_clock):
     assert [n["id"] for n in listed] == [str(second.id), str(first.id)]
     assert listed[1] == {
         "id": str(first.id), "type": "RELEASED", "params": {"space_name": "Bulle 1", "at": AT},
-        "created_at": iso(at("10:00")), "read_at": None,
+        "created_at": iso(at("10:00")), "read_at": None, "reservation_id": None,
     }
     assert client.post(f"/api/v1/notifications/{first.id}/read").status_code == 204
     assert [n["id"] for n in client.get("/api/v1/notifications", params={"unread": "true"}).json()] == [str(second.id)]

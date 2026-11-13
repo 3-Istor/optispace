@@ -1,20 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
-import { errorText, floorLabel, NOTIFICATIONS, SPACE_TYPES } from '../messages.js'
-import { dayLabel, fmtLongDay, fmtTime, fromParis, toParis } from '../time.js'
+import { errorText, floorLabel, SPACE_STATES, SPACE_TYPES } from '../messages.js'
+import { Link } from '../router.jsx'
+import { dayLabel, fmtDuration, fmtLongDay, fmtTime, fromParis, toParis } from '../time.js'
 import { usePolling } from '../usePolling.js'
 import { Button } from '../ui/Button.jsx'
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx'
 import { EmptyState } from '../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../ui/Icon.jsx'
 import { Loader } from '../ui/Loader.jsx'
-import { EXIT_MS } from '../ui/motion.jsx'
+import { Countdown, EXIT_MS, Roll } from '../ui/motion.jsx'
 import { PageHeader } from '../ui/Shell.jsx'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
 import { toast } from '../ui/Toast.jsx'
 
 const PAST_DAYS = 7
 const PAST_SHOWN = 10
+const MIN = 60000
+const JUST_RELEASED = 10000 // a released reservation stays in "En cours" this long, so its dot is seen turning green
 
 async function load() {
   const from = new Date(Date.now() - PAST_DAYS * 864e5).toISOString()
@@ -28,22 +31,31 @@ async function load() {
 
 // Section of a reservation; released_at ends it early (effective_end, spec §4.1).
 function section(r, now) {
+  if (r.status === 'released' && now - Date.parse(r.released_at) < JUST_RELEASED) return 'now'
   if (r.status !== 'active' || Date.parse(r.released_at ?? r.end_at) <= now) return 'past'
   return Date.parse(r.start_at) <= now ? 'now' : 'next'
 }
 
-const Dot = ({ color, children }) => <span className="st"><span className="dot" style={{ background: color }} />{children}</span>
+const pastStatus = (r) => (r.status === 'cancelled' ? 'Annulée' : r.status === 'released' ? `Libérée à ${fmtTime(r.released_at)}` : 'Terminée')
 
-function status(r, kind, space) {
-  if (kind === 'now') return <StatusBadge state={space?.space_state} />
-  if (kind === 'next') return <Dot color="#1E56D6">À venir</Dot>
-  if (r.status === 'cancelled') return <Dot color="#8A94A3">Annulée</Dot>
-  if (r.status === 'released') return <Dot color="#8A94A3">Libérée à {fmtTime(r.released_at)}</Dot>
-  return <Dot color="#1A8F4E">Terminée</Dot>
+// "Aujourd’hui · lundi 2 novembre", "Demain · mardi 3 novembre", else "Jeudi 5 novembre"
+function dayTitle(iso) {
+  const near = { 'AUJ.': 'Aujourd’hui', DEMAIN: 'Demain' }[dayLabel(iso)]
+  return near ? `${near} · ${fmtLongDay(iso).toLowerCase()}` : fmtLongDay(iso)
 }
 
-export function MyReservations({ me }) {
+function useNow(ms) {
+  const [now, setNow] = useState(Date.now)
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), ms)
+    return () => clearInterval(timer)
+  }, [ms])
+  return now
+}
+
+export function MyReservations() {
   const { data, error, refresh } = usePolling(load, 5000)
+  const now = useNow(1000) // the progress bar and the release countdown move every second
   const [edit, setEdit] = useState(null)
   const [busyId, setBusyId] = useState(null)
   const [cancelling, setCancelling] = useState(null) // reservation awaiting the cancel confirmation
@@ -53,27 +65,35 @@ export function MyReservations({ me }) {
   if (!data) return error ? <EmptyState title="Chargement impossible">{errorText(error)}</EmptyState> : <Loader label="Chargement de vos réservations" />
 
   const spaceName = (r) => data.spaces[r.space_id]?.name ?? r.space_name ?? 'Espace'
-  const spaceLabel = (r) => {
+  const spaceLabel = (r, sep = ' · ') => {
     const s = data.spaces[r.space_id]
-    return s ? `${s.name} · ${floorLabel(s.floor)}` : spaceName(r)
+    return s ? `${s.name}${sep}${floorLabel(s.floor)}` : spaceName(r)
   }
+  const started = (r) => Date.parse(r.start_at) <= now
 
-  const now = Date.now()
   const groups = { now: [], next: [], past: [] }
   for (const r of data.reservations) groups[section(r, now)].push(r)
   const byStart = (a, b) => Date.parse(a.start_at) - Date.parse(b.start_at)
   groups.now.sort(byStart)
-  groups.next.sort(byStart)
   groups.past = groups.past.sort((a, b) => byStart(b, a)).slice(0, PAST_SHOWN)
+  const days = [] // [Paris date, reservations] by start
+  for (const r of groups.next.sort(byStart)) {
+    const day = toParis(new Date(r.start_at)).date
+    if (days.at(-1)?.[0] === day) days.at(-1)[1].push(r)
+    else days.push([day, [r]])
+  }
   const alerts = data.alerts.filter((a) => a.status === 'active' && Date.parse(a.end_at) > now)
 
-  async function run(id, call, done) {
+  // fold: the row leaves the list (cancelled); false when it stays (extended).
+  async function run(id, call, done, fold = true) {
     setBusyId(id)
     try {
       await call()
       toast(done)
-      setGoneId(id)
-      await new Promise((r) => setTimeout(r, EXIT_MS))
+      if (fold) {
+        setGoneId(id)
+        await new Promise((r) => setTimeout(r, EXIT_MS))
+      }
     } catch (e) {
       toast(errorText(e), 'err')
     }
@@ -81,37 +101,46 @@ export function MyReservations({ me }) {
     refresh()
   }
 
-  const card = (r, kind) => {
-    // Pending absence deadline: on the reservation if the API adds it, else on its space's current_reservation.
-    const current = data.spaces[r.space_id]?.current_reservation
-    const releaseAt = r.release_at ?? (current?.id === r.id ? current.release_at : null)
-    const banner = kind === 'now' && releaseAt && NOTIFICATIONS.ABSENCE_WARNING.text({ space_name: spaceName(r), at: releaseAt })
+  // Reservation in progress: presence state, progress and the two actions that matter on the spot.
+  const current = (r) => {
+    const space = data.spaces[r.space_id]
+    const [start, end] = [Date.parse(r.start_at), Date.parse(r.end_at)]
+    const left = Math.max(0, Math.ceil((end - now) / MIN))
+    const released = r.status === 'released'
+    const state = released ? 'free' : space?.space_state
+    const booth = space?.type === 'individual_booth'
+    const step = booth ? 15 : 30
+    const longer = new Date(end + step * MIN).toISOString()
+    // Minutes before the release; the ring starts when the absence episode opened.
+    const wait = r.release_at && Math.max(0, Math.ceil((Date.parse(r.release_at) - now) / MIN))
     return (
-      <div key={r.id} className={goneId === r.id ? 'fold gone' : 'fold'}><article className="card" style={{ overflow: 'hidden', borderColor: banner ? '#F2D3B0' : undefined, background: kind === 'past' ? '#FBFBFC' : undefined }}>
-        {banner && (
-          <div className="banner" role="status">
-            <Icon d={ICONS.warn} style={{ color: '#D9771F', flex: 'none' }} />
-            <span style={{ flex: 1 }}>{banner}</span>
+      <div key={r.id} className={goneId === r.id ? 'fold gone' : 'fold'}><article className="card now">
+        <div className="now-r" style={{ alignItems: 'baseline' }}>
+          <h3 style={{ fontSize: 16 }}>{spaceName(r)} <span className="muted num" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: 14, fontWeight: 400, letterSpacing: 0 }}>
+            {space && `· ${floorLabel(space.floor)} `}· {fmtTime(r.start_at)} à {fmtTime(r.end_at)}</span></h3>
+          {released || r.release_at ? (
+            <span className="st" style={{ whiteSpace: 'normal' }} role="status">
+              <Countdown from={Date.parse(r.absent_since ?? r.start_at)} to={Date.parse(r.release_at ?? r.released_at)} now={now} done={released} />
+              <span>{released ? `Libérée à ${fmtTime(r.released_at)}`
+                : <>Personne n’est détecté · libération {wait ? <>dans <Roll value={wait} className="num">{fmtDuration(wait)}</Roll></> : 'imminente'}</>}</span>
+            </span>
+          ) : <StatusBadge state={state} />}
+        </div>
+        <div className="prog" role="img" aria-label={`${fmtDuration(Math.floor((now - start) / MIN))} écoulées sur ${fmtDuration((end - start) / MIN)}`}>
+          <i style={{ width: `${Math.min(100, (now - start) / (end - start) * 100)}%`, background: (SPACE_STATES[state] ?? SPACE_STATES.unknown)[1] }} />
+        </div>
+        {!released && (
+          <div className="now-r">
+            <span className="muted num">Encore <Roll value={left}>{fmtDuration(left)}</Roll></span>
+            <span className="actions" style={{ gap: 8 }}>
+              <Button busy={busyId === r.id} disabled={space && (end - start) / MIN + step > space.max_duration_min}
+                onClick={() => run(r.id, () => api.patch(`/reservations/${r.id}`, { end_at: longer }), `Réservation prolongée jusqu’à ${fmtTime(longer)}.`, false)}>
+                Prolonger de {fmtDuration(step)}</Button>
+              <Button onClick={() => setCancelling(r)}>Libérer la {booth ? 'bulle' : 'salle'}</Button>
+              <Button variant="g" onClick={() => setEdit(r)} aria-label={`Modifier la réservation de ${spaceName(r)}`}>Modifier</Button>
+            </span>
           </div>
         )}
-        <div className="item">
-          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 64 }}>
-            <span className="muted" style={{ fontSize: 11 }}>{dayLabel(r.start_at)}</span>
-            <span className="num" style={{ fontFamily: "'Sora', sans-serif", fontSize: 17 }}>{fmtTime(r.start_at)}</span>
-          </div>
-          <div className="item-main">
-            <span style={{ fontWeight: 500 }}>{spaceLabel(r)}</span>
-            <span className="muted num" style={{ fontSize: 13 }}>{fmtTime(r.start_at)} à {fmtTime(r.end_at)}</span>
-          </div>
-          {status(r, kind, data.spaces[r.space_id])}
-          {kind !== 'past' && (
-            <span style={{ display: 'flex', gap: 6 }}>
-              <Button onClick={() => setEdit(r)} aria-label={`Modifier la réservation de ${spaceName(r)}`}>Modifier</Button>
-              <Button variant="g" busy={busyId === r.id} aria-label={`Annuler la réservation de ${spaceName(r)}`}
-                onClick={() => setCancelling(r)}>Annuler</Button>
-            </span>
-          )}
-        </div>
       </article></div>
     )
   }
@@ -121,20 +150,48 @@ export function MyReservations({ me }) {
       <PageHeader title="Mes réservations" />
       <div className="cols-2">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <section className="stack" aria-labelledby="now-h">
-            <h2 id="now-h" style={{ fontSize: 14 }}>En cours</h2>
-            {groups.now.map((r) => card(r, 'now'))}
-            {!groups.now.length && <p className="muted" style={{ margin: 0, fontSize: 13 }}>Aucune réservation en cours.</p>}
-          </section>
-          <section className="stack" aria-labelledby="next-h">
-            <h2 id="next-h" style={{ fontSize: 14 }}>À venir</h2>
-            {groups.next.map((r) => card(r, 'next'))}
-            {!groups.next.length && <p className="muted" style={{ margin: 0, fontSize: 13 }}>Aucune réservation à venir.</p>}
-          </section>
+          {!groups.now.length && !days.length && (
+            <EmptyState title="Aucune réservation à venir" actions={<Link to="/" className="btn btn-p">Réserver un espace</Link>}>
+              Vos réservations en cours et à venir s’afficheront ici.
+            </EmptyState>
+          )}
+          {groups.now.length > 0 && (
+            <section className="stack" aria-labelledby="now-h">
+              <h2 id="now-h" style={{ fontSize: 14 }}>En cours</h2>
+              {groups.now.map(current)}
+            </section>
+          )}
+          {days.length > 0 && (
+            <section className="stack" aria-labelledby="next-h">
+              <h2 id="next-h" style={{ fontSize: 14 }}>À venir</h2>
+              {days.map(([day, list]) => (
+                <div className="card rows" key={day}>
+                  <h3 className="day">{dayTitle(list[0].start_at)}</h3>
+                  {list.map((r) => (
+                    <div key={r.id} className={goneId === r.id ? 'fold gone' : 'fold'}><div className="hl hl-2">
+                      <span><b className="num">{fmtTime(r.start_at)} à {fmtTime(r.end_at)}</b> · {spaceLabel(r, ', ')}</span>
+                      <span style={{ display: 'flex', gap: 6 }}>
+                        <Button onClick={() => setEdit(r)} aria-label={`Modifier la réservation de ${spaceName(r)}`}>Modifier</Button>
+                        <Button variant="g" className="danger" busy={busyId === r.id} aria-label={`Annuler la réservation de ${spaceName(r)}`}
+                          onClick={() => setCancelling(r)}>Annuler</Button>
+                      </span>
+                    </div></div>
+                  ))}
+                </div>
+              ))}
+            </section>
+          )}
           {groups.past.length > 0 && (
             <section className="stack" aria-labelledby="past-h">
               <h2 id="past-h" style={{ fontSize: 14 }}>Passées</h2>
-              {groups.past.map((r) => card(r, 'past'))}
+              <div className="card rows">
+                {groups.past.map((r) => (
+                  <div key={r.id} className="hl hl-2 muted">
+                    <span><span className="num">{dayLabel(r.start_at).toLowerCase()} · {fmtTime(r.start_at)} à {fmtTime(r.end_at)}</span> · {spaceLabel(r, ', ')}</span>
+                    <span>{pastStatus(r)}</span>
+                  </div>
+                ))}
+              </div>
             </section>
           )}
         </div>
@@ -165,10 +222,13 @@ export function MyReservations({ me }) {
         </div>
       </div>
 
-      <ConfirmDialog open={!!cancelling} title="Annuler cette réservation ?" confirmLabel="Annuler la réservation" cancelLabel="Garder" danger
+      {/* Once started, cancelling gives the space back at once: worded "Libérer". */}
+      <ConfirmDialog open={!!cancelling} danger cancelLabel="Garder"
+        title={cancelling && started(cancelling) ? 'Libérer cet espace ?' : 'Annuler cette réservation ?'}
+        confirmLabel={cancelling && started(cancelling) ? 'Libérer' : 'Annuler la réservation'}
         busy={!!cancelling && busyId === cancelling.id} onCancel={() => setCancelling(null)}
-        onConfirm={() => run(cancelling.id, () => api.del(`/reservations/${cancelling.id}`), `Réservation de ${spaceName(cancelling)} annulée.`)
-          .then(() => setCancelling(null))}>
+        onConfirm={() => run(cancelling.id, () => api.del(`/reservations/${cancelling.id}`),
+          `Réservation de ${spaceName(cancelling)} ${started(cancelling) ? 'libérée' : 'annulée'}.`).then(() => setCancelling(null))}>
         {cancelling && `${spaceLabel(cancelling)}, ${fmtLongDay(cancelling.start_at).toLowerCase()}, ${fmtTime(cancelling.start_at)} à ${fmtTime(cancelling.end_at)}.`}
       </ConfirmDialog>
 

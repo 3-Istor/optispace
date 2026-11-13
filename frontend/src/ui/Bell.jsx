@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
-import { NOTIFICATIONS } from '../messages.js'
+import { errorText, NOTIFICATIONS } from '../messages.js'
 import { enablePush, pushSupported } from '../push.js'
 import { navigate } from '../router.jsx'
 import { dayLabel, fmtTime } from '../time.js'
@@ -18,6 +18,9 @@ function target(n) {
   const { space_type, start_at, end_at } = n.params ?? {}
   return `/?${new URLSearchParams({ ...(space_type && { type: space_type }), start_at, end_at })}`
 }
+
+// An unread absence warning whose deadline is still ahead offers "J'y vais" and "Libérer".
+const answerable = (n) => n.type === 'ABSENCE_WARNING' && !n.read_at && n.reservation_id && Date.parse(n.params?.at) > Date.now()
 
 const when = (iso) => (dayLabel(iso) === 'AUJ.' ? fmtTime(iso) : dayLabel(iso).toLowerCase())
 
@@ -81,6 +84,17 @@ export function Bell({ me }) {
     navigate(target(n))
   }
 
+  // "Libérer" cancels the reservation; "J'y vais" only marks the warning read, the deadline keeps running.
+  async function release(n) {
+    try {
+      await api.del(`/reservations/${n.reservation_id}`)
+      toast(`Réservation de ${n.params.space_name} libérée.`)
+    } catch (e) {
+      toast(errorText(e), 'err')
+    }
+    markRead([n]).catch(() => {})
+  }
+
   async function activate() {
     setCard(false)
     const ok = await enablePush().catch(() => false)
@@ -117,16 +131,24 @@ export function Bell({ me }) {
           {data.map((n) => {
             const t = NOTIFICATIONS[n.type]
             return t && (
-              <button type="button" key={n.id} className={`ntf ${n.read_at ? '' : 'unread'}`} onClick={() => open(n)}>
-                <i style={{ background: t.color }} aria-hidden="true" />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
-                  <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#3A4555' }}>{t.title}{!n.read_at && <span className="sr-only">, non lue</span>}</span>
-                    <span className="num muted" style={{ fontSize: 12 }}>{when(n.created_at)}</span>
+              <div key={n.id} className={n.read_at ? 'ntf-row' : 'ntf-row unread'}>
+                <button type="button" className="ntf" onClick={() => open(n)}>
+                  <i style={{ background: t.color }} aria-hidden="true" />
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
+                    <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#3A4555' }}>{t.title}{!n.read_at && <span className="sr-only">, non lue</span>}</span>
+                      <span className="num muted" style={{ fontSize: 12 }}>{when(n.created_at)}</span>
+                    </span>
+                    <span style={{ fontSize: 13, lineHeight: 1.45 }}>{t.text(n.params ?? {})}</span>
                   </span>
-                  <span style={{ fontSize: 13, lineHeight: 1.45 }}>{t.text(n.params ?? {})}</span>
-                </span>
-              </button>
+                </button>
+                {answerable(n) && (
+                  <div className="ntf-act">
+                    <Button onClick={() => markRead([n]).catch(() => {})}>J’y vais</Button>
+                    <Button variant="d" onClick={() => release(n)}>Libérer</Button>
+                  </div>
+                )}
+              </div>
             )
           })}
           {data.length === 0 && <p className="ntf-empty">Aucune notification.</p>}
