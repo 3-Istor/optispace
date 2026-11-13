@@ -21,7 +21,8 @@ def presence(pattern: str, device: int, tick: int) -> str:
 def post(url: str, key: str, body: dict) -> str:
     request = urllib.request.Request(
         url, data=json.dumps(body).encode(), method="POST",
-        headers={"Content-Type": "application/json", "X-Api-Key": key},
+        # Cloudflare rejects the default Python-urllib agent (403, error 1010).
+        headers={"Content-Type": "application/json", "X-Api-Key": key, "User-Agent": "optispace-simulator"},
     )
     try:
         with urllib.request.urlopen(request, timeout=5) as response:
