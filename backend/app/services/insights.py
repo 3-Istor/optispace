@@ -1,4 +1,4 @@
-"""Dashboard insights (spec §8, IOT-36 §6.2), until the AI module replaces it.
+"""Dashboard insights and period summary (IOT-36, IOT-40).
 
 Minute resolution (IOT-36 §2.2): a minute is occupied with a `present` observation, empty with only
 `absent` ones, else unknown. KPIs follow exigences POC §6.1 (K-01 to K-07)."""
@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 from app.errors import DomainError
 from app.models import AbsenceEpisode, Observation, Reservation, Space
 from app.models.enums import EpisodeKind, EpisodeOutcome, Presence, ReservationStatus
-from app.services import booking, settings
+from app.services import booking, gemini, settings
 from app.services.notifications import hhmm, iso
 
 MINUTE = timedelta(minutes=1)
@@ -39,7 +39,7 @@ def _s(n: int) -> str:
 
 
 def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datetime) -> dict:
-    """`kpis`, `summary` (mode "template_fallback"), `hourly`, `no_shows`, `recommendations` and `warnings`.
+    """`kpis`, `summary`, `hourly`, `no_shows`, `recommendations` and `warnings`.
     The period is cut at the current minute: later minutes are not observed yet, and a period
     with no elapsed minute is `no_data`."""
     space = db.get(Space, space_id)
@@ -118,22 +118,47 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     ]
     sources = {o.source.value for o in observations}
     revision = hashlib.sha256(json.dumps([kpis, no_shows]).encode()).hexdigest()[:12]
-    facts = _summary(space.name, frm, to, kpis)
     return {
         "schema_version": "1.0", "room_id": str(space.id), "period": {"from": iso(frm), "to": iso(to)},
         "generated_at": iso(now), "as_of": iso(now), "data_revision": revision, "rules_version": RULES_VERSION,
         "source_mode": (sources.pop() if len(sources) == 1 else "mixed") if sources else None,
         "status": "no_data" if not observed else "ok" if len(observed) == total else "partial",
         "kpis": kpis,
-        "summary": {
-            "status": "ready", "mode": "template_fallback", "text": " ".join(text for _, text in facts),
-            "fact_ids": [fact for fact, _ in facts], "facts_revision": revision, "model_version": None, "warnings": [],
-        },
+        "summary": _period_summary(space.name, frm, to, kpis, revision),
         "hourly": hourly,
         "no_shows": no_shows,
         "warnings": ["MISSING_SENSOR_DATA"] if len(observed) < total else [],
         "recommendations": [],
     }
+
+
+def _period_summary(name: str, frm: datetime, to: datetime, k: dict, revision: str) -> dict:
+    facts = dict(_summary(name, frm, to, k))
+    summary = {
+        "status": "ready", "mode": "template_fallback", "text": " ".join(facts.values()),
+        "fact_ids": list(facts), "facts_revision": revision, "model_version": None, "warnings": [],
+    }
+    observed = k["observed_min"]
+    if not observed:
+        return summary
+
+    occupied = k["occupied_min"]
+    eligible = {
+        "OCCUPANCY": f"L’occupation mesurée est de {occupied} minute{_s(occupied)} sur {observed} "
+                     f"({_pct(occupied, observed)} %).",
+        "COVERAGE": facts["COVERAGE"],
+    }
+    unreserved = k["occupied_unreserved_min"]
+    if unreserved:
+        eligible["UNRESERVED"] = f"L’espace a été occupé sans réservation pendant {unreserved} minute{_s(unreserved)}."
+    if k["evaluated_count"]:
+        eligible["NO_SHOW"] = facts["NO_SHOW"]
+
+    selection = gemini.select_facts(k, list(eligible))
+    if selection is not None:
+        ids, version = selection
+        summary.update(mode="llm_assisted", text=" ".join(eligible[fact] for fact in ids), fact_ids=ids, model_version=version)
+    return summary
 
 
 def _summary(name: str, frm: datetime, to: datetime, k: dict) -> list[tuple[str, str]]:

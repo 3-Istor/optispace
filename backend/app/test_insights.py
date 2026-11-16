@@ -1,6 +1,8 @@
 """Exigences POC §6.2, data set J-01 and its variants (Salle A, 09:00-12:00 Paris)."""
+import json
 from unittest.mock import ANY
 
+import httpx
 import pytest
 
 from app.models import AbsenceEpisode, Observation
@@ -105,6 +107,93 @@ def test_j04_no_data(db, salle):
         "Aucune réservation n'a pu être évaluée pour les no-shows. "
         "Les observations couvrent 0 % de la période (60 minutes inconnues)."
     )
+
+
+def gemini_response(*ids):
+    return {
+        "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": json.dumps({"fact_ids": ids})}]}}],
+        "modelVersion": "gemini-3.1-flash-lite",
+    }
+
+
+def test_gemini_summary_uses_only_calculated_facts(client, db, claims, frozen_clock, salle, settings_env, monkeypatch):
+    j01(db, salle)
+    minutes(db, salle, Presence.ABSENT, "10:30", "12:00")
+    frozen_clock.now = at("12:01")
+    claims["groups"] = FM
+    settings_env(GEMINI_API_KEY="test-key")
+    requests = []
+
+    def post(url, *, headers, json, timeout):
+        requests.append((url, headers, json, timeout))
+        return httpx.Response(200, json=gemini_response("OCCUPANCY", "UNRESERVED", "NO_SHOW"),
+                              request=httpx.Request("POST", url))
+
+    monkeypatch.setattr(httpx, "post", post)
+    response = client.get(f"/api/v1/spaces/{salle.id}/insights",
+                          params={"from": iso(at("09:00")), "to": iso(at("12:00"))})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary"] == {
+        "status": "ready", "mode": "llm_assisted",
+        "text": "L’occupation mesurée est de 90 minutes sur 180 (50 %). "
+                "L’espace a été occupé sans réservation pendant 30 minutes. "
+                "1 no-show sur 2 réservations évaluées.",
+        "fact_ids": ["OCCUPANCY", "UNRESERVED", "NO_SHOW"], "facts_revision": body["data_revision"],
+        "model_version": "gemini-3.1-flash-lite", "warnings": [],
+    }
+    [(url, headers, payload, timeout)] = requests
+    assert url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    assert headers == {"x-goog-api-key": "test-key"}
+    assert timeout == 3.0
+    assert json.loads(payload["contents"][0]["parts"][0]["text"]) == {"kpis": body["kpis"]}
+    assert payload["generationConfig"]["responseJsonSchema"]["properties"]["fact_ids"]["items"]["enum"] == [
+        "OCCUPANCY", "COVERAGE", "UNRESERVED", "NO_SHOW",
+    ]
+
+
+@pytest.mark.parametrize("outcome", ["valid", "missing_coverage", "inapplicable", "duplicate", "too_many", "quota", "timeout"])
+def test_gemini_summary_partial_coverage(db, salle, settings_env, monkeypatch, outcome):
+    minutes(db, salle, Presence.PRESENT, "09:00", "09:01")
+    settings_env(GEMINI_API_KEY="test-key")
+
+    def post(url, **kwargs):
+        request = httpx.Request("POST", url)
+        if outcome == "timeout":
+            raise httpx.ReadTimeout("test deadline", request=request)
+        if outcome == "quota":
+            return httpx.Response(429, request=request)
+        ids = {
+            "valid": ["OCCUPANCY", "COVERAGE"],
+            "missing_coverage": ["OCCUPANCY"],
+            "inapplicable": ["NO_SHOW", "COVERAGE"],
+            "duplicate": ["COVERAGE", "COVERAGE"],
+            "too_many": ["OCCUPANCY", "UNRESERVED", "COVERAGE", "NO_SHOW"],
+        }[outcome]
+        return httpx.Response(200, json=gemini_response(*ids), request=request)
+
+    monkeypatch.setattr(httpx, "post", post)
+    result = insights.compute(db, salle.id, at("09:00"), at("10:00"), at("10:01"))
+
+    assert result["warnings"] == ["MISSING_SENSOR_DATA"]
+    assert result["summary"]["text"].endswith("Les observations couvrent 1,7 % de la période (59 minutes inconnues).")
+    if outcome == "valid":
+        assert result["summary"]["mode"] == "llm_assisted"
+        assert result["summary"]["fact_ids"] == ["OCCUPANCY", "COVERAGE"]
+    else:
+        assert result["summary"]["mode"] == "template_fallback"
+        assert result["summary"]["model_version"] is None
+
+
+def test_gemini_is_skipped_without_observations(db, salle, settings_env, monkeypatch):
+    settings_env(GEMINI_API_KEY="test-key")
+
+    def unexpected_post(*args, **kwargs):
+        pytest.fail("Gemini should not be called without observations")
+
+    monkeypatch.setattr(httpx, "post", unexpected_post)
+    result = insights.compute(db, salle.id, at("09:00"), at("10:00"), at("10:01"))
+    assert result["summary"]["mode"] == "template_fallback"
 
 
 def test_j05_replay_is_stable(db, salle):
