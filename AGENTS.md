@@ -14,6 +14,7 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 - First time: `make install` (backend venv in `backend/.venv`, frontend `node_modules`)
 - Check everything: `make check` (backend tests, then frontend build). Run it
   before calling a task done, and show its output.
+- The Windows FM demo runs with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/local-demo/Start-OptiSpace.ps1` after dependency installation. Setup and simulated-data options are documented in `scripts/local-demo/README.md`.
 - One test: `cd backend && .venv/bin/python -m pytest app/test_main.py::test_health_check -q`
 - Run locally: `docker compose up --build`. Frontend at http://localhost:3001,
   API docs at http://localhost:8081/api/docs. SQLite by default; add
