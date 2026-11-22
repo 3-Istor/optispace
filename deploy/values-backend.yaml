@@ -53,6 +53,8 @@ db:
   storageClass: "local-path"
   backup:
     enabled: true
+    # The key comes from Vault: the bucket claim lives in iot-backups (on-prem), whatever cluster runs the app.
+    bucket: vault
 
 # The image creates no tables itself (CNP migration standard v1): the platform
 # runs its migration entrypoint as a Job once the database is Ready and before
