@@ -67,7 +67,8 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     seen, sources, unsynced = defaultdict(set), set(), set()
     for observed_at, presence, source, clock_synced in db.execute(select(
         Observation.observed_at, Observation.presence, Observation.source, Observation.clock_synced,
-    ).where(Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to)):
+    ).where(Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to)
+        .execution_options(yield_per=2048)):
         minute = (observed_at - frm) // MINUTE
         seen[minute].add(presence)
         sources.add(source.value)

@@ -104,6 +104,9 @@ def render(report):
               f"Première présence après {number(totals['arrival_avg_min'], ' min')} en moyenne "
               f"sur {totals['arrival_sample_count']} réservations évaluables.", "ReportSmall"),
             p("Décisions suggérées", "Heading2")]
+    for warning in report.get("measurement_warnings", []):
+        flow.append(p(f"Mesures à vérifier : {warning['room_name']}. {warning['evidence']} {warning['action']}"))
+    flow.append(p("Les vérifications proposées restent à l’initiative du facility manager.", "ReportSmall"))
     for index, action in enumerate(report["recommendations"], 1):
         flow.append(KeepTogether([
             p(f"{index}. {action['room_name']} - {action['title']}", "Heading3"),
@@ -111,6 +114,14 @@ def render(report):
         ]))
     if not report["recommendations"]:
         flow.append(p("Les données disponibles ne déclenchent aucune action selon les critères pilotes."))
+    flow.append(p("Comprendre la sélection des priorités", "Heading2"))
+    if report["summary"]["mode"] == "llm_assisted":
+        flow.append(p("L’IA a modifié la sélection ou son ordre. Cela ne prouve pas une meilleure décision." if report["summary"].get("selection_changed")
+                      else "L’IA a retenu les mêmes priorités dans le même ordre que les règles."))
+    else:
+        flow.append(p("Priorités calculées par les règles, sans assistance de l’IA."))
+    for index, action in enumerate(report.get("baseline_recommendations", []), 1):
+        flow.append(p(f"Règles {index}. {action['room_name']} - {action['title']}", "ReportSmall"))
     flow.extend([PageBreak(), p("Évolution dans le temps", "ReportTitle"),
                  p("Chaque point regroupe les durées d’une journée dans le périmètre horaire choisi. "
                    "Les interruptions signalent une mesure insuffisante ou un dénominateur vide.", "ReportSmall")])
@@ -180,7 +191,7 @@ def render(report):
         flow.extend([p(title, "Heading2"), p(body)])
     for limitation in report["limitations"]:
         flow.append(p(limitation, "ReportSmall"))
-    flow.append(p(f"Calcul du {local(report['generated_at'])}. Révision {report['data_revision']}. "
+    flow.append(p(f"Calcul du {local(report['generated_at'])}. Révision {report['data_revision']}. Faits {report.get('facts_revision', 'indisponible')}. "
                   f"Règles {report['rules_version']}. Fournisseur {report['summary']['provider_status']}.", "ReportSmall"))
 
     def footer(canvas, document):

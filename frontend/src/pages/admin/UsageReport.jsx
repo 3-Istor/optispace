@@ -190,6 +190,11 @@ export function UsageReport({ spaces }) {
       </div>
       <div style={{ borderTop: '1px solid #EEF1F5', paddingTop: 16 }}>
         <h3 style={{ fontSize: 15, marginBottom: 4 }}>Décisions suggérées</h3>
+        <p className="muted" style={{ fontSize: 14 }}>Choisissez les problèmes à examiner. Les vérifications proposées restent à votre initiative.</p>
+        {report.measurement_warnings?.length > 0 && <div role="note" style={{ margin: '12px 0', fontSize: 14 }}>
+          <strong>Mesures à vérifier avant de conclure</strong>
+          {report.measurement_warnings.map((warning) => <p key={warning.id}>{warning.room_name} · {warning.evidence} {warning.action}</p>)}
+        </div>}
         {report.recommendations.map((action) => <div key={action.id} style={{ padding: '14px 0', borderBottom: '1px solid #EEF1F5', fontSize: 13, lineHeight: 1.55 }}>
           <strong>{action.room_name} · {action.title}</strong>
           <p style={{ margin: '6px 0' }}>{action.evidence}</p>
@@ -197,6 +202,17 @@ export function UsageReport({ spaces }) {
           <span className="muted">Suivi proposé · {action.follow_up}</span>
         </div>)}
         {!report.recommendations.length && <p className="muted">Les données disponibles ne déclenchent aucune action selon les critères pilotes.</p>}
+        {report.baseline_recommendations && <details style={{ marginTop: 16, fontSize: 14, lineHeight: 1.6 }}>
+          <summary style={{ cursor: 'pointer', minHeight: 44 }}>Comprendre la sélection des priorités</summary>
+          <p>OptiSpace calcule les indicateurs et les pistes possibles. L’IA peut sélectionner et ordonner jusqu’à trois pistes ; les chiffres et les textes restent issus des calculs et des règles.</p>
+          <p>{report.summary.mode === 'llm_assisted'
+            ? report.summary.selection_changed ? 'L’IA a modifié la sélection ou son ordre. Cela ne suffit pas à démontrer une meilleure décision.' : 'L’IA a retenu les mêmes priorités, dans le même ordre que les règles.'
+            : 'Priorités calculées par les règles, sans assistance de l’IA.'}</p>
+          <strong>Priorités proposées par les règles sur ces mêmes données</strong>
+          <ol>{report.baseline_recommendations.map((action) => <li key={action.id}>{action.room_name} · {action.title}</li>)}</ol>
+          {!report.baseline_recommendations.length && <p>Aucune piste déclenchée.</p>}
+          <p>Les règles placent d’abord les problèmes de mesure, puis les écarts de réservation selon leur durée observée. Les autres pistes suivent. Ces priorités pilotes restent à valider avec le métier.</p>
+        </details>}
       </div>
       <div style={{ borderTop: '1px solid #EEF1F5', paddingTop: 16 }}>
         <h3 style={{ fontSize: 15 }}>Détail par salle</h3>

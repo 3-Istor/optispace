@@ -15,6 +15,7 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 - Check everything: `make check` (backend tests, then frontend build). Run it
   before calling a task done, and show its output.
 - The Windows FM demo runs with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/local-demo/Start-OptiSpace.ps1` after dependency installation. Setup and simulated-data options are documented in `scripts/local-demo/README.md`.
+- AIAD verification: `backend/.venv/Scripts/python.exe scripts/local-demo/verify_aiad.py` (Windows); `evaluate_priorities.py --output output/priorities` compares the pilot priorities, with opt-in `--real-gemini`. Browser and memory checks are documented in `scripts/local-demo/README.md`. Never count provider failure or a mocked response as live model success.
 - One test: `cd backend && .venv/bin/python -m pytest app/test_main.py::test_health_check -q`
 - Run locally: `docker compose up --build`. Frontend at http://localhost:3001,
   API docs at http://localhost:8081/api/docs. SQLite by default; add

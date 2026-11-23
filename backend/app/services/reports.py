@@ -51,6 +51,15 @@ def reliable(metrics):
     return (metrics["coverage_pct"] or 0) >= RULES["coverage_pct"] and metrics["observed_min"] >= RULES["observed_min"]
 
 
+def selection_payload(rooms, actions):
+    """Send typed aggregates, never user-controlled labels or raw events."""
+    metrics = (*COUNTERS, "coverage_pct", "occupancy_pct", "unreserved_pct", "reserved_empty_pct",
+               "arrival_avg_min", "arrival_median_min", "arrival_sample_count")
+    return {"rooms": [{"id": room["id"], "kpis": {key: room["current"][key] for key in metrics},
+                       "reliable": room["reliable"]} for room in rooms],
+            "actions": [{key: action[key] for key in ("id", "room_id", "kind")} for action in actions]}
+
+
 def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_only=True, space_ids=None):
     frm, to = frm.astimezone(timezone.utc), to.astimezone(timezone.utc)
     if frm >= to or any(value.second or value.microsecond for value in (frm, to)):
@@ -95,17 +104,15 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
         values = {key: sum(row[key] for row in rows) for key in rows[0] if key != "date"}
         trend.append({"date": day, **rates(values)})
     candidates = _actions(rooms)
+    baseline = candidates[:3]
     mode, provider_status, model_version = "template_fallback", "insufficient_data", None
-    selected = candidates[:3]
+    selected = baseline
     if totals["observed_min"] and candidates:
         provider_status = "not_configured"
         if get_settings().gemini_api_key.get_secret_value().strip():
             provider_status = "unavailable"
             choice = gemini.select_report_actions(
-                {"rooms": [{"id": room["id"], "kpis": {key: value for key, value in room["current"].items()
-                                                       if key not in ("daily", "arrival_delays_min")},
-                            "reliable": room["reliable"]} for room in rooms],
-                 "actions": [{"id": action["id"], "kind": action["kind"], "evidence": action["evidence"]} for action in candidates]},
+                selection_payload(rooms, candidates),
                 [action["id"] for action in candidates],
             )
             if choice:
@@ -122,13 +129,17 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
     report = {
         "period": {"from": iso(frm), "to": iso(to)},
         "previous_period": {"from": iso(previous_from), "to": iso(previous_to)},
-        "generated_at": iso(now), "rules_version": "fm-report-pilot-1",
+        "generated_at": iso(now), "rules_version": "fm-report-pilot-2",
         "schedule": {"start_hour": start_hour, "end_hour": end_hour, "weekdays_only": weekdays_only,
                      "timezone": "Europe/Paris"}, "rules": RULES,
         "source_mode": next(iter(sources)) if len(sources) == 1 else "mixed" if sources else None,
         "rooms": rooms, "totals": totals, "previous_totals": previous_totals,
         "comparison": comparison, "trend": trend, "recommendations": selected, "eligible_actions": candidates,
-        "summary": {"mode": mode, "provider_status": provider_status, "model_version": model_version},
+        "baseline_recommendations": baseline,
+        "measurement_warnings": [action for action in candidates if action["kind"] == "COVERAGE"],
+        "summary": {"mode": mode, "provider_status": provider_status, "model_version": model_version,
+                    "prompt_version": gemini.REPORT_PROMPT_VERSION,
+                    "selection_changed": [a["id"] for a in selected] != [a["id"] for a in baseline]},
         "limitations": [
             "La présence est binaire et ne mesure pas le nombre de participants.",
             "Le délai décrit la première présence détectée. Le capteur ne reconnaît pas le réservant.",
@@ -136,6 +147,10 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
             "Les variations décrivent les périodes observées. L’effet causal d’une action demande une évaluation dédiée.",
         ],
     }
+    # Stable facts identity, independent of generation time and model choice.
+    facts = {key: report[key] for key in ("period", "previous_period", "schedule", "rules_version",
+                                         "rules", "rooms", "source_mode")}
+    report["facts_revision"] = hashlib.sha256(json.dumps(facts, sort_keys=True).encode()).hexdigest()[:12]
     report["data_revision"] = hashlib.sha256(json.dumps(report, sort_keys=True).encode()).hexdigest()[:12]
     return report
 
@@ -144,9 +159,11 @@ def _actions(rooms):
     actions = []
 
     def add(room, kind, title, evidence, action, follow_up, priority):
+        volume_key = {"COVERAGE": "unknown_min", "UNRESERVED": "unreserved_min", "RESERVED_EMPTY": "reserved_empty_min"}.get(kind)
         actions.append({"id": f"{room['id']}:{kind}", "room_id": room["id"], "room_name": room["name"],
                         "kind": kind, "title": title, "evidence": evidence, "action": action,
-                        "follow_up": follow_up, "priority": priority})
+                        "follow_up": follow_up, "priority": priority,
+                        "observed_volume_min": room["current"][volume_key] if volume_key else None})
 
     for room in rooms:
         k = room["current"]
@@ -185,4 +202,8 @@ def _actions(rooms):
                     f"Équipements présents dans des salles de même capacité occupées à au moins 70 % et absents de cette salle : {', '.join(missing)}.",
                     "Recueillir les besoins et les demandes non satisfaites pour ces équipements avant de chiffrer un essai.",
                     "Suivre les demandes satisfaites et l’occupation après un éventuel essai.", 4)
-    return sorted(actions, key=lambda action: (action["priority"], action["room_name"], action["kind"]))
+    # Measurement first, then booking discrepancies by observed duration.
+    # A duration describes a problem, never promised savings or causal impact.
+    return sorted(actions, key=lambda action: (
+        1 if action["kind"] in ("UNRESERVED", "RESERVED_EMPTY") else action["priority"],
+        -(action["observed_volume_min"] or 0), action["room_name"], action["kind"]))

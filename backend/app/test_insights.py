@@ -158,7 +158,7 @@ def test_gemini_summary_uses_only_calculated_facts(client, db, claims, frozen_cl
         "text": "Dans l’historique de la salle, comparez les créneaux occupés au planning pour repérer les usages sans réservation.",
     }]
     [(url, headers, payload, timeout)] = requests
-    assert url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    assert url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
     assert headers == {"x-goog-api-key": "test-key"}
     assert timeout == 12.0
     assert json.loads(payload["contents"][0]["parts"][0]["text"]) == {"kpis": body["kpis"]}
