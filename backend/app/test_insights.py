@@ -4,6 +4,7 @@ from unittest.mock import ANY
 
 import httpx
 import pytest
+from sqlalchemy import event
 
 from app.models import AbsenceEpisode, Observation
 from app.models.enums import EpisodeKind, EpisodeOutcome, ObservationKind, Presence, ReservationStatus, Source, SpaceType
@@ -319,3 +320,18 @@ def test_hourly_series(client, db, claims, frozen_clock, salle):
 
 def test_hourly_series_is_empty_without_elapsed_minute(db, salle):
     assert insights.compute(db, salle.id, at("09:00"), at("10:00"), at("08:00"))["hourly"] == []
+
+
+def test_compute_reads_observation_columns_not_entities(db, salle):
+    """A month of 10 s heartbeats loaded as ORM entities exceeds the backend's 256 Mi limit."""
+    j01(db, salle)
+    space_id = salle.id
+    db.expunge_all()
+    loaded = []
+    listener = lambda target, context: loaded.append(target)  # noqa: E731
+    event.listen(Observation, "load", listener)
+    try:
+        insights.compute(db, space_id, at("09:00"), at("12:00"), at("12:01"), report_schedule=(9, 18, True))
+    finally:
+        event.remove(Observation, "load", listener)
+    assert loaded == []

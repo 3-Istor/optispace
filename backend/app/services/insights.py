@@ -62,12 +62,17 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     def union(intervals) -> set[int]:
         return set().union(*(span(a, b) for a, b in intervals))
 
-    observations = db.scalars(select(Observation).where(
-        Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to,
-    )).all()
-    seen = defaultdict(set)
-    for o in observations:
-        seen[(o.observed_at - frm) // MINUTE].add(o.presence)
+    # One pass over four columns: heartbeats arrive every 10 s, ORM entities for a month exceed 256 Mi.
+    # ponytail: minute sets stay in Python; aggregate per minute in SQL if periods or rooms grow.
+    seen, sources, unsynced = defaultdict(set), set(), set()
+    for observed_at, presence, source, clock_synced in db.execute(select(
+        Observation.observed_at, Observation.presence, Observation.source, Observation.clock_synced,
+    ).where(Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to)):
+        minute = (observed_at - frm) // MINUTE
+        seen[minute].add(presence)
+        sources.add(source.value)
+        if not clock_synced:
+            unsynced.add(minute)
     occupied = {i for i, values in seen.items() if Presence.PRESENT in values}
     observed = occupied | {i for i, values in seen.items() if values == {Presence.ABSENT}}
 
@@ -119,7 +124,6 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
         {"start_at": iso(frm + timedelta(minutes=60 * h - lead)), "reserved_min": reserved_by_hour[h], "used_min": used_by_hour[h]}
         for h in range(math.ceil((lead + total) / 60) if total else 0)
     ]
-    sources = {o.source.value for o in observations}
     revision = hashlib.sha256(json.dumps([kpis, no_shows]).encode()).hexdigest()[:12]
     summary, recommendations = _period_summary(space.name, frm, to, kpis, revision, assist_summary)
     result = {
@@ -136,12 +140,12 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     }
     if report_schedule is not None:
         result["report"] = _report_metrics(frm, total, occupied, observed, booked, effective, released,
-                                            reservations, episodes, observations, span, report_schedule)
+                                            reservations, episodes, unsynced, span, report_schedule)
     return result
 
 
 def _report_metrics(frm, total, occupied, observed, booked, effective, released,
-                    reservations, episodes, observations, span, schedule):
+                    reservations, episodes, unsynced, span, schedule):
     """Reuse the minute classification for business-hour reporting and observable arrival delays."""
     start_hour, end_hour, weekdays_only = schedule
     days = defaultdict(set)
@@ -161,7 +165,6 @@ def _report_metrics(frm, total, occupied, observed, booked, effective, released,
             "reserved_empty_min": len(indexes & effective & empty),
         })
     population = [r for r in reservations if (r.start_at - frm) // MINUTE in scheduled]
-    unsynced = {(o.observed_at - frm) // MINUTE for o in observations if not o.clock_synced}
     delays = []
     for reservation in population:
         window = span(reservation.start_at, booking.effective_end(reservation))
