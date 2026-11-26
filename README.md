@@ -64,7 +64,7 @@ Le backend est exposé sur http://localhost:8081 et le frontend sur http://local
 ### Comptes de démo
 
 - **Local** : `make dev-as who=fm-a|employe-a|fm-b|employe-b|staff` lance le backend sur :8081 avec ce profil (sans Keycloak, SQLite dans `/tmp`), puis `npm run dev` dans `frontend/`.
-- **Staging** : `scripts/demo-accounts-staging.sh` crée les entreprises `demo-a`, `demo-b` et leurs comptes `fm.*` / `employe.*` dans `iot-staging` (refuse tout autre realm). Il faut `vault login` sur le Vault CNP et le projet en « Client companies ». Mots de passe régénérés à chaque lancement : `vault kv get -mount=project-iot optispace-demo-accounts-staging`.
+- **Staging** : `scripts/demo-accounts-staging.sh` crée les entreprises `demo-a`, `demo-b` et leurs comptes `fm.*` / `employe.*` dans `iot-staging` (refuse tout autre realm). Il faut `vault login` sur le Vault CNP et le projet en « Client companies ». Mots de passe régénérés à chaque lancement : `vault kv get -mount=project-iot optispace/staging/demo-accounts`.
 
 ### Base de données
 

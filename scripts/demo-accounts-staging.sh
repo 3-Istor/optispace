@@ -11,7 +11,7 @@ CLIENT="cnp-$PROJECT-$APP-stg"
 KC="https://auth.3istor.com"
 export VAULT_ADDR="${CNP_VAULT_ADDR:-https://vault.3istor.com}"
 VAULT_MOUNT="project-$PROJECT"
-VAULT_PATH="$APP-demo-accounts-staging"
+VAULT_PATH="$APP/staging/demo-accounts"
 FM_GROUP="facility-managers"
 ORGS=(demo-a demo-b)
 USERS=(fm.demo-a employe.demo-a fm.demo-b employe.demo-b)
@@ -20,7 +20,7 @@ USERS=(fm.demo-a employe.demo-a fm.demo-b employe.demo-b)
 
 # The app's staging client: "Client companies" gives its service account manage-organizations
 # and manage-users in the staging realm only.
-TOKEN=$(vault kv get -format=json -mount="$VAULT_MOUNT" "$APP/staging" | jq -j '.data.data["client-secret"]' \
+TOKEN=$(vault kv get -format=json -mount="$VAULT_MOUNT" "$APP/staging/secrets" | jq -j '.data.data["client-secret"]' \
   | curl -sS -f "$KC/realms/$REALM/protocol/openid-connect/token" \
       -d grant_type=client_credentials -d client_id="$CLIENT" --data-urlencode client_secret@- \
   | jq -r .access_token) || { echo "no token for $CLIENT in $REALM" >&2; exit 1; }
