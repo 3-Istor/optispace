@@ -120,10 +120,7 @@ def render(report):
                       "Les chiffres et indicateurs de suivi sont calculés par OptiSpace.", "ReportSmall"))
     elif report["summary"]["provider_status"] in ("unavailable", "not_configured"):
         flow.append(p(f"Aucune analyse {provider_name} obtenue. Les pistes ci-dessous proviennent des règles OptiSpace.", "ReportSmall"))
-    if analysis:
-        flow.extend([PageBreak(), p("Décisions suggérées", "ReportTitle")])
-    else:
-        flow.append(p("Décisions suggérées", "Heading2"))
+    flow.extend([PageBreak(), p("Décisions suggérées", "ReportTitle")])
     for warning in report.get("measurement_warnings", []):
         flow.append(p(f"Mesures à vérifier : {warning['room_name']}. {warning['evidence']} {warning['action']}"))
     flow.append(p("Les vérifications proposées restent à l’initiative du facility manager.", "ReportSmall"))
