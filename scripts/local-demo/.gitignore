@@ -1,5 +1,7 @@
 .gemini-key.xml
 .gemini-key.xml.*.tmp
+.groq-key.xml
+.groq-key.xml.*.tmp
 *.sqlite3*
 *.log
 verified-cases.json

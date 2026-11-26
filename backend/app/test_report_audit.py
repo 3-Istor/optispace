@@ -3,9 +3,12 @@ import json
 from datetime import timedelta
 
 from app.models.enums import Presence, SpaceType
-from app.services import gemini, reports
+from app.schemas.report_analysis import ReportAnalysis
+from app.services import groq, reports
+from app.services.ai_response import JsonGeneration
 from app.test_insights import j01, minutes
 from app.test_reports import report_params
+from app.test_report_analysis import authored
 from app.testkit import at, make_space
 
 
@@ -31,10 +34,13 @@ def test_model_cannot_hide_measurement_warning_or_change_facts(client, db, claim
     measured = make_space(db, "Measured", SpaceType.MEETING_ROOM, 6, device=False)
     j01(db, measured)
     minutes(db, measured, Presence.ABSENT, "10:30", "18:00")
-    settings_env(GEMINI_API_KEY=" ")
+    settings_env(GROQ_API_KEY=" ")
     first = client.post("/api/v1/reports/usage", params=report_params()).json()
-    settings_env(GEMINI_API_KEY="test")
-    monkeypatch.setattr(gemini, "select_report_actions", lambda data, ids: ([ids[-1]], "test-model"))
+    settings_env(GROQ_API_KEY="test")
+    def analyze(data, ids):
+        assert all(set(action) == {"id", "room_id", "kind"} for action in data["actions"])
+        return ReportAnalysis.model_validate(authored(ids[-1])), JsonGeneration("", "test-model", {"duration_ms": 0})
+    monkeypatch.setattr(groq, "analyze_report", analyze)
     frozen_clock.now += timedelta(seconds=1)
     second = client.post("/api/v1/reports/usage", params=report_params()).json()
     assert second["summary"]["mode"] == "llm_assisted"
@@ -47,12 +53,12 @@ def test_model_cannot_hide_measurement_warning_or_change_facts(client, db, claim
 
 
 def test_report_checks_permissions_before_provider_and_calculation(client, db, claims, settings_env, monkeypatch):
-    settings_env(GEMINI_API_KEY="test")
+    settings_env(GROQ_API_KEY="test")
     foreign = make_space(db, "Other company", SpaceType.MEETING_ROOM, 6, organization="demo-b")
     def forbidden(*args, **kwargs):
         raise AssertionError("Provider/calculation called before authorization")
     monkeypatch.setattr(reports.insights, "compute", forbidden)
-    monkeypatch.setattr(gemini, "select_report_actions", forbidden)
+    monkeypatch.setattr(groq, "analyze_report", forbidden)
     assert client.post("/api/v1/reports/usage", params=report_params()).status_code == 403
     claims["groups"] = ["facility-managers"]
     response = client.post("/api/v1/reports/usage", params={**report_params(), "space_id": str(foreign.id)})

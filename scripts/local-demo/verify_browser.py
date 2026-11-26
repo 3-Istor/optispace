@@ -24,7 +24,6 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=ROOT / "output/aiad")
     parser.add_argument("--channel", default="msedge")
-    parser.add_argument("--real-gemini", action="store_true", help="Use the configured provider; record its actual status")
     args = parser.parse_args()
     output = args.output.resolve()
     database = output / "demo.sqlite3"
@@ -35,7 +34,7 @@ def main():
             if sock.connect_ex(("127.0.0.1", port)) == 0:
                 raise SystemExit(f"Port {port} is already in use; existing servers were left untouched.")
     env = {**os.environ, "DB_TYPE": "sqlite", "DB_ENABLED": "true", "SQLITE_PATH": str(database),
-           "OIDC_ISSUER": "", "GEMINI_API_KEY": os.environ.get("GEMINI_API_KEY", " ") if args.real_gemini else " ", "PYTHONPATH": str(ROOT / "backend"),
+           "OIDC_ISSUER": "", "GEMINI_API_KEY": " ", "GROQ_API_KEY": " ", "PYTHONPATH": str(ROOT / "backend"),
            "DEV_FAKE_USER": json.dumps({"sub": "aiad-browser-fm", "email": "fm@example.test", "name": "FM démo",
                                         "groups": ["facility-managers"], "organization": ["demo-a"]}),
            "BACKEND_HOST": "http://127.0.0.1:5311"}
@@ -80,11 +79,13 @@ def main():
             def generate(label):
                 with page.expect_response(lambda response: "/reports/usage?" in response.url and response.request.method == "POST", timeout=60000) as awaited:
                     section.get_by_role("button", name="Générer le rapport", exact=True).click()
-                    expect(section.get_by_role("status").filter(has_text="Calcul des indicateurs")).to_be_visible()
+                    expect(section.get_by_role("status").filter(has_text="Votre analyse se prépare")).to_be_visible()
                 response = awaited.value
                 assert response.status == 200
                 report = response.json()
-                expect(section.get_by_text(f"Révision {report['data_revision']}", exact=False)).to_be_visible()
+                expect(section.locator('.report-result-title')).to_be_focused()
+                expect(section.get_by_role('tab', name='Recommandations')).to_have_attribute('aria-selected', 'true')
+                expect(section.locator('#report-filters')).to_be_hidden()
                 reports.append({"case": label, "revision": report["data_revision"], "summary": report["summary"], "totals": report["totals"]})
                 print(f"Browser: {label} report ready", flush=True)
                 return report
@@ -92,21 +93,14 @@ def main():
             report = generate("all_rooms")
             assert len(report["rooms"]) == 4
             assert report["totals"]["unknown_min"] == 6600
-            if not args.real_gemini:
-                expect(section.get_by_role("status").filter(has_text="priorisation par les règles OptiSpace")).to_be_visible()
-            section.get_by_role("heading", name="Décisions suggérées").scroll_into_view_if_needed()
-            for action in report["recommendations"]:
-                expect(section.get_by_text(action["evidence"], exact=True).first).to_be_visible()
+            expect(section.get_by_role("status").filter(has_text="Sélection par les règles OptiSpace")).to_be_visible()
+            expect(section.locator('.report-metrics')).to_be_in_viewport()
+            for index, action in enumerate(report["recommendations"]):
+                expect(section.locator(f'#report-action-{index} .report-first-step')).to_contain_text(action["action"])
+            section.locator('#report-action-0 summary').click()
+            expect(section.get_by_text('70 h observées sur 180 h du périmètre.', exact=True).first).to_be_visible()
+            section.locator('#report-action-0 summary').click()
             page.screenshot(path=str(output / "ui-actions.png"))
-            selection = section.locator("details").filter(has=page.locator("summary", has_text="Comprendre la sélection des priorités"))
-            selection.locator("summary").click()
-            expect(selection.get_by_text("Priorités proposées par les règles sur ces mêmes données", exact=True)).to_be_visible()
-            assert selection.locator("li").count() == len(report["baseline_recommendations"])
-            assert report["measurement_warnings"]
-            expect(section.get_by_text("Mesures à vérifier avant de conclure", exact=True)).to_be_visible()
-            selection.scroll_into_view_if_needed()
-            page.screenshot(path=str(output / "ui-selection.png"))
-            page.screenshot(path=str(output / "ui-full.png"), full_page=True)
             with page.expect_download() as download:
                 section.get_by_role("button", name="Télécharger le PDF").click()
             pdf = output / "rapport-demo-telecharge.pdf"
@@ -114,43 +108,50 @@ def main():
             assert pdf.read_bytes() == base64.b64decode(report["pdf_base64"])
             report.pop("pdf_base64")
             (output / "browser-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
-            section.locator("details").filter(has_text="Toutes les pistes étayées").locator("summary").click()
-            assert section.get_by_text("Toutes les pistes étayées", exact=False).count() == 1
+            section.get_by_text("Toutes les pistes à examiner", exact=False).click()
+            assert section.get_by_text("Toutes les pistes à examiner", exact=False).count() == 1
             partial = next(room for room in report["rooms"] if room["name"].startswith("Azur"))
+            section.get_by_role('button', name='Modifier le périmètre').click()
             section.get_by_role("combobox").first.select_option(partial["id"])
-            expect(section.get_by_role("button", name="Télécharger le PDF")).to_have_count(0)
+            expect(section.get_by_role("button", name="Télécharger le PDF")).to_be_visible()
+            expect(section.get_by_role('status').filter(has_text='Filtres modifiés')).to_be_visible()
             partial_report = generate("partial_room")
             assert partial_report["comparison"]["room_count"] == 0
             assert partial_report["recommendations"][0]["kind"] == "COVERAGE"
-            section.get_by_role("heading", name="Évolution dans le temps").scroll_into_view_if_needed()
+            section.get_by_role('tab', name='Indicateurs', exact=True).click()
+            expect(section.get_by_role('slider')).to_be_visible()
             page.screenshot(path=str(output / "ui-partial.png"))
+            section.get_by_role('button', name='Modifier le périmètre').click()
             section.get_by_label("Du", exact=True).fill("2026-08-01")
             section.get_by_label("Au inclus", exact=True).fill("2026-08-28")
             empty = generate("no_data")
             assert empty["totals"]["occupancy_pct"] is None
-            expect(section.get_by_text("Données insuffisantes pour une priorisation Gemini", exact=True)).to_be_visible()
-            section.scroll_into_view_if_needed()
+            expect(section.get_by_text("Mesures insuffisantes", exact=True)).to_be_visible()
             page.screenshot(path=str(output / "ui-no-data.png"))
-            # The UI allows this range; the backend rejects periods longer than 93 days.
+            # Invalid ranges are explained before requesting the server; previous report remains.
+            section.get_by_role('button', name='Modifier le périmètre').click()
             section.get_by_label("Du", exact=True).fill("2026-04-01")
-            with page.expect_response(lambda response: "/reports/usage?" in response.url and response.request.method == "POST") as rejected:
-                section.get_by_role("button", name="Générer le rapport", exact=True).click()
-            assert rejected.value.status == 400
+            expect(section.get_by_role('button', name='Générer le rapport', exact=True)).to_be_disabled()
             expect(section.get_by_role("alert")).to_contain_text("Choisissez une période de 1 à 93 jours")
-            expect(section.get_by_role("button", name="Télécharger le PDF")).to_have_count(0)
+            expect(section.get_by_role("button", name="Télécharger le PDF")).to_be_visible()
             print("Browser: invalid period error visible", flush=True)
             # Restore demo filters and verify the narrow layout too.
             section.get_by_label("Du", exact=True).fill("2026-10-23")
             section.get_by_label("Au inclus", exact=True).fill("2026-11-19")
             section.get_by_role("combobox").first.select_option("")
-            generate("mobile")
             page.set_viewport_size({"width": 390, "height": 844})
-            section.scroll_into_view_if_needed()
+            generate("mobile")
+            expect(section.locator('.report-metrics')).to_be_in_viewport()
             page.screenshot(path=str(output / "ui-mobile.png"))
             assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "Page overflows horizontally"
+            section.get_by_role('tab', name='Indicateurs', exact=True).click()
+            section.get_by_role('slider').fill('0')
+            section.get_by_role('tab', name='Salles', exact=True).click()
+            expect(section.get_by_role('table')).to_be_visible()
+            assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth"), "Room view overflows"
             assert not errors, errors
             browser.close()
-        (output / "browser-results.json").write_text(json.dumps({"passed": True, "channel": args.channel, "real_provider_requested": args.real_gemini,
+        (output / "browser-results.json").write_text(json.dumps({"passed": True, "channel": args.channel,
             "pdf_matches_response_bytes": True, "page_errors": errors, "reports": reports}, ensure_ascii=False, indent=2), encoding="utf-8")
         print("Browser PASS: filters, loading, actions, downloaded PDF bytes, partial coverage, no data, invalid period, mobile, no page errors.")
     finally:

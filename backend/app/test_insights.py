@@ -110,24 +110,24 @@ def test_j04_no_data(db, salle):
     )
 
 
-def gemini_response(*ids, recommendation_id="CHECK_COVERAGE"):
+def groq_response(*ids, recommendation_id="CHECK_COVERAGE"):
     content = json.dumps({"fact_ids": ids, "recommendation_id": recommendation_id})
     return {
-        "candidates": [{"finishReason": "STOP", "content": {"parts": [{"text": content}]}}],
-        "modelVersion": "gemini-3.1-flash-lite",
+        "choices": [{"finish_reason": "stop", "message": {"content": content}}],
+        "model": "openai/gpt-oss-120b",
     }
 
 
-def test_gemini_summary_uses_only_calculated_facts(client, db, claims, frozen_clock, salle, settings_env, monkeypatch):
+def test_groq_summary_uses_only_calculated_facts(client, db, claims, frozen_clock, salle, settings_env, monkeypatch):
     j01(db, salle)
     minutes(db, salle, Presence.ABSENT, "10:30", "12:00")
     frozen_clock.now = at("12:01")
-    settings_env(GEMINI_API_KEY="test-key")
+    settings_env(GROQ_API_KEY="test-key", GROQ_MODEL="configured-groq-model")
     requests = []
 
     def post(url, *, headers, json, timeout):
         requests.append((url, headers, json, timeout))
-        return httpx.Response(200, json=gemini_response("OCCUPANCY", "UNRESERVED", "NO_SHOW", recommendation_id="REVIEW_UNRESERVED"),
+        return httpx.Response(200, json=groq_response("OCCUPANCY", "UNRESERVED", "NO_SHOW", recommendation_id="REVIEW_UNRESERVED"),
                               request=httpx.Request("POST", url))
 
     monkeypatch.setattr(httpx, "post", post)
@@ -151,29 +151,33 @@ def test_gemini_summary_uses_only_calculated_facts(client, db, claims, frozen_cl
                 "L’espace a été occupé sans réservation pendant 30 minutes. "
                 "1 no-show sur 2 réservations évaluées.",
         "fact_ids": ["OCCUPANCY", "UNRESERVED", "NO_SHOW"], "facts_revision": body["data_revision"],
-        "model_version": "gemini-3.1-flash-lite", "warnings": [], "provider_status": "ready",
+        "model_version": "openai/gpt-oss-120b", "warnings": [], "provider_status": "ready",
     }
     assert body["recommendations"] == [{
         "title": "Examiner l’usage hors réservation",
         "text": "Dans l’historique de la salle, comparez les créneaux occupés au planning pour repérer les usages sans réservation.",
     }]
     [(url, headers, payload, timeout)] = requests
-    assert url == "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"
-    assert headers == {"x-goog-api-key": "test-key"}
+    assert url == "https://api.groq.com/openai/v1/chat/completions"
+    assert headers == {"Authorization": "Bearer test-key"}
     assert timeout == 12.0
-    assert json.loads(payload["contents"][0]["parts"][0]["text"]) == {"kpis": body["kpis"]}
-    assert payload["generationConfig"]["responseJsonSchema"]["properties"]["fact_ids"]["items"]["enum"] == [
+    assert payload["model"] == "configured-groq-model"
+    assert payload["max_completion_tokens"] == 512
+    assert json.loads(payload["messages"][1]["content"]) == {"kpis": body["kpis"]}
+    schema = payload["response_format"]["json_schema"]
+    assert schema["strict"] is True and schema["name"] == "room_usage_summary"
+    assert schema["schema"]["properties"]["fact_ids"]["items"]["enum"] == [
         "OCCUPANCY", "COVERAGE", "UNRESERVED", "NO_SHOW",
     ]
-    assert payload["generationConfig"]["responseJsonSchema"]["properties"]["recommendation_id"]["enum"] == [
+    assert schema["schema"]["properties"]["recommendation_id"]["enum"] == [
         "REVIEW_UNRESERVED", "REVIEW_NO_SHOWS",
     ]
 
 
 @pytest.mark.parametrize("outcome", ["valid", "missing_coverage", "inapplicable", "inapplicable_recommendation", "duplicate", "too_many", "quota", "timeout"])
-def test_gemini_summary_partial_coverage(db, salle, settings_env, monkeypatch, caplog, outcome):
+def test_groq_summary_partial_coverage(db, salle, settings_env, monkeypatch, caplog, outcome):
     minutes(db, salle, Presence.PRESENT, "09:00", "09:01")
-    settings_env(GEMINI_API_KEY="test-key")
+    settings_env(GROQ_API_KEY="test-key")
 
     def post(url, **kwargs):
         request = httpx.Request("POST", url)
@@ -190,7 +194,7 @@ def test_gemini_summary_partial_coverage(db, salle, settings_env, monkeypatch, c
             "too_many": ["OCCUPANCY", "UNRESERVED", "COVERAGE", "NO_SHOW"],
         }[outcome]
         recommendation = "REVIEW_NO_SHOWS" if outcome == "inapplicable_recommendation" else "CHECK_COVERAGE"
-        return httpx.Response(200, json=gemini_response(*ids, recommendation_id=recommendation), request=request)
+        return httpx.Response(200, json=groq_response(*ids, recommendation_id=recommendation), request=request)
 
     monkeypatch.setattr(httpx, "post", post)
     result = insights.compute(db, salle.id, at("09:00"), at("10:00"), at("10:01"), assist_summary=True)
@@ -209,15 +213,15 @@ def test_gemini_summary_partial_coverage(db, salle, settings_env, monkeypatch, c
         assert result["recommendations"] == []
     if outcome == "quota":
         assert "HTTP 429" in caplog.text
-        assert "[masked]" in caplog.text
+        assert "Quota exhausted" not in caplog.text
         assert "test-key" not in caplog.text
 
 
-def test_gemini_is_skipped_without_observations(db, salle, settings_env, monkeypatch):
-    settings_env(GEMINI_API_KEY="test-key")
+def test_groq_is_skipped_without_observations(db, salle, settings_env, monkeypatch):
+    settings_env(GROQ_API_KEY="test-key")
 
     def unexpected_post(*args, **kwargs):
-        pytest.fail("Gemini should not be called without observations")
+        pytest.fail("Groq should not be called without observations")
 
     monkeypatch.setattr(httpx, "post", unexpected_post)
     result = insights.compute(db, salle.id, at("09:00"), at("10:00"), at("10:01"), assist_summary=True)
@@ -226,13 +230,13 @@ def test_gemini_is_skipped_without_observations(db, salle, settings_env, monkeyp
 
 
 def test_summary_without_key_is_explicit(client, db, claims, frozen_clock, salle, settings_env, monkeypatch):
-    settings_env(GEMINI_API_KEY="")
+    settings_env(GROQ_API_KEY=" ")
     minutes(db, salle, Presence.ABSENT, "09:00", "10:00")
     claims["groups"] = FM
     frozen_clock.now = at("10:01")
 
     def unexpected_post(*args, **kwargs):
-        pytest.fail("Gemini should not be called without a configured key")
+        pytest.fail("Groq should not be called without a configured key")
 
     monkeypatch.setattr(httpx, "post", unexpected_post)
     path = f"/api/v1/spaces/{salle.id}/insights"
@@ -323,15 +327,47 @@ def test_hourly_series_is_empty_without_elapsed_minute(db, salle):
 
 
 def test_compute_reads_observation_columns_not_entities(db, salle):
-    """A month of 10 s heartbeats loaded as ORM entities exceeds the backend's 256 Mi limit."""
+    """Hugo's bfba9d5 regression: dense heartbeats must not create ORM entities."""
     j01(db, salle)
     space_id = salle.id
     db.expunge_all()
     loaded = []
-    listener = lambda target, context: loaded.append(target)  # noqa: E731
-    event.listen(Observation, "load", listener)
+
+    def record_load(target, context):
+        loaded.append(target)
+
+    event.listen(Observation, "load", record_load)
     try:
         insights.compute(db, space_id, at("09:00"), at("12:00"), at("12:01"), report_schedule=(9, 18, True))
     finally:
-        event.remove(Observation, "load", listener)
+        event.remove(Observation, "load", record_load)
     assert loaded == []
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_dense_heartbeats_keep_minute_precedence_and_clock_quality_across_batches(db, salle, reverse):
+    """A later batch may change a minute's presence, provenance and usable arrival time."""
+    book(db, salle, at("09:00"), at("09:10"))
+    # Seven non-empty subsets of absent / unknown / present, plus a missing minute.
+    groups = [(Presence.ABSENT,), (Presence.UNKNOWN,), (Presence.PRESENT,),
+              (Presence.ABSENT, Presence.UNKNOWN), (Presence.ABSENT, Presence.PRESENT),
+              (Presence.UNKNOWN, Presence.PRESENT), (Presence.ABSENT, Presence.UNKNOWN, Presence.PRESENT)]
+    rows = [dict(device_id="dense", space_id=salle.id, boot_id="b", seq=i,
+                 kind=ObservationKind.HEARTBEAT, presence=Presence.ABSENT,
+                 observed_at=at("09:00"), received_at=at("09:00"), clock_synced=True, source=Source.SIMULATED)
+            for i in range(4097)]
+    for minute, values in enumerate(groups):
+        for presence in values:
+            rows.append({**rows[0], "seq": len(rows), "observed_at": at("09:00") + minute * MIN,
+                         "presence": presence, "source": Source.REAL, "clock_synced": minute != 0})
+    # Exclusive end, outside this room and before the period must stay excluded.
+    for instant, room_id in [(at("08:59"), salle.id), (at("09:08"), salle.id), (at("09:07"), None)]:
+        rows.append({**rows[0], "seq": len(rows), "observed_at": instant, "space_id": room_id, "presence": Presence.PRESENT})
+    db.execute(Observation.__table__.insert(), list(reversed(rows)) if reverse else rows)
+    db.commit()
+    result = insights.compute(db, salle.id, at("09:00"), at("09:08"), at("12:00"), report_schedule=(9, 18, True))
+    k = result["kpis"]
+    assert (k["occupied_min"], k["observed_min"], k["unknown_min"], k["occupied_reserved_min"]) == (4, 5, 3, 4)
+    assert result["source_mode"] == "mixed"
+    assert result["report"]["arrival_delays_min"] == []
+    assert result["report"]["reserved_unknown_min"] == 3

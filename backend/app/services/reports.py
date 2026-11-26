@@ -8,11 +8,13 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
+from app import clock
 from app.config import get_settings
 from app.errors import DomainError
 from app.models import Space
 from app.models.enums import SpaceType
-from app.services import gemini, insights
+from app.services import groq, insights
+from app.services.report_analysis import REPORT_PROMPT_VERSION
 from app.services.notifications import iso
 
 PARIS = ZoneInfo("Europe/Paris")
@@ -104,21 +106,26 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
         values = {key: sum(row[key] for row in rows) for key in rows[0] if key != "date"}
         trend.append({"date": day, **rates(values)})
     candidates = _actions(rooms)
-    baseline = candidates[:3]
+    config = get_settings()
     mode, provider_status, model_version = "template_fallback", "insufficient_data", None
-    selected = baseline
+    analysis, generation = None, None
+    selected = candidates[:3]
     if totals["observed_min"] and candidates:
         provider_status = "not_configured"
-        if get_settings().gemini_api_key.get_secret_value().strip():
+        if config.groq_api_key.get_secret_value().strip():
             provider_status = "unavailable"
-            choice = gemini.select_report_actions(
-                selection_payload(rooms, candidates),
-                [action["id"] for action in candidates],
-            )
+            facts = {**selection_payload(rooms, candidates), "period": {"from": iso(frm), "to": iso(to)},
+                     "schedule": {"start_hour": start_hour, "end_hour": end_hour, "weekdays_only": weekdays_only}}
+            choice = groq.analyze_report(facts, [action["id"] for action in candidates])
             if choice:
-                ids, model_version = choice
+                authored, response = choice
+                model_version = response.model_version
+                analysis = authored.model_dump()
+                generation = {**response.trace, "prompt_version": REPORT_PROMPT_VERSION,
+                              "received_at": iso(clock.now()),
+                              "payload_revision": hashlib.sha256(json.dumps(facts, sort_keys=True).encode()).hexdigest()[:12]}
                 by_id = {action["id"]: action for action in candidates}
-                selected = [by_id[action_id] for action_id in ids]
+                selected = [by_id[item.action_id] for item in authored.recommendations]
                 mode, provider_status = "llm_assisted", "ready"
     elif totals["observed_min"]:
         provider_status = "no_action"
@@ -135,11 +142,11 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
         "source_mode": next(iter(sources)) if len(sources) == 1 else "mixed" if sources else None,
         "rooms": rooms, "totals": totals, "previous_totals": previous_totals,
         "comparison": comparison, "trend": trend, "recommendations": selected, "eligible_actions": candidates,
-        "baseline_recommendations": baseline,
+        "baseline_recommendations": candidates[:3], "analysis": analysis,
         "measurement_warnings": [action for action in candidates if action["kind"] == "COVERAGE"],
-        "summary": {"mode": mode, "provider_status": provider_status, "model_version": model_version,
-                    "prompt_version": gemini.REPORT_PROMPT_VERSION,
-                    "selection_changed": [a["id"] for a in selected] != [a["id"] for a in baseline]},
+        "summary": {"mode": mode, "provider": "groq", "provider_status": provider_status, "model_version": model_version,
+                    "prompt_version": REPORT_PROMPT_VERSION,
+                    "generation": generation, "selection_changed": [a["id"] for a in selected] != [a["id"] for a in candidates[:3]]},
         "limitations": [
             "La présence est binaire et ne mesure pas le nombre de participants.",
             "Le délai décrit la première présence détectée. Le capteur ne reconnaît pas le réservant.",
@@ -147,7 +154,7 @@ def compute(db, organization, frm, to, now, start_hour=9, end_hour=18, weekdays_
             "Les variations décrivent les périodes observées. L’effet causal d’une action demande une évaluation dédiée.",
         ],
     }
-    # Stable facts identity, independent of generation time and model choice.
+    # Stable facts identity from IOT-86, independent of generation time and model choice.
     facts = {key: report[key] for key in ("period", "previous_period", "schedule", "rules_version",
                                          "rules", "rooms", "source_mode")}
     report["facts_revision"] = hashlib.sha256(json.dumps(facts, sort_keys=True).encode()).hexdigest()[:12]
@@ -202,7 +209,7 @@ def _actions(rooms):
                     f"Équipements présents dans des salles de même capacité occupées à au moins 70 % et absents de cette salle : {', '.join(missing)}.",
                     "Recueillir les besoins et les demandes non satisfaites pour ces équipements avant de chiffrer un essai.",
                     "Suivre les demandes satisfaites et l’occupation après un éventuel essai.", 4)
-    # Measurement first, then booking discrepancies by observed duration.
+    # IOT-86: measurement first, then booking discrepancies by observed duration.
     # A duration describes a problem, never promised savings or causal impact.
     return sorted(actions, key=lambda action: (
         1 if action["kind"] in ("UNRESERVED", "RESERVED_EMPTY") else action["priority"],

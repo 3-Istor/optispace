@@ -24,5 +24,7 @@ CLAUDE.local.md
 .DS_Store
 Thumbs.db
 
-# Local acceptance evidence and synthetic databases
-output/
+# Local acceptance evidence, synthetic databases and isolated worktrees
+/tmp/
+/output/
+.pytest_cache/
