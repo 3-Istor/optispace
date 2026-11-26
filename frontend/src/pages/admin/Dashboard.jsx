@@ -134,8 +134,8 @@ export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
   const hasMeasures = ins?.kpis.observed_min > 0
   const provider = details?.summary?.provider_status
   const providerMessage = {
-    not_configured: 'Clé Gemini absente de la configuration du serveur. La synthèse disponible utilise les règles OptiSpace.',
-    unavailable: 'Gemini est indisponible ou sa réponse a été rejetée. La synthèse affichée utilise les règles OptiSpace. Vous pouvez réessayer.',
+    not_configured: 'Clé Groq absente de la configuration du serveur. La synthèse disponible utilise les règles OptiSpace.',
+    unavailable: 'Groq est indisponible ou sa réponse a été rejetée. La synthèse affichée utilise les règles OptiSpace. Vous pouvez réessayer.',
   }[provider]
   const noShows = Array.isArray(details?.no_shows) ? details.no_shows : []
   const sub = { display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }
@@ -157,7 +157,7 @@ export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
     <section className="card" aria-labelledby="syn-h" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
         <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse de la salle</h2>
-        {generated && hasMeasures && <span className="muted" style={{ fontSize: 12 }}>{assisted ? 'Assistée par Gemini' : 'Synthèse par règles OptiSpace'}</span>}
+        {generated && hasMeasures && <span className="muted" style={{ fontSize: 12 }}>{assisted ? 'Assistée par Groq' : 'Synthèse par règles OptiSpace'}</span>}
         <Button variant="p" style={{ marginLeft: 'auto' }} disabled={!hasMeasures} busy={busy} onClick={generate}>
           {busy ? 'Génération en cours…' : 'Générer la synthèse'}
         </Button>
@@ -222,6 +222,7 @@ export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
 // GET /spaces/{id}/insights; only the coverage guard and the reserved-and-used rate are worked out here.
 export function Dashboard() {
   const live = usePolling(loadLive, 5000)
+  const [view, setView] = useState('analysis')
   const [picked, setPicked] = useState(null)
   const [period, setPeriod] = useState('today')
   const spaceId = picked ?? live.data?.spaces[0]?.id
@@ -242,7 +243,7 @@ export function Dashboard() {
   const { spaces = [], devices = [] } = live.data ?? {}
   const header = (
     <PageHeader title="Tableau de bord">
-      {spaces.length > 0 && <>
+      {view === 'live' && spaces.length > 0 && <>
         <select className="input" aria-label="Espace" value={spaceId} onChange={(e) => setPicked(e.target.value)} style={{ maxWidth: '100%' }}>
           {spaces.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.is_active === false ? ' (hors service)' : ''}</option>)}
         </select>
@@ -268,6 +269,12 @@ export function Dashboard() {
   return (
     <>
       {header}
+      <div className="fm-view-switch" role="group" aria-label="Vue du tableau de bord">
+        <button type="button" aria-pressed={view === 'analysis'} onClick={() => setView('analysis')}><Icon d={ICONS.dashboard} />Analyse des espaces</button>
+        <button type="button" aria-pressed={view === 'live'} onClick={() => setView('live')}><Icon d={ICONS.spaces} />Suivi des salles</button>
+      </div>
+      <div hidden={view !== 'analysis'}><UsageReport spaces={spaces} /></div>
+      <div className="fm-live-view" hidden={view !== 'live'}>
       {!ins ? (
         insights.error ? <EmptyState title="Indicateurs indisponibles">{errorText(insights.error)}</EmptyState> : <Loader label="Calcul des indicateurs" />
       ) : (
@@ -281,8 +288,6 @@ export function Dashboard() {
           ))}
         </section>
       )}
-
-      <UsageReport spaces={spaces} />
 
       <div className="cols-2">
         {ins ? <HourChart hourly={ins.hourly ?? []} days={PERIODS[period][1]} low={fewMeasures(ins.kpis)} /> : <span />}
@@ -327,6 +332,7 @@ export function Dashboard() {
             </ul>
           ) : <p className="muted" style={{ margin: 0, padding: '4px 18px 14px', fontSize: 13, lineHeight: 1.5 }}>Rien à traiter : tous les boîtiers sont affectés, descellés et en ligne.</p>}
         </section>
+      </div>
       </div>
     </>
   )

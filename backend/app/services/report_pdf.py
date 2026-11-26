@@ -71,7 +71,9 @@ def render(report):
     styles["Heading2"].spaceAfter = 8
 
     def p(value, style="ReportBody"):
-        return Paragraph(escape(str(value)), styles[style])
+        # Helvetica lacks these common model-generated hyphens and narrow spaces.
+        text = str(value).translate({0x2010: "-", 0x2011: "-", 0x202F: " "})
+        return Paragraph(escape(text), styles[style])
 
     def table(rows, widths):
         result = Table([[p(cell, "ReportSmall") for cell in row] for row in rows], colWidths=widths,
@@ -85,7 +87,12 @@ def render(report):
 
     source = {"simulated": "DONNÉES SIMULÉES", "real": "Données réelles", "mixed": "DONNÉES MIXTES"}.get(report["source_mode"], "Données de présence indisponibles")
     schedule, totals = report["schedule"], report["totals"]
-    mode = "Priorisation assistée par Gemini" if report["summary"]["mode"] == "llm_assisted" else "Priorisation par les règles OptiSpace"
+    provider_name = "Groq" if report["summary"].get("provider") == "groq" else "Gemini"
+    mode = f"Priorisation assistée par {provider_name}" if report["summary"]["mode"] == "llm_assisted" else "Priorisation par les règles OptiSpace"
+    analysis = report.get("analysis") if report["summary"]["provider_status"] == "ready" else None
+    authored = {item["action_id"]: item for item in analysis["recommendations"]} if analysis else {}
+    if analysis:
+        mode = f"Analyse rédigée par l’IA via {provider_name}"
     flow = [p("OptiSpace / Facility Manager", "ReportSmall"), p("Décisions pour les salles", "ReportTitle"),
             p(source), p(f"Du {local(report['period']['from'])} au {local(report['period']['to'])}. Fin de période exclusive."),
             p(f"{schedule['start_hour']} h - {schedule['end_hour']} h, "
@@ -102,13 +109,35 @@ def render(report):
             p(f"Couverture {number(totals['coverage_pct'], ' %')}. "
               f"{duration(totals['unknown_min'])} sans mesure. "
               f"Première présence après {number(totals['arrival_avg_min'], ' min')} en moyenne "
-              f"sur {totals['arrival_sample_count']} réservations évaluables.", "ReportSmall"),
-            p("Décisions suggérées", "Heading2")]
+              f"sur {totals['arrival_sample_count']} réservations évaluables.", "ReportSmall")]
+    if analysis:
+        flow.extend([p(f"Ce qu’il faut retenir - {provider_name}", "Heading2"), p(analysis["overview"]),
+                     p(f"Point de vigilance. {analysis['caution']}", "ReportSmall")])
+        for action in report["recommendations"]:
+            if action["id"] in analysis["evidence_action_ids"]:
+                flow.append(p(f"Constat source - {action['room_name']}. {action['evidence']}", "ReportSmall"))
+        flow.append(p("Les interprétations et étapes proposées sont rédigées par l’IA et à examiner par le Facility Manager. "
+                      "Les chiffres et indicateurs de suivi sont calculés par OptiSpace.", "ReportSmall"))
+    elif report["summary"]["provider_status"] in ("unavailable", "not_configured"):
+        flow.append(p(f"Aucune analyse {provider_name} obtenue. Les pistes ci-dessous proviennent des règles OptiSpace.", "ReportSmall"))
+    if analysis:
+        flow.extend([PageBreak(), p("Décisions suggérées", "ReportTitle")])
+    else:
+        flow.append(p("Décisions suggérées", "Heading2"))
     for index, action in enumerate(report["recommendations"], 1):
-        flow.append(KeepTogether([
+        content = [
             p(f"{index}. {action['room_name']} - {action['title']}", "Heading3"),
-            p(action["evidence"]), p(action["action"]), p(f"Suivi proposé. {action['follow_up']}", "ReportSmall"),
-        ]))
+            p(f"Constat mesuré. {action['evidence']}")]
+        advice = authored.get(action["id"])
+        if advice:
+            content.append(p(f"Pourquoi cette priorité - {provider_name}. {advice['rationale']}"))
+            content.append(p(f"Étapes proposées par l’IA via {provider_name}", "ReportSmall"))
+            content.extend(p(f"{step_index}. {step}") for step_index, step in enumerate(advice["steps"], 1))
+            content.append(p(f"À vérifier ensuite - {provider_name}. {advice['check']}", "ReportSmall"))
+        else:
+            content.append(p(action["action"]))
+        content.append(p(f"Indicateur de suivi - OptiSpace. {action['follow_up']}", "ReportSmall"))
+        flow.append(KeepTogether(content))
     if not report["recommendations"]:
         flow.append(p("Les données disponibles ne déclenchent aucune action selon les critères pilotes."))
     flow.extend([PageBreak(), p("Évolution dans le temps", "ReportTitle"),
@@ -175,11 +204,17 @@ def render(report):
          f"Signal réservé vide à {RULE_VALUE(report, 'reserved_empty_pct')} % avec au moins 120 minutes réservées observables. "
          f"Délai à examiner à partir de {RULE_VALUE(report, 'arrival_delay_min')} minutes sur au moins {RULE_VALUE(report, 'arrival_sample_count')} réservations. "
          f"Sous-utilisation sous {RULE_VALUE(report, 'underuse_pct')} % sur au moins {RULE_VALUE(report, 'underuse_days')} jours du périmètre."),
-        ("Rôle de Gemini", "OptiSpace calcule les valeurs et les actions admissibles. Gemini sélectionne et ordonne jusqu’à trois actions à partir de ces faits agrégés. Le serveur contrôle les identifiants et construit les textes chiffrés. Le statut du fournisseur est conservé dans ce rapport."),
+        (f"Rôle de l’IA via {provider_name}", "OptiSpace calcule les valeurs et les actions admissibles. L’IA rédige une synthèse, justifie jusqu’à trois priorités et propose des étapes à examiner. Le serveur contrôle le format et les références, puis ajoute les preuves chiffrées. Ce contrôle ne garantit pas la justesse de chaque interprétation : une relecture humaine reste nécessaire. Aucune action n’est exécutée par la génération du rapport."),
     ):
         flow.extend([p(title, "Heading2"), p(body)])
     for limitation in report["limitations"]:
         flow.append(p(limitation, "ReportSmall"))
+    trace = report["summary"].get("generation")
+    if analysis and trace:
+        flow.append(p(f"Génération {provider_name} : consigne {trace['prompt_version']}, "
+                      f"données envoyées {trace['payload_revision']}, durée {trace['duration_ms']} ms.", "ReportSmall"))
+        if trace.get("response_id"):
+            flow.append(p(f"Identifiant de réponse fournisseur : {trace['response_id']}", "ReportSmall"))
     flow.append(p(f"Calcul du {local(report['generated_at'])}. Révision {report['data_revision']}. "
                   f"Règles {report['rules_version']}. Fournisseur {report['summary']['provider_status']}.", "ReportSmall"))
 

@@ -23,3 +23,8 @@ CLAUDE.local.md
 # OS
 .DS_Store
 Thumbs.db
+
+# Local AIAD verification artifacts and isolated documentation checkout
+/tmp/aiad/
+/output/aiad/
+/output/performance/

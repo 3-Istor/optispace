@@ -29,12 +29,12 @@ try {
     summary: { provider_status: 'not_configured' } }
   const fallback = render(available, '7d')
   assert.doesNotMatch(fallback, /disabled=""[^>]*>Générer la synthèse/)
-  assert.match(fallback, /Clé Gemini absente/)
+  assert.match(fallback, /Clé Groq absente/)
   assert.match(fallback, /Données simulées/)
   assert.match(fallback, /value="7d" selected=""/)
 
   const configured = render({ ...available, summary: { provider_status: 'not_requested' } })
-  assert.doesNotMatch(configured, /Clé Gemini absente|Assistée par Gemini/)
+  assert.doesNotMatch(configured, /Clé Groq absente|Assistée par Groq/)
   assert.match(render(null), /Calcul des indicateurs en cours/)
   assert.match(render(null, 'today', { status: 0, code: 'NETWORK' }), /connexion/i)
   console.log('Dashboard summary states ok')

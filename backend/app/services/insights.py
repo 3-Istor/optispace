@@ -18,7 +18,7 @@ from app.config import get_settings
 from app.errors import DomainError
 from app.models import AbsenceEpisode, Observation, Reservation, Space
 from app.models.enums import EpisodeKind, EpisodeOutcome, Presence, ReservationStatus
-from app.services import booking, gemini, settings
+from app.services import booking, groq, settings
 from app.services.notifications import hhmm, iso
 
 MINUTE = timedelta(minutes=1)
@@ -60,16 +60,26 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
         return set(range((a - frm) // MINUTE, math.ceil((b - frm) / MINUTE))) if a < b else set()
 
     def union(intervals) -> set[int]:
-        return set().union(*(span(a, b) for a, b in intervals))
+        minutes = set()
+        for a, b in intervals:
+            minutes.update(span(a, b))
+        return minutes
 
-    observations = db.scalars(select(Observation).where(
-        Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to,
-    )).all()
-    seen = defaultdict(set)
-    for o in observations:
-        seen[(o.observed_at - frm) // MINUTE].add(o.presence)
-    occupied = {i for i, values in seen.items() if Presence.PRESENT in values}
-    observed = occupied | {i for i, values in seen.items() if values == {Presence.ABSENT}}
+    # Hugo's bfba9d5 projection, with IOT-86's bounded fetches: no ORM entities or full row buffer.
+    # Three sets of minute indexes avoid a separate set object for every observed minute.
+    seen, sources, unsynced = {presence: set() for presence in Presence}, set(), set()
+    for observed_at, presence, source, clock_synced in db.execute(select(
+        Observation.observed_at, Observation.presence, Observation.source, Observation.clock_synced,
+    ).where(Observation.space_id == space.id, Observation.observed_at >= frm, Observation.observed_at < to)
+        .execution_options(yield_per=2048)):
+        minute = (observed_at - frm) // MINUTE
+        seen[presence].add(minute)
+        sources.add(source.value)
+        if not clock_synced:
+            unsynced.add(minute)
+    occupied = seen[Presence.PRESENT]
+    observed = occupied | (seen[Presence.ABSENT] - seen[Presence.UNKNOWN])
+    del seen
 
     reservations = db.scalars(select(Reservation).where(
         Reservation.space_id == space.id, Reservation.status != ReservationStatus.CANCELLED,
@@ -119,7 +129,6 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
         {"start_at": iso(frm + timedelta(minutes=60 * h - lead)), "reserved_min": reserved_by_hour[h], "used_min": used_by_hour[h]}
         for h in range(math.ceil((lead + total) / 60) if total else 0)
     ]
-    sources = {o.source.value for o in observations}
     revision = hashlib.sha256(json.dumps([kpis, no_shows]).encode()).hexdigest()[:12]
     summary, recommendations = _period_summary(space.name, frm, to, kpis, revision, assist_summary)
     result = {
@@ -136,32 +145,38 @@ def compute(db: Session, space_id: UUID, frm: datetime, to: datetime, now: datet
     }
     if report_schedule is not None:
         result["report"] = _report_metrics(frm, total, occupied, observed, booked, effective, released,
-                                            reservations, episodes, observations, span, report_schedule)
+                                            reservations, episodes, unsynced, span, report_schedule)
     return result
 
 
 def _report_metrics(frm, total, occupied, observed, booked, effective, released,
-                    reservations, episodes, observations, span, schedule):
+                    reservations, episodes, unsynced, span, schedule):
     """Reuse the minute classification for business-hour reporting and observable arrival delays."""
     start_hour, end_hour, weekdays_only = schedule
     days = defaultdict(set)
     paris = ZoneInfo("Europe/Paris")
-    for minute in range(total):
+    # Paris schedule boundaries (including DST transitions) fall on UTC clock hours.
+    # Classify each touched hour once, retaining partial first/last hours and both repeated hours.
+    for hour in range(math.ceil((frm.minute + total) / 60) if total else 0):
+        minute = max(0, hour * 60 - frm.minute)
+        end = min(total, (hour + 1) * 60 - frm.minute)
         local = (frm + minute * MINUTE).astimezone(paris)
         if start_hour <= local.hour < end_hour and (not weekdays_only or local.weekday() < 5):
-            days[local.date().isoformat()].add(minute)
+            days[local.date().isoformat()].update(range(minute, end))
     scheduled = set().union(*days.values())
     empty = observed - occupied
+    unreserved = occupied - effective
+    reserved_observed_minutes = effective & observed
+    reserved_empty_minutes = effective & empty
     daily = []
     for day, indexes in days.items():
         daily.append({
             "date": day, "period_min": len(indexes), "observed_min": len(indexes & observed),
-            "occupied_min": len(indexes & occupied), "unreserved_min": len(indexes & (occupied - effective)),
-            "reserved_observed_min": len(indexes & effective & observed),
-            "reserved_empty_min": len(indexes & effective & empty),
+            "occupied_min": len(indexes & occupied), "unreserved_min": len(indexes & unreserved),
+            "reserved_observed_min": len(indexes & reserved_observed_minutes),
+            "reserved_empty_min": len(indexes & reserved_empty_minutes),
         })
     population = [r for r in reservations if (r.start_at - frm) // MINUTE in scheduled]
-    unsynced = {(o.observed_at - frm) // MINUTE for o in observations if not o.clock_synced}
     delays = []
     for reservation in population:
         window = span(reservation.start_at, booking.effective_end(reservation))
@@ -173,10 +188,10 @@ def _report_metrics(frm, total, occupied, observed, booked, effective, released,
         before = set(range(beginning, first + 1))
         if before <= observed and not before & unsynced:
             delays.append(first - beginning)
-    reserved_observed = len(scheduled & effective & observed)
+    reserved_observed = len(scheduled & reserved_observed_minutes)
     occupied_minutes = len(scheduled & occupied)
-    unreserved_minutes = len(scheduled & (occupied - effective))
-    empty_minutes = len(scheduled & effective & empty)
+    unreserved_minutes = len(scheduled & unreserved)
+    empty_minutes = len(scheduled & reserved_empty_minutes)
     return {
         "period_min": len(scheduled), "observed_min": len(scheduled & observed),
         "unknown_min": len(scheduled - observed), "occupied_min": occupied_minutes,
@@ -197,7 +212,7 @@ def _report_metrics(frm, total, occupied, observed, booked, effective, released,
 def _period_summary(name: str, frm: datetime, to: datetime, k: dict, revision: str, assist_summary: bool) -> tuple[dict, list[dict]]:
     facts = dict(_summary(name, frm, to, k))
     observed = k["observed_min"]
-    configured = bool(get_settings().gemini_api_key.get_secret_value().strip())
+    configured = bool(get_settings().groq_api_key.get_secret_value().strip())
     provider_status = "insufficient_data" if not observed else "not_requested" if configured else "not_configured"
     summary = {
         "status": "ready", "mode": "template_fallback", "text": " ".join(facts.values()),
@@ -220,7 +235,7 @@ def _period_summary(name: str, frm: datetime, to: datetime, k: dict, revision: s
         eligible["NO_SHOW"] = facts["NO_SHOW"]
 
     recommendations = _applicable_recommendations(k)
-    selection = gemini.select_facts(k, list(eligible), list(recommendations))
+    selection = groq.select_facts(k, list(eligible), list(recommendations))
     if selection is None:
         summary["provider_status"] = "unavailable"
         return summary, []
