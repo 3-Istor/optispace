@@ -1,0 +1,5 @@
+.gemini-key.xml
+.gemini-key.xml.*.tmp
+*.sqlite3*
+*.log
+verified-cases.json

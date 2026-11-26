@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import check_database_connection, is_database_enabled
 from app.errors import DomainError, domain_error_handler
-from app.routers import alerts, devices, insights, me, notifications, push, reservations, spaces, staff, telemetry
+from app.routers import alerts, devices, insights, me, notifications, push, reports, reservations, spaces, staff, telemetry
 from app.routers import settings as settings_routes
 
 settings = get_settings()
@@ -16,7 +16,7 @@ if settings.dev_fake_user and settings.oidc_issuer:
 app = FastAPI(title="OptiSpace API", docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
 app.add_exception_handler(DomainError, domain_error_handler)
 for module in (
-    me, settings_routes, spaces, reservations, alerts, notifications, push, devices, insights, telemetry, staff,
+    me, settings_routes, spaces, reservations, alerts, notifications, push, devices, insights, reports, telemetry, staff,
 ):
     app.include_router(module.router, prefix="/api/v1")
 
