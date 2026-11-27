@@ -1,4 +1,6 @@
 from functools import lru_cache
+
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +26,8 @@ class Settings(BaseSettings):
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:support@3istor.com"
+    gemini_api_key: SecretStr = SecretStr("")
+    gemini_model: str = "gemini-3.1-flash-lite"
 
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), env_file_encoding="utf-8")
 

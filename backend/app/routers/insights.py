@@ -26,3 +26,16 @@ def read_insights(
     400 INVALID_PERIOD for bounds off the minute or from >= to."""
     booking.space_in(db, space_id, user.organization)
     return insights.compute(db, space_id, frm, to, clock.now())
+
+
+@router.post("/spaces/{space_id}/insights/summary")
+def generate_summary(
+    space_id: UUID,
+    frm: AwareDatetime = Query(alias="from"),
+    to: AwareDatetime = Query(),
+    user: AppUser = Depends(require_fm),
+    db: Session = Depends(get_db),
+):
+    """Generate a summary for the selected space and period on demand."""
+    booking.space_in(db, space_id, user.organization)
+    return insights.compute(db, space_id, frm, to, clock.now(), assist_summary=True)
