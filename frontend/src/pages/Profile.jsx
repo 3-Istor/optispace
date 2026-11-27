@@ -50,7 +50,7 @@ export function Profile({ me, setMe }) {
         <div className="line" key={key}>
           <span>{label}</span>
           <button type="button" role="switch" className="tog" aria-checked={!!me[key]} aria-label={label}
-            style={{ background: me[key] ? '#6D28D9' : '#C9D0DA' }} onClick={() => toggle(key)}><span /></button>
+            style={{ background: me[key] ? '#BE185D' : '#C9D0DA' }} onClick={() => toggle(key)}><span /></button>
         </div>
       ))}
     </section>

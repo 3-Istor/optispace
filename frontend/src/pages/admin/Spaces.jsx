@@ -49,7 +49,7 @@ function deviceText(d) {
 
 const tabStyle = (on) => ({
   height: 38, padding: 0, border: 0, background: 'transparent', font: 'inherit', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-  borderBottom: `2px solid ${on ? '#6D28D9' : 'transparent'}`, color: on ? '#0E1726' : '#5B6676', marginBottom: -1,
+  borderBottom: `2px solid ${on ? '#BE185D' : 'transparent'}`, color: on ? '#0E1726' : '#5B6676', marginBottom: -1,
 })
 
 // AdminSalles.dc.html: table, detail panel (Détails / Historique) and the create/edit drawer.
@@ -241,9 +241,9 @@ function History({ space }) {
     const day1 = +fromParis(next, '00:00')
     const reservations = [...(data.reservations ?? [])].sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at))
     const episodes = data.episodes ?? []
-    const booked = reservations.filter((r) => r.status !== 'cancelled').map((r) => [Date.parse(r.start_at), Date.parse(r.released_at ?? r.end_at), '#C4B5FD'])
+    const booked = reservations.filter((r) => r.status !== 'cancelled').map((r) => [Date.parse(r.start_at), Date.parse(r.released_at ?? r.end_at), '#F9A8D4'])
     const absent = episodes.map((e) => [Date.parse(e.opened_at), Date.parse(e.closed_at ?? e.deadline_at), '#F2C59A'])
-    const present = presenceSpans(data.observations ?? []).map(([a, b]) => [a, b, '#6D28D9'])
+    const present = presenceSpans(data.observations ?? []).map(([a, b]) => [a, b, '#BE185D'])
     const all = [...booked, ...absent, ...present]
     // Working hours by default, widened to whole hours around the day's events.
     const lo = Math.max(day0, Math.min(day0 + 8 * H, ...all.map(([a]) => Math.floor(a / H) * H)))
@@ -260,7 +260,7 @@ function History({ space }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 14px' }}>
-          <Swatch color="#C4B5FD">Réservée</Swatch><Swatch color="#F2C59A">Épisode d’absence</Swatch><Swatch color="#6D28D9">Présence détectée</Swatch>
+          <Swatch color="#F9A8D4">Réservée</Swatch><Swatch color="#F2C59A">Épisode d’absence</Swatch><Swatch color="#BE185D">Présence détectée</Swatch>
         </div>
         {!reservations.length && (
           <p className="muted" style={{ margin: 0, fontSize: 12, lineHeight: 1.45 }}>
@@ -270,7 +270,7 @@ function History({ space }) {
         <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
           {reservations.map((r) => (
             <li key={r.id} style={{ display: 'flex', gap: 10 }}>
-              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 5, flex: 'none', background: r.status === 'cancelled' ? '#C9D0DA' : r.status === 'released' ? '#D9771F' : '#6D28D9' }} />
+              <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 5, flex: 'none', background: r.status === 'cancelled' ? '#C9D0DA' : r.status === 'released' ? '#D9771F' : '#BE185D' }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
                 <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                   <span style={{ fontSize: 13, fontWeight: 500 }}>{r.booker_name ? `Réservation de ${r.booker_name}` : 'Réservation'}</span>
@@ -374,7 +374,7 @@ function SpaceForm({ space, settings, onClose, onSaved }) {
               <span className="lbl">Statut</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 10, height: 36 }}>
                 <button type="button" role="switch" className="tog" aria-checked={f.is_active} aria-label="Espace actif"
-                  style={{ background: f.is_active ? '#6D28D9' : '#C9D0DA' }} onClick={() => set({ is_active: !f.is_active })}><span /></button>
+                  style={{ background: f.is_active ? '#BE185D' : '#C9D0DA' }} onClick={() => set({ is_active: !f.is_active })}><span /></button>
                 <span style={{ fontWeight: 500 }}>{f.is_active ? 'Actif' : 'Hors service'}</span>
               </span>
             </div>
