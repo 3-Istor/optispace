@@ -22,8 +22,13 @@ try {
   assert.match(empty, /disabled=""[^>]*>Générer la synthèse/)
   assert.match(empty, /Aucune mesure de présence disponible/)
   assert.match(empty, /Consulter les 7 derniers jours/)
+  assert.match(empty, /aria-describedby="summary-no-measures"/)
+  assert.match(empty, /La génération est désactivée/)
   assert.doesNotMatch(empty, /Texte de repli sans observation|Gabarit OptiSpace/)
   assert.doesNotMatch(render(insights, '7d'), /Consulter les 7 derniers jours/)
+  assert.match(render(insights, '7d'), /Consulter les 30 derniers jours/)
+  assert.match(render(insights, '30d'), /Vérifiez le boîtier/)
+  assert.doesNotMatch(render(insights, '30d'), /Consulter les (7|30) derniers jours/)
 
   const available = { ...insights, kpis: { observed_min: 60 }, source_mode: 'simulated',
     summary: { provider_status: 'not_configured' } }

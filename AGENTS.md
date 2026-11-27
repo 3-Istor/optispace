@@ -12,9 +12,10 @@ A CNP app made from the FastAPI + React template: a FastAPI backend, a React
 ## Commands
 
 - First time: `make install` (backend venv in `backend/.venv`, frontend `node_modules`)
-- Check everything: `make check` (backend tests, then frontend build). Run it
+- Check everything: `make check` (backend tests, local demo regression tests, then frontend build). Run it
   before calling a task done, and show its output.
 - The Windows FM demo runs with `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/local-demo/Start-OptiSpace.ps1` after dependency installation. Setup and simulated-data options are documented in `scripts/local-demo/README.md`.
+- Each normal demo startup appends completed weekdays after the last observation, within the last eight weeks, preserving existing records and days with bookings. It does not simulate live telemetry; use the 7-day summary. Fixed acceptance datasets are unchanged.
 - Groq powers both the short dashboard summary and the full FM report. Configure `GROQ_API_KEY` and optional `GROQ_MODEL` (default `openai/gpt-oss-120b`) on the backend. For Windows, save the local key with `scripts/local-demo/Configurer-Groq.cmd`, then start the launcher; Groq is used automatically. `-WithoutAI` disables generation. Retired Gemini settings are ignored; keys remain server-side.
 - AIAD acceptance: run `backend/.venv/Scripts/python.exe scripts/local-demo/verify_aiad.py` on Windows (use `.venv/bin/python` on Unix). The launcher options `-VerifyAIAD` and `-AIADData` respectively run the acceptance with the configured provider and open its fixed dataset. See `scripts/local-demo/README.md` for setup and acceptance commands.
 - KPI/PDF performance: `scripts/local-demo/benchmark_report.py` seeds an isolated synthetic SQLite database and measures calculation, PDF rendering and process peak memory separately, with AI disabled. Compare complete snapshots with `--compare`; use fresh processes for before/after runs. Commands and limits are in `scripts/local-demo/README.md`.

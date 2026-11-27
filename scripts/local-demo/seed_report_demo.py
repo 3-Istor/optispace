@@ -2,9 +2,7 @@
 from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
-import sys
-
-from sqlalchemy import insert, select
+from sqlalchemy import func, insert, select
 
 from app import clock
 from app.database import SessionLocal
@@ -12,37 +10,55 @@ from app.models import AbsenceEpisode, AppUser, Device, Observation, Reservation
 from app.models.enums import EpisodeKind, EpisodeOutcome, ObservationKind, Presence, ReservationStatus, SealState, Source, SpaceType
 
 PARIS = ZoneInfo("Europe/Paris")
-today = clock.now().astimezone(PARIS).date()
-beginning = today - timedelta(days=56)
 
-with SessionLocal() as db:
-    if db.scalar(select(AppUser.id).where(AppUser.keycloak_sub == "fm-report-simulated-booker")):
-        print("Données FM de démonstration déjà présentes.")
-        sys.exit(0)
-    user = AppUser(keycloak_sub="fm-report-simulated-booker", organization="demo-a")
-    db.add(user)
-    db.flush()
+
+def seed_demo(db, today):
+    """Append completed weekdays; never replace existing demo or user records."""
+    beginning = today - timedelta(days=56)
+    user = db.scalar(select(AppUser).where(AppUser.keycloak_sub == "fm-report-simulated-booker"))
+    initial = user is None
+    if initial:
+        user = AppUser(keycloak_sub="fm-report-simulated-booker", organization="demo-a")
+        db.add(user)
+        db.flush()
+    if user.organization != "demo-a":
+        raise ValueError("Le compte de démonstration n'appartient plus à demo-a.")
+    added_days = 0
     for index, (name, equipment) in enumerate([
         ("Horizon (démo)", ["Écran", "Visioconférence", "Tableau blanc"]),
         ("Orion (démo)", ["Écran", "Tableau blanc"]),
         ("Atelier (démo)", []),
         ("Azur (démo - couverture partielle)", ["Écran"]),
     ]):
-        room = Space(organization="demo-a", name=name, type=SpaceType.MEETING_ROOM, capacity=6,
-                     floor=1, equipment=equipment, description="Données fictives pour tester le rapport FM.")
-        db.add(room)
-        db.flush()
-        device = Device(id=f"fm-demo-{index}", space_id=room.id, seal=SealState.UNSEALED)
-        db.add(device)
-        db.flush()
+        if initial:
+            room = Space(organization="demo-a", name=name, type=SpaceType.MEETING_ROOM, capacity=6,
+                         floor=1, equipment=equipment, description="Données fictives pour tester le rapport FM.")
+            db.add(room)
+            db.flush()
+            device = Device(id=f"fm-demo-{index}", space_id=room.id, seal=SealState.UNSEALED)
+            db.add(device)
+            db.flush()
+        else:
+            device = db.get(Device, f"fm-demo-{index}")
+            room = db.get(Space, device.space_id) if device and device.space_id else None
+            if room is None or room.organization != "demo-a" or not room.is_active:
+                continue
+        latest = db.scalar(select(func.max(Observation.observed_at)).where(Observation.space_id == room.id))
+        resume = max(beginning, latest.astimezone(PARIS).date() + timedelta(days=1)) if latest else beginning
         for offset in range(56):
             day = beginning + timedelta(days=offset)
-            if day.weekday() >= 5:
+            if day < resume or day.weekday() >= 5:
                 continue
             week = offset // 7
             delay = [3, 9 - min(week // 2, 3), 5, 5][index]
             end_morning, end_afternoon = [(12, 18), (12, 17), (11, 16), (12, 17)][index]
             midnight = datetime.combine(day, time(), PARIS)
+            # An existing booking may have been created manually for a demo. Leave its day alone.
+            if db.scalar(select(Reservation.id).where(
+                Reservation.space_id == room.id, Reservation.start_at < midnight + timedelta(days=1),
+                Reservation.end_at > midnight,
+            ).limit(1)):
+                continue
             first = Reservation(space_id=room.id, user_id=user.id, start_at=midnight + timedelta(hours=9),
                                 end_at=midnight + timedelta(hours=end_morning), status=ReservationStatus.ACTIVE)
             second = Reservation(space_id=room.id, user_id=user.id, start_at=first.start_at + timedelta(hours=5),
@@ -82,6 +98,13 @@ with SessionLocal() as db:
                     "observed_at": when, "received_at": when, "clock_synced": True, "source": Source.SIMULATED,
                 })
             db.execute(insert(Observation), observations)
-        print(f"{name} - 8 semaines simulées")
+            added_days += 1
     db.commit()
-print(f"Période de démonstration du {beginning.isoformat()} au {(today - timedelta(days=1)).isoformat()} inclus.")
+    print(f"Démonstration actualisée jusqu'au {(today - timedelta(days=1)).isoformat()} : "
+          f"{added_days} journée(s) de salle ajoutée(s), historique conservé.")
+    return added_days
+
+
+if __name__ == "__main__":
+    with SessionLocal() as db:
+        seed_demo(db, clock.now().astimezone(PARIS).date())

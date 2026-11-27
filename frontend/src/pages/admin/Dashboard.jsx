@@ -158,7 +158,8 @@ export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
         <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse de la salle</h2>
         {generated && hasMeasures && <span className="muted" style={{ fontSize: 12 }}>{assisted ? 'Assistée par Groq' : 'Synthèse par règles OptiSpace'}</span>}
-        <Button variant="p" style={{ marginLeft: 'auto' }} disabled={!hasMeasures} busy={busy} onClick={generate}>
+        <Button variant="p" style={{ marginLeft: 'auto' }} disabled={!hasMeasures} busy={busy} onClick={generate}
+          aria-describedby={ins && !hasMeasures ? 'summary-no-measures' : undefined}>
           {busy ? 'Génération en cours…' : 'Générer la synthèse'}
         </Button>
       </div>
@@ -174,8 +175,10 @@ export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
           {details.source_mode && ` · ${SOURCES[details.source_mode] ?? details.source_mode}`}
         </span>
         {!hasMeasures ? <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
-          <p style={{ margin: 0, lineHeight: 1.6 }}>Aucune mesure de présence disponible sur cette période. Choisissez une période contenant des observations pour générer une synthèse.</p>
+          <p id="summary-no-measures" style={{ margin: 0, lineHeight: 1.6 }}>Aucune mesure de présence disponible sur cette période. La génération est désactivée tant qu’aucune observation n’est disponible.</p>
           {period === 'today' && <Button onClick={() => onPeriodChange('7d')}>Consulter les 7 derniers jours</Button>}
+          {period === '7d' && <Button onClick={() => onPeriodChange('30d')}>Consulter les 30 derniers jours</Button>}
+          {period === '30d' && <p className="muted" style={{ margin: 0 }}>Vérifiez le boîtier de cette salle dans la liste « À traiter », ou sélectionnez une autre salle.</p>}
         </div> : <>
           {providerMessage && <p role="status" style={{ margin: 0, lineHeight: 1.5, color: '#8A4A0E', fontSize: 13 }}>{providerMessage}</p>}
           {error && <p role="alert" style={{ margin: 0 }}>{errorText(error)}</p>}
