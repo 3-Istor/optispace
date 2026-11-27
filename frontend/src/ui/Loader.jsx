@@ -13,10 +13,10 @@ function Symbol() {
           <path d="M440.3 483.4A116 116 0 0 0 500 500A116 116 0 0 1 580 532" fill="none" stroke="#000" strokeWidth="104" />
         </mask>
       </defs>
-      <circle className="boot-dot" cx="500" cy="384" r="52" fill="#38B6FF" />
-      <path className="boot-s" pathLength="1" d="M616 384A116 116 0 1 0 500 500A116 116 0 1 1 384 616" fill="none" stroke="#09234A" strokeWidth="84" mask="url(#boot-s)" />
-      <polygon className="boot-i" points="456.7,500 543.3,500 475,774 388.4,774" fill="#38B6FF" mask="url(#boot-i)" />
-      <path className="boot-s" pathLength="1" d="M440.3 483.4A116 116 0 0 0 500 500A116 116 0 0 1 580 532" fill="none" stroke="#09234A" strokeWidth="84" />
+      <circle className="boot-dot" cx="500" cy="384" r="52" fill="#A78BFA" />
+      <path className="boot-s" pathLength="1" d="M616 384A116 116 0 1 0 500 500A116 116 0 1 1 384 616" fill="none" stroke="#2E1065" strokeWidth="84" mask="url(#boot-s)" />
+      <polygon className="boot-i" points="456.7,500 543.3,500 475,774 388.4,774" fill="#A78BFA" mask="url(#boot-i)" />
+      <path className="boot-s" pathLength="1" d="M440.3 483.4A116 116 0 0 0 500 500A116 116 0 0 1 580 532" fill="none" stroke="#2E1065" strokeWidth="84" />
     </svg>
   )
 }

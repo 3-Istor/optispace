@@ -42,7 +42,7 @@ export function Tick({ bad = false, size = 16 }) {
 export const Arc = () => (
   <svg className="arc" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
     <path d="M12 3a9 9 0 1 0 9 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-    <circle cx="12" cy="3" r="2.8" fill="#38B6FF" />
+    <circle cx="12" cy="3" r="2.8" fill="#A78BFA" />
   </svg>
 )
 

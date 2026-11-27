@@ -4,7 +4,7 @@ import { Icon, ICONS } from '../ui/Icon.jsx'
 // The single blocking-error template of Erreurs.dc.html. home: the action goes to "/", logout: to the gateway's /logout, else it reloads; no action: none.
 const KINDS = {
   notFound: {
-    code: 'ERREUR 404', icon: ICONS.notFound, dot: '#1E56D6', home: true, action: 'Trouver un espace',
+    code: 'ERREUR 404', icon: ICONS.notFound, dot: '#6D28D9', home: true, action: 'Trouver un espace',
     title: 'Cette page n’existe pas.', text: 'Le lien est peut-être erroné ou la page a été déplacée.',
   },
   forbidden: {

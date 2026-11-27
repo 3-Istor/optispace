@@ -55,7 +55,7 @@ export const NOTIFICATIONS = {
     text: (p) => `Le boîtier de ${p.space_name} est hors ligne depuis ${fmtTime(p.at)}.`,
   },
   DEVICE_SEALED: {
-    title: 'Boîtier rescellé', color: '#2F6FE0',
+    title: 'Boîtier rescellé', color: '#7C3AED',
     text: (p) => `Le boîtier de ${p.space_name} a été rescellé.`,
   },
 }
