@@ -77,7 +77,7 @@ function HourChart({ hourly, days, low }) {
     <section className="card" aria-labelledby="chart-h" style={{ alignSelf: 'stretch', padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '6px 14px' }}>
         <h2 id="chart-h" style={{ fontSize: 15 }}>Minutes réservées et réellement utilisées</h2>
-        <span style={{ display: 'flex', gap: 14 }}><Swatch color="#C9D6F5">Réservé</Swatch><Swatch color="#1E56D6">Utilisé</Swatch></span>
+        <span style={{ display: 'flex', gap: 14 }}><Swatch color="#FBCFE8">Réservé</Swatch><Swatch color="#BE185D">Utilisé</Swatch></span>
       </div>
       <div className="chart" role="img" aria-label={`Par heure, de ${lo} h à ${hours.at(-1) + 1} h : ${total(0)} réservées, ${total(1)} utilisées.`}>
         <span className="chart-top num">{fmtDuration(top)}</span>

@@ -147,7 +147,7 @@ export function Devices({ me }) {
               return (
                 <li key={d.id}>
                   <button type="button" className="row" aria-pressed={on} onClick={() => setSelId(d.id)}
-                    style={{ width: '100%', minHeight: 44, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '4px 12px', padding: '11px 16px', border: 0, background: on ? '#F3F6FD' : 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
+                    style={{ width: '100%', minHeight: 44, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '4px 12px', padding: '11px 16px', border: 0, background: on ? '#FDF2F8' : 'transparent', font: 'inherit', color: 'inherit', textAlign: 'left' }}>
                     <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, lineHeight: 1.35 }}>
                       <span style={{ fontWeight: 500 }}>{d.space?.name ?? 'Non affecté'}{place(d) && <span className="muted" style={{ fontWeight: 400 }}> · {place(d)}</span>}</span>
                       <span className="num" style={MONO}>{d.id}</span>
@@ -193,7 +193,7 @@ export function Devices({ me }) {
                   style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: i === step ? 500 : 400, color: i === step ? '#0E1726' : i < step ? '#3A4555' : '#8A94A3' }}>
                   <span aria-hidden="true" style={{
                     width: 22, height: 22, borderRadius: 6, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600,
-                    ...(i < step ? { background: '#1E56D6', color: '#FFFFFF' } : i === step ? { background: '#EAF0FD', color: '#1747B3', boxShadow: 'inset 0 0 0 1px #BCD0F7' } : { background: '#F1F3F6', color: '#8A94A3' }),
+                    ...(i < step ? { background: '#BE185D', color: '#FFFFFF' } : i === step ? { background: '#FDF2F8', color: '#831843', boxShadow: 'inset 0 0 0 1px #FBCFE8' } : { background: '#F1F3F6', color: '#8A94A3' }),
                   }}>{i < step ? '✓' : i + 1}</span>
                   {label}{i < step && <span className="sr-only"> (fait)</span>}
                 </li>
