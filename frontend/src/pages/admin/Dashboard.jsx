@@ -2,15 +2,18 @@ import { useCallback, useState } from 'react'
 import { api } from '../../api.js'
 import { DEVICE_STATES, deviceState, errorText, floorLabel, WARNINGS } from '../../messages.js'
 import { Link } from '../../router.jsx'
-import { dayLabel, fmtAgo, fmtDuration, fmtTime, fromParis, toParis } from '../../time.js'
+import { dayLabel, fmtAgo, fmtDuration, fmtLongDay, fmtTime, fromParis, toParis } from '../../time.js'
 import { usePolling } from '../../usePolling.js'
+import { Button } from '../../ui/Button.jsx'
 import { EmptyState } from '../../ui/EmptyState.jsx'
 import { Icon, ICONS } from '../../ui/Icon.jsx'
 import { Loader } from '../../ui/Loader.jsx'
 import { Count } from '../../ui/motion.jsx'
 import { PageHeader } from '../../ui/Shell.jsx'
+import { UsageReport } from './UsageReport.jsx'
 
 const PERIODS = { today: ['Aujourd’hui', 1], '7d': ['7 jours', 7], '30d': ['30 jours', 30] }
+const SOURCES = { simulated: 'Données simulées', real: 'Données réelles', mixed: 'Données mixtes' }
 const TODO = ['new', 'offline', 'sealed']
 const byName = (a, b) => a.name.localeCompare(b.name, 'fr')
 
@@ -121,10 +124,108 @@ function todo(d) {
   return [`${d.space?.name ?? d.id} hors ligne`, `Dernière connexion ${fmtAgo(d.last_seen_at)}.`]
 }
 
+export function PeriodSummary({ ins, loadError, period, onPeriodChange }) {
+  const [generated, setGenerated] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState(null)
+  const assisted = generated?.summary?.mode === 'llm_assisted'
+  const recos = generated?.recommendations ?? []
+  const details = generated ?? ins
+  const hasMeasures = ins?.kpis.observed_min > 0
+  const provider = details?.summary?.provider_status
+  const providerMessage = {
+    not_configured: 'Clé Groq absente de la configuration du serveur. La synthèse disponible utilise les règles OptiSpace.',
+    unavailable: 'Groq est indisponible ou sa réponse a été rejetée. La synthèse affichée utilise les règles OptiSpace. Vous pouvez réessayer.',
+  }[provider]
+  const noShows = Array.isArray(details?.no_shows) ? details.no_shows : []
+  const sub = { display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }
+
+  async function generate() {
+    if (!hasMeasures || busy) return
+    setBusy(true)
+    setError(null)
+    try {
+      setGenerated(await api.post(ins.summaryPath))
+    } catch (error) {
+      setError(error)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="card" aria-labelledby="syn-h" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+        <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse de la salle</h2>
+        {generated && hasMeasures && <span className="muted" style={{ fontSize: 12 }}>{assisted ? 'Assistée par Groq' : 'Synthèse par règles OptiSpace'}</span>}
+        <Button variant="p" style={{ marginLeft: 'auto' }} disabled={!hasMeasures} busy={busy} onClick={generate}
+          aria-describedby={ins && !hasMeasures ? 'summary-no-measures' : undefined}>
+          {busy ? 'Génération en cours…' : 'Générer la synthèse'}
+        </Button>
+      </div>
+      {!ins ? <span className="muted" style={{ fontSize: 13 }}>{loadError ? errorText(loadError) : 'Calcul des indicateurs en cours.'}</span> : <>
+        <label style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, fontSize: 13 }}>
+          Période analysée
+          <select className="input" aria-label="Période de la synthèse" value={period} onChange={(event) => onPeriodChange(event.target.value)}>
+            {Object.entries(PERIODS).map(([key, [label]]) => <option key={key} value={key}>{label}</option>)}
+          </select>
+        </label>
+        <span className="muted" style={{ fontSize: 12 }}>
+          Du {fmtLongDay(details.period.from).toLowerCase()} à {fmtTime(details.period.from)} au {fmtLongDay(details.period.to).toLowerCase()} à {fmtTime(details.period.to)}
+          {details.source_mode && ` · ${SOURCES[details.source_mode] ?? details.source_mode}`}
+        </span>
+        {!hasMeasures ? <div role="status" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 10 }}>
+          <p id="summary-no-measures" style={{ margin: 0, lineHeight: 1.6 }}>Aucune mesure de présence disponible sur cette période. La génération est désactivée tant qu’aucune observation n’est disponible.</p>
+          {period === 'today' && <Button onClick={() => onPeriodChange('7d')}>Consulter les 7 derniers jours</Button>}
+          {period === '7d' && <Button onClick={() => onPeriodChange('30d')}>Consulter les 30 derniers jours</Button>}
+          {period === '30d' && <p className="muted" style={{ margin: 0 }}>Vérifiez le boîtier de cette salle dans la liste « À traiter », ou sélectionnez une autre salle.</p>}
+        </div> : <>
+          {providerMessage && <p role="status" style={{ margin: 0, lineHeight: 1.5, color: '#8A4A0E', fontSize: 13 }}>{providerMessage}</p>}
+          {error && <p role="alert" style={{ margin: 0 }}>{errorText(error)}</p>}
+          {generated ? <>
+            <p aria-live="polite" style={{ margin: 0, lineHeight: 1.65 }}>{generated.summary.text}</p>
+          </> : <p className="muted" style={{ margin: 0 }}>Générez une synthèse pour obtenir les constats principaux et une piste à vérifier.</p>}
+          {recos.length > 0 && (
+            <div style={sub}>
+              <span className="lbl">À vérifier</span>
+              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.5 }}>
+                {recos.map((r, i) => <li key={i}>{r?.title ? <><strong style={{ fontWeight: 600 }}>{r.title}</strong>{r.text && ` · ${r.text}`}</> : text(r)}</li>)}
+              </ul>
+            </div>
+          )}
+          {noShows.length > 0 && (
+            <div style={sub}>
+              <span className="lbl">Réservations sans personne</span>
+              <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }} className="num">
+                {noShows.map((r, i) => (
+                  <li key={r.reservation_id ?? i}>
+                    {r.start_at ? `${dayLabel(r.start_at).toLowerCase()}, ${fmtTime(r.start_at)} à ${fmtTime(r.end_at)}` : text(r)}
+                    {r.start_at && (r.released_at ? `, libérée à ${fmtTime(r.released_at)}` : ', non libérée')}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {details.warnings?.length > 0 && (
+            <ul aria-label="Avertissements" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {details.warnings.map((w, i) => (
+                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, color: '#8A4A0E', fontSize: 12, lineHeight: 1.45 }}>
+                  <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none', marginTop: 1 }} />{WARNINGS[w] ?? text(w)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </>}
+      </>}
+    </section>
+  )
+}
+
 // Figures first, then the hourly chart and the live state, then the written summary. The figures come from
 // GET /spaces/{id}/insights; only the coverage guard and the reserved-and-used rate are worked out here.
 export function Dashboard() {
   const live = usePolling(loadLive, 5000)
+  const [view, setView] = useState('analysis')
   const [picked, setPicked] = useState(null)
   const [period, setPeriod] = useState('today')
   const spaceId = picked ?? live.data?.spaces[0]?.id
@@ -136,7 +237,8 @@ export function Dashboard() {
     // At least one minute after from: "Aujourd’hui" just after midnight would otherwise send from == to.
     const to = new Date(Math.max(+from + 6e4, Math.floor(Date.now() / 6e4) * 6e4))
     const q = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() })
-    return { key: `${spaceId}|${period}`, ...(await api.get(`/spaces/${spaceId}/insights?${q}`)) }
+    const path = `/spaces/${spaceId}/insights`
+    return { key: `${spaceId}|${period}`, ...(await api.get(`${path}?${q}`)), summaryPath: `${path}/summary?${q}` }
   }, [spaceId, period])
   // ponytail: recomputed server-side on each call, so 60 s instead of the 5 s live polling.
   const insights = usePolling(loadInsights, 60000)
@@ -144,7 +246,7 @@ export function Dashboard() {
   const { spaces = [], devices = [] } = live.data ?? {}
   const header = (
     <PageHeader title="Tableau de bord">
-      {spaces.length > 0 && <>
+      {view === 'live' && spaces.length > 0 && <>
         <select className="input" aria-label="Espace" value={spaceId} onChange={(e) => setPicked(e.target.value)} style={{ maxWidth: '100%' }}>
           {spaces.map((sp) => <option key={sp.id} value={sp.id}>{sp.name}{sp.is_active === false ? ' (hors service)' : ''}</option>)}
         </select>
@@ -162,18 +264,20 @@ export function Dashboard() {
   }
 
   const ins = insights.data?.key === key ? insights.data : null
-  const llm = ins?.summary?.mode === 'llm_assisted'
-  const recos = ins?.recommendations ?? []
-  const noShows = Array.isArray(ins?.no_shows) ? ins.no_shows : []
   const pending = devices.filter((d) => TODO.includes(deviceState(d))).sort((a, b) => TODO.indexOf(deviceState(a)) - TODO.indexOf(deviceState(b)))
   const equipped = new Set(devices.map((d) => d.space?.id))
   const active = spaces.filter((sp) => sp.is_active !== false)
   const floors = [...new Set(active.map((sp) => sp.floor))].sort((a, b) => a - b)
-  const sub = { display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12, borderTop: '1px solid #EEF1F5' }
 
   return (
     <>
       {header}
+      <div className="fm-view-switch" role="group" aria-label="Vue du tableau de bord">
+        <button type="button" aria-pressed={view === 'analysis'} onClick={() => setView('analysis')}><Icon d={ICONS.dashboard} />Analyse des espaces</button>
+        <button type="button" aria-pressed={view === 'live'} onClick={() => setView('live')}><Icon d={ICONS.spaces} />Suivi des salles</button>
+      </div>
+      <div hidden={view !== 'analysis'}><UsageReport spaces={spaces} /></div>
+      <div className="fm-live-view" hidden={view !== 'live'}>
       {!ins ? (
         insights.error ? <EmptyState title="Indicateurs indisponibles">{errorText(insights.error)}</EmptyState> : <Loader label="Calcul des indicateurs" />
       ) : (
@@ -208,45 +312,7 @@ export function Dashboard() {
       </div>
 
       <div className="cols-2">
-        <section className="card" aria-labelledby="syn-h" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-            <h2 id="syn-h" style={{ fontSize: 15 }}>Synthèse</h2>
-            {ins?.summary && <span className="muted" style={{ fontSize: 12 }}>{llm ? 'Rédigée par l’IA' : 'Rédigée automatiquement'}</span>}
-          </div>
-          {!ins ? <span className="muted" style={{ fontSize: 13 }}>{insights.error ? errorText(insights.error) : 'Calcul en cours.'}</span> : <>
-            <p style={{ margin: 0, lineHeight: 1.65 }}>{ins.summary?.text || 'Aucune synthèse pour cette période.'}</p>
-            <div style={sub}>
-              <span className="lbl">Recommandations</span>
-              {recos.length ? (
-                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 6, lineHeight: 1.5 }}>
-                  {recos.map((r, i) => <li key={i}>{r?.title ? <><strong style={{ fontWeight: 600 }}>{r.title}</strong>{r.text && ` : ${r.text}`}</> : text(r)}</li>)}
-                </ul>
-              ) : <span className="muted" style={{ fontSize: 13 }}>Aucune recommandation pour cette période.</span>}
-            </div>
-            {noShows.length > 0 && (
-              <div style={sub}>
-                <span className="lbl">Réservations sans personne</span>
-                <ul style={{ margin: 0, paddingLeft: 18, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13 }} className="num">
-                  {noShows.map((r, i) => (
-                    <li key={r.reservation_id ?? i}>
-                      {r.start_at ? `${dayLabel(r.start_at).toLowerCase()}, ${fmtTime(r.start_at)} à ${fmtTime(r.end_at)}` : text(r)}
-                      {r.start_at && (r.released_at ? `, libérée à ${fmtTime(r.released_at)}` : ', non libérée')}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {ins.warnings?.length > 0 && (
-              <ul aria-label="Avertissements" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {ins.warnings.map((w, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, color: '#8A4A0E', fontSize: 12, lineHeight: 1.45 }}>
-                    <Icon d={ICONS.warn} size={14} style={{ color: '#D9771F', flex: 'none', marginTop: 1 }} />{WARNINGS[w] ?? text(w)}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </>}
-        </section>
+        <PeriodSummary key={key} ins={ins} loadError={insights.error} period={period} onPeriodChange={setPeriod} />
         <section className="card" aria-labelledby="todo-h" style={{ padding: '8px 0' }}>
           <h2 id="todo-h" style={{ fontSize: 15, padding: '12px 18px 6px' }}>À traiter</h2>
           {pending.length ? (
@@ -269,6 +335,7 @@ export function Dashboard() {
             </ul>
           ) : <p className="muted" style={{ margin: 0, padding: '4px 18px 14px', fontSize: 13, lineHeight: 1.5 }}>Rien à traiter : tous les boîtiers sont affectés, descellés et en ligne.</p>}
         </section>
+      </div>
       </div>
     </>
   )

@@ -1,4 +1,6 @@
 from functools import lru_cache
+
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,8 +26,17 @@ class Settings(BaseSettings):
     vapid_public_key: str = ""
     vapid_private_key: str = ""
     vapid_subject: str = "mailto:support@3istor.com"
+    groq_api_key: SecretStr = SecretStr("")
+    groq_model: str = "openai/gpt-oss-120b"
 
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), env_file_encoding="utf-8")
+
+    @model_validator(mode="before")
+    @classmethod
+    def ignore_retired_ai_settings(cls, values):
+        # Old dotenv files must still load; these values never configure a request.
+        retired = {"gemini_api_key", "gemini_model", "report_ai_provider"}
+        return {key: value for key, value in values.items() if key.lower() not in retired}
 
     @property
     def database_url(self) -> str | None:

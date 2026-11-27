@@ -61,7 +61,7 @@ def frozen_clock(monkeypatch):
 @pytest.fixture
 def settings_env(monkeypatch):
     def set_env(**values):
-        for name, value in {"DEV_FAKE_USER": "", **values}.items():
+        for name, value in {"DEV_FAKE_USER": "", "GROQ_API_KEY": " ", "GROQ_MODEL": "openai/gpt-oss-120b", **values}.items():
             monkeypatch.setenv(name, value)  # environment variables win over .env
         get_settings.cache_clear()
 

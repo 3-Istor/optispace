@@ -9,6 +9,7 @@ install:
 
 check:
 	cd backend && $(PYTHON) -m pytest -q
+	cd backend && $(PYTHON) -m pytest ../scripts/local-demo/test_seed_report_demo.py -p app.conftest -q
 	cd frontend && npm run build
 
 migrate:
