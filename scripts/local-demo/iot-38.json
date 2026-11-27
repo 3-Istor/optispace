@@ -1,0 +1,237 @@
+{
+  "version": "0.1",
+  "source_mode": "simulated",
+  "display_timezone": "Europe/Paris",
+  "rules": [
+    "DEC-001",
+    "DEC-002"
+  ],
+  "cases": [
+    {
+      "id": "J-01",
+      "title": "Occupation, absence initiale et libération",
+      "references": [
+        "J-01",
+        "IOT-37 R-01 à R-03"
+      ],
+      "input": {
+        "space_id": "salle-a",
+        "period": {
+          "from": "2026-11-10T08:00:00Z",
+          "to": "2026-11-10T11:00:00Z"
+        },
+        "calendar_status": "known",
+        "reservations": [
+          { "id": "RES-A", "start_at": "2026-11-10T08:00:00Z", "end_at": "2026-11-10T09:00:00Z", "status": "active", "released_at": null },
+          { "id": "RES-B", "start_at": "2026-11-10T10:00:00Z", "end_at": "2026-11-10T11:00:00Z", "status": "released", "released_at": "2026-11-10T10:10:00Z" }
+        ],
+        "observations": [
+          { "id": "OBS-01", "from": "2026-11-10T08:00:00Z", "to": "2026-11-10T09:00:00Z", "state": "occupied" },
+          { "id": "OBS-02", "from": "2026-11-10T09:00:00Z", "to": "2026-11-10T09:30:00Z", "state": "occupied" },
+          { "id": "OBS-03", "from": "2026-11-10T09:30:00Z", "to": "2026-11-10T10:00:00Z", "state": "empty" },
+          { "id": "OBS-04", "from": "2026-11-10T10:00:00Z", "to": "2026-11-10T11:00:00Z", "state": "empty" }
+        ],
+        "absence_episodes": [
+          { "id": "ABS-01", "reservation_id": "RES-B", "kind": "no_show", "notification_at": "2026-11-10T10:05:00Z", "deadline_at": "2026-11-10T10:10:00Z", "closed_at": "2026-11-10T10:10:00Z", "outcome": "released" }
+        ]
+      },
+      "expected": {
+        "kpis": {
+          "period_minutes": 180,
+          "observable_minutes": 180,
+          "unknown_minutes": 0,
+          "occupied_minutes": 90,
+          "occupancy_pct": 50,
+          "coverage_pct": 100,
+          "initial_reserved_minutes": 120,
+          "initial_reserved_pct": 66.7,
+          "occupied_with_reservation_minutes": 60,
+          "occupied_without_reservation_minutes": 30,
+          "released_minutes": 50,
+          "successful_releases": 1,
+          "failed_releases": 0
+        },
+        "absence_check": {
+          "reservation_id": "RES-B",
+          "outcome": "released",
+          "effective_end_at": "2026-11-10T10:10:00Z"
+        },
+        "summary_example": "De 9 h à 12 h, la salle A a été occupée 90 minutes sur 180 observées (50 %), dont 60 avec réservation et 30 sans réservation. Après une absence initiale, 50 minutes de créneau ont été libérées."
+      }
+    },
+    {
+      "id": "J-02",
+      "title": "Données de présence manquantes au début de la réservation",
+      "references": [
+        "J-02",
+        "IOT-37 R-04"
+      ],
+      "input": {
+        "space_id": "salle-a",
+        "period": {
+          "from": "2026-11-10T08:00:00Z",
+          "to": "2026-11-10T11:00:00Z"
+        },
+        "calendar_status": "known",
+        "reservations": [
+          { "id": "RES-A", "start_at": "2026-11-10T08:00:00Z", "end_at": "2026-11-10T09:00:00Z", "status": "active", "released_at": null },
+          { "id": "RES-B", "start_at": "2026-11-10T10:00:00Z", "end_at": "2026-11-10T11:00:00Z", "status": "active", "released_at": null }
+        ],
+        "observations": [
+          { "id": "OBS-01", "from": "2026-11-10T08:00:00Z", "to": "2026-11-10T09:00:00Z", "state": "occupied" },
+          { "id": "OBS-02", "from": "2026-11-10T09:00:00Z", "to": "2026-11-10T09:30:00Z", "state": "occupied" },
+          { "id": "OBS-03", "from": "2026-11-10T09:30:00Z", "to": "2026-11-10T10:00:00Z", "state": "empty" },
+          { "id": "OBS-04", "from": "2026-11-10T10:20:00Z", "to": "2026-11-10T11:00:00Z", "state": "empty" }
+        ],
+        "absence_episodes": []
+      },
+      "expected": {
+        "kpis": {
+          "period_minutes": 180,
+          "observable_minutes": 160,
+          "unknown_minutes": 20,
+          "occupied_minutes": 90,
+          "occupancy_pct": 56.3,
+          "coverage_pct": 88.9,
+          "initial_reserved_minutes": 120,
+          "initial_reserved_pct": 66.7,
+          "occupied_with_reservation_minutes": 60,
+          "occupied_without_reservation_minutes": 30,
+          "released_minutes": 0,
+          "successful_releases": 0,
+          "failed_releases": 0
+        },
+        "absence_check": {
+          "reservation_id": "RES-B",
+          "outcome": "not_evaluable",
+          "effective_end_at": "2026-11-10T11:00:00Z"
+        },
+        "summary_example": "De 9 h à 12 h, la salle A a été occupée 90 minutes sur 160 observées (56,3 %). L’occupation est inconnue pendant 20 minutes, ce qui empêche de conclure sur l’absence initiale pour la seconde réservation."
+      }
+    },
+    {
+      "id": "J-03",
+      "title": "Échec de la libération après absence initiale",
+      "references": [
+        "J-03",
+        "IOT-37 R-06"
+      ],
+      "input": {
+        "space_id": "salle-a",
+        "period": {
+          "from": "2026-11-10T08:00:00Z",
+          "to": "2026-11-10T11:00:00Z"
+        },
+        "calendar_status": "known",
+        "reservations": [
+          { "id": "RES-A", "start_at": "2026-11-10T08:00:00Z", "end_at": "2026-11-10T09:00:00Z", "status": "active", "released_at": null },
+          { "id": "RES-B", "start_at": "2026-11-10T10:00:00Z", "end_at": "2026-11-10T11:00:00Z", "status": "active", "released_at": null }
+        ],
+        "observations": [
+          { "id": "OBS-01", "from": "2026-11-10T08:00:00Z", "to": "2026-11-10T09:00:00Z", "state": "occupied" },
+          { "id": "OBS-02", "from": "2026-11-10T09:00:00Z", "to": "2026-11-10T09:30:00Z", "state": "occupied" },
+          { "id": "OBS-03", "from": "2026-11-10T09:30:00Z", "to": "2026-11-10T10:00:00Z", "state": "empty" },
+          { "id": "OBS-04", "from": "2026-11-10T10:00:00Z", "to": "2026-11-10T11:00:00Z", "state": "empty" }
+        ],
+        "absence_episodes": [
+          { "id": "ABS-01", "reservation_id": "RES-B", "kind": "no_show", "notification_at": "2026-11-10T10:05:00Z", "deadline_at": "2026-11-10T10:10:00Z", "closed_at": "2026-11-10T10:10:00Z", "outcome": "release_blocked" }
+        ]
+      },
+      "expected": {
+        "kpis": {
+          "period_minutes": 180,
+          "observable_minutes": 180,
+          "unknown_minutes": 0,
+          "occupied_minutes": 90,
+          "occupancy_pct": 50,
+          "coverage_pct": 100,
+          "initial_reserved_minutes": 120,
+          "initial_reserved_pct": 66.7,
+          "occupied_with_reservation_minutes": 60,
+          "occupied_without_reservation_minutes": 30,
+          "released_minutes": 0,
+          "successful_releases": 0,
+          "failed_releases": 1
+        },
+        "absence_check": {
+          "reservation_id": "RES-B",
+          "outcome": "release_blocked",
+          "effective_end_at": "2026-11-10T11:00:00Z"
+        },
+        "summary_example": "De 9 h à 12 h, la salle A a été occupée 90 minutes sur 180 observées (50 %). Une tentative de libération après une absence initiale a échoué et le créneau est resté réservé."
+      }
+    },
+    {
+      "id": "J-04",
+      "title": "Aucune observation et calendrier vide confirmé",
+      "references": [
+        "J-04"
+      ],
+      "input": {
+        "space_id": "salle-a",
+        "period": {
+          "from": "2026-11-10T08:00:00Z",
+          "to": "2026-11-10T09:00:00Z"
+        },
+        "calendar_status": "known",
+        "reservations": [],
+        "observations": [],
+        "absence_episodes": []
+      },
+      "expected": {
+        "kpis": {
+          "period_minutes": 60,
+          "observable_minutes": 0,
+          "unknown_minutes": 60,
+          "occupied_minutes": 0,
+          "occupancy_pct": null,
+          "coverage_pct": 0,
+          "initial_reserved_minutes": 0,
+          "initial_reserved_pct": 0,
+          "occupied_with_reservation_minutes": 0,
+          "occupied_without_reservation_minutes": 0,
+          "released_minutes": 0,
+          "successful_releases": 0,
+          "failed_releases": 0
+        },
+        "absence_check": null,
+        "summary_example": "De 9 h à 10 h, l’occupation de la salle A est inconnue faute d’observation exploitable. Le calendrier confirme un créneau sans réservation."
+      }
+    },
+    {
+      "id": "J-05",
+      "title": "Nouvelle livraison des observations et décisions de J-01",
+      "references": [
+        "J-05"
+      ],
+      "replay_of": "J-01",
+      "deliveries": 2
+    },
+    {
+      "id": "R-12",
+      "title": "Calendrier indisponible malgré une occupation observée",
+      "references": [
+        "IOT-37 R-12"
+      ],
+      "input": {
+        "space_id": "salle-a",
+        "period": {
+          "from": "2026-11-10T08:00:00Z",
+          "to": "2026-11-10T09:00:00Z"
+        },
+        "calendar_status": "unavailable",
+        "reservations": null,
+        "observations": [
+          { "id": "OBS-01", "from": "2026-11-10T08:00:00Z", "to": "2026-11-10T09:00:00Z", "state": "occupied" }
+        ],
+        "absence_episodes": []
+      },
+      "expected": {
+        "error": "calendar_unavailable",
+        "kpis": null,
+        "absence_check": null,
+        "summary_example": null
+      }
+    }
+  ]
+}
